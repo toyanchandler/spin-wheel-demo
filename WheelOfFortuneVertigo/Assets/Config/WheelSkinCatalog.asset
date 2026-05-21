@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da49628eadc5b41418b7a518726c92ca, type: 3}
+  m_Name: WheelSkinCatalog
+  m_EditorClassIdentifier: 
+  _spritesByTier:
+  - wheelBase: {fileID: 21300000, guid: cf8fd412fb8dd4c7d8efe0062547ab3c, type: 3}
+    indicator: {fileID: 21300000, guid: 05d2b9a21743c476eba5eac552273dfc, type: 3}
+  - wheelBase: {fileID: 21300000, guid: 04a3b3e923fb3418cbdf9c38baeb02e0, type: 3}
+    indicator: {fileID: 21300000, guid: c2a228fde5d1a49b093237557e636bfa, type: 3}
+  - wheelBase: {fileID: 21300000, guid: 6dc0b0e3311634e6aba71657c52a5cd9, type: 3}
+    indicator: {fileID: 21300000, guid: cc2d51afc3da548c796a2d029716c2ae, type: 3}

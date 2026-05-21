@@ -1,0 +1,28 @@
+[
+  {
+    "label": "16x9",
+    "overlay": "/Users/bengisucay/ComputerUse/vertigo-case/screenshots/visual_audit/16x9_slot_fit_overlay.png",
+    "wheel_bbox": [
+      635.0,
+      187.0,
+      1285.0,
+      837.0
+    ],
+    "pocket_radius_px": 49,
+    "status_top_y": 890,
+    "button_top_y": 962
+  },
+  {
+    "label": "20x9",
+    "overlay": "/Users/bengisucay/ComputerUse/vertigo-case/screenshots/visual_audit/20x9_slot_fit_overlay.png",
+    "wheel_bbox": [
+      875.0,
+      187.0,
+      1525.0,
+      837.0
+    ],
+    "pocket_radius_px": 49,
+    "status_top_y": 890,
+    "button_top_y": 962
+  }
+]

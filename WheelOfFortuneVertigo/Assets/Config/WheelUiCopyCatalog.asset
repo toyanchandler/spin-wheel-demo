@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00f8154c92f0e4545915c2c210e36dff, type: 3}
+  m_Name: WheelUiCopyCatalog
+  m_EditorClassIdentifier: 
+  _winLabelFormat: Won {0}
+  _zones:
+  - zoneType: 0
+    label: STANDARD
+    statusHint: Spin to risk your loot and advance toward safe zones.
+    labelColorKey: 2
+    skinTier: 0
+    panelSpriteName: ui_card_panel_zone_current
+    mapFrameSpriteName: ui_card_zone_map_frame
+    panelSprite: {fileID: 21300000, guid: fb1bcb75db84741f6bf5efee16fd98ad, type: 3}
+    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  - zoneType: 1
+    label: SAFE
+    statusHint: Safe zone. Spin without a bomb or leave with your loot.
+    labelColorKey: 3
+    skinTier: 1
+    panelSpriteName: ui_card_panel_zone_current_white
+    mapFrameSpriteName: ui_card_zone_map_frame
+    panelSprite: {fileID: 21300000, guid: 32a0d709d578d4bb2b0ab5fe22a63aa4, type: 3}
+    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  - zoneType: 2
+    label: SUPER
+    statusHint: Super zone. Spin for premium rewards or leave with your loot.
+    labelColorKey: 4
+    skinTier: 2
+    panelSpriteName: ui_card_panel_zone_super
+    mapFrameSpriteName: ui_card_zone_map_frame
+    panelSprite: {fileID: 21300000, guid: 20751ebbf4f2c4cd79743531fc6f8bfa, type: 3}
+    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  _phases:
+  - phase: 0
+    statusMessage: 
+    hideStatusBar: 0
+    hideOutcomePopup: 1
+    gameplay:
+      allowSpin: 1
+      allowLeave: 1
+      allowRestart: 1
+      publishAllAfterSpin: 1
+      useWinLabelForStatus: 0
+  - phase: 1
+    statusMessage: Spinning...
+    hideStatusBar: 0
+    hideOutcomePopup: 1
+    gameplay:
+      allowSpin: 0
+      allowLeave: 0
+      allowRestart: 0
+      publishAllAfterSpin: 0
+      useWinLabelForStatus: 0
+  - phase: 2
+    statusMessage: 
+    hideStatusBar: 1
+    hideOutcomePopup: 0
+    gameplay:
+      allowSpin: 1
+      allowLeave: 1
+      allowRestart: 1
+      publishAllAfterSpin: 1
+      useWinLabelForStatus: 1
+  - phase: 3
+    statusMessage: 
+    hideStatusBar: 1
+    hideOutcomePopup: 0
+    gameplay:
+      allowSpin: 0
+      allowLeave: 0
+      allowRestart: 1
+      publishAllAfterSpin: 0
+      useWinLabelForStatus: 0
+  - phase: 4
+    statusMessage: 
+    hideStatusBar: 1
+    hideOutcomePopup: 0
+    gameplay:
+      allowSpin: 0
+      allowLeave: 0
+      allowRestart: 1
+      publishAllAfterSpin: 0
+      useWinLabelForStatus: 0
+  _outcomes:
+  - phase: 2
+    title: REWARD
+    resultFallback: Won
+    summary: Added to your run rewards
+    resultColorKey: 0
+    showIcon: 1
+    resultSource: 0
+  - phase: 3
+    title: BOMB
+    resultFallback: Rewards lost
+    summary: Try again
+    resultColorKey: 5
+    showIcon: 1
+    resultSource: 0
+  - phase: 4
+    title: CASHED OUT
+    resultFallback: Cashed out
+    summary: Rewards secured
+    resultColorKey: 6
+    showIcon: 0
+    resultSource: 1
