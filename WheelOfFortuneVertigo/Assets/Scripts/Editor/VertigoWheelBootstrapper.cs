@@ -12,6 +12,7 @@ namespace Vertigo.Wheel.EditorTools
         {
             VertigoWheelAssetPipeline.ConfigureImportedSprites();
             Material material = VertigoWheelAssetPipeline.EnsureUiMaterial();
+            VertigoWheelAssetPipeline.EnsureGameSettings();
             VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
             VertigoWheelAssetPipeline.EnsureSkinCatalog();
             VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
@@ -43,6 +44,7 @@ namespace Vertigo.Wheel.EditorTools
 
             VertigoWheelAssetPipeline.ConfigureImportedSprites();
             Material material = VertigoWheelAssetPipeline.EnsureUiMaterial();
+            VertigoWheelAssetPipeline.EnsureGameSettings();
             VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
             VertigoWheelAssetPipeline.EnsureSkinCatalog();
             VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();

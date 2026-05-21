@@ -12,6 +12,68 @@ namespace Vertigo.Wheel.EditorTools
 {
     internal static class VertigoWheelAssetPipeline
     {
+        public static WheelGameSettings EnsureGameSettings()
+        {
+            Directory.CreateDirectory("Assets/Config");
+            WheelGameSettings settings = AssetDatabase.LoadAssetAtPath<WheelGameSettings>(VertigoWheelPaths.GameSettingsPath);
+            if (settings != null)
+            {
+                return settings;
+            }
+
+            Component legacySettings = FindLegacySceneSettings();
+            settings = ScriptableObject.CreateInstance<WheelGameSettings>();
+            if (legacySettings != null)
+            {
+                EditorUtility.CopySerialized(legacySettings, settings);
+            }
+            else
+            {
+                settings.ResetToDefaults();
+            }
+
+            WireDefaultCatalogs(settings);
+            AssetDatabase.CreateAsset(settings, VertigoWheelPaths.GameSettingsPath);
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+            return settings;
+        }
+
+        private static Component FindLegacySceneSettings()
+        {
+            GameObject legacyRoot = GameObject.Find("game_wheel_settings");
+            if (legacyRoot == null)
+            {
+                return null;
+            }
+
+            Component[] components = legacyRoot.GetComponents<Component>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                if (components[i] == null)
+                {
+                    continue;
+                }
+
+                string typeName = components[i].GetType().Name;
+                if (typeName == "WheelGameSettings")
+                {
+                    return components[i];
+                }
+            }
+
+            return null;
+        }
+
+        private static void WireDefaultCatalogs(WheelGameSettings settings)
+        {
+            settings.ConfigureUiCopy(EnsureUiCopyCatalog());
+            settings.ConfigureSkinCatalog(EnsureSkinCatalog());
+            settings.ConfigureSliceLayoutCatalog(EnsureSliceLayoutCatalog());
+            settings.ConfigureOutcomePopupMotionCatalog(EnsureOutcomePopupMotionCatalog());
+            settings.ConfigureSpinResolveCatalog(EnsureSpinResolveCatalog());
+        }
+
         public static WheelUiCopyCatalog EnsureUiCopyCatalog()
         {
             Directory.CreateDirectory("Assets/Config");
@@ -36,10 +98,10 @@ namespace Vertigo.Wheel.EditorTools
             for (int i = 0; i < zones.arraySize; i++)
             {
                 SerializedProperty zone = zones.GetArrayElementAtIndex(i);
-                string panelSpriteName = zone.FindPropertyRelative("panelSpriteName").stringValue;
-                string mapFrameSpriteName = zone.FindPropertyRelative("mapFrameSpriteName").stringValue;
-                zone.FindPropertyRelative("panelSprite").objectReferenceValue = FindSprite(panelSpriteName);
-                zone.FindPropertyRelative("mapFrameSprite").objectReferenceValue = FindSprite(mapFrameSpriteName);
+                string panelSpriteName = zone.FindPropertyRelative("_panelSpriteName").stringValue;
+                string mapFrameSpriteName = zone.FindPropertyRelative("_mapFrameSpriteName").stringValue;
+                zone.FindPropertyRelative("_panelSprite").objectReferenceValue = FindSprite(panelSpriteName);
+                zone.FindPropertyRelative("_mapFrameSprite").objectReferenceValue = FindSprite(mapFrameSpriteName);
             }
 
             serializedCatalog.ApplyModifiedPropertiesWithoutUndo();

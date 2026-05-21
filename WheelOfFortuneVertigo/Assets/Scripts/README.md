@@ -1,5 +1,7 @@
 # Wheel Scripts — klasör rehberi
 
+**Architecture constitution:** [`SoftwareArchitectureRules.md`](SoftwareArchitectureRules.md)
+
 ## İki farklı “config”
 
 | Konum | Ne |
@@ -19,7 +21,10 @@ Oyun açıkken çalışan mantık (MonoBehaviour + saf C#).
 
 | Alt klasör | Sorumluluk |
 |------------|------------|
-| `Bootstrap/` | Composition root, `IWheelRuntimeComponent` |
+| `Bootstrap/` | Composition root, `WheelRuntimeLocator`, event bus |
+| `Views/Hosts/` | Canvas-level UI hosts (child-only wiring) |
+
+See `HIERARCHY_WIRING.md` for serialization rules.
 | `Events/` | `WheelEventBus` |
 | `Flow/` | Spin / leave / restart akışı |
 | `Game/` | `WheelGameState`, envanter, spin sonucu |
@@ -47,7 +52,7 @@ Veri modeli ve kurallar (asset dosyası yok).
 | `ScriptableObjects/` | `[CreateAssetMenu]` sınıfları → `Assets/Config/` altına asset üretir |
 | `Definitions/` | Struct, enum, profil (`WheelSliceDefinition`, …) |
 | `Rules/` | Generator, resolver, statik tablolar |
-| `SceneSettings/` | Sahnedeki `game_wheel_settings` (`WheelGameSettings`) |
+| `ScriptableObjects/` | `WheelGameSettings` ve diğer config SO scriptleri |
 
 ## `Diagnostics/`
 

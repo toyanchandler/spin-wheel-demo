@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using Vertigo.Collections.Editor;
 
 namespace Vertigo.Wheel.EditorTools
 {
@@ -33,6 +35,21 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        public static void CollectChildren(MonoBehaviour host, string arrayPropertyName, Transform rootOverride = null)
+        {
+            ChildCollectionEditorService.Collect(host, arrayPropertyName, rootOverride);
+        }
+
+        public static void MarkSceneDirty(Component component)
+        {
+            if (component == null || !component.gameObject.scene.IsValid())
+            {
+                return;
+            }
+
+            EditorSceneManager.MarkSceneDirty(component.gameObject.scene);
         }
     }
 }

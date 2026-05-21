@@ -14,6 +14,10 @@ namespace Vertigo.Wheel.Runtime
         public readonly int SuperZoneInterval;
         public readonly int NextSafeZone;
         public readonly int NextSuperZone;
+        public readonly string SafeMilestoneBadgeText;
+        public readonly string SuperMilestoneBadgeText;
+        public readonly Color SafeMilestoneBadgeColor;
+        public readonly Color SuperMilestoneBadgeColor;
         public readonly string StatusText;
         public readonly bool IsStatusVisible;
         public readonly Color StatusColor;
@@ -39,6 +43,10 @@ namespace Vertigo.Wheel.Runtime
             int superZoneInterval,
             int nextSafeZone,
             int nextSuperZone,
+            string safeMilestoneBadgeText,
+            string superMilestoneBadgeText,
+            Color safeMilestoneBadgeColor,
+            Color superMilestoneBadgeColor,
             string statusText,
             bool isStatusVisible,
             Color statusColor,
@@ -63,6 +71,10 @@ namespace Vertigo.Wheel.Runtime
             SuperZoneInterval = superZoneInterval;
             NextSafeZone = nextSafeZone;
             NextSuperZone = nextSuperZone;
+            SafeMilestoneBadgeText = safeMilestoneBadgeText;
+            SuperMilestoneBadgeText = superMilestoneBadgeText;
+            SafeMilestoneBadgeColor = safeMilestoneBadgeColor;
+            SuperMilestoneBadgeColor = superMilestoneBadgeColor;
             StatusText = statusText;
             IsStatusVisible = isStatusVisible;
             StatusColor = statusColor;
@@ -151,29 +163,35 @@ namespace Vertigo.Wheel.Runtime
             int hasWinLabel = System.Convert.ToInt32(state.HasLastResult);
             string[] winLabels = { null, state.LastResult.WinLabel };
             int rewardCardCount = state.Inventory.CopyEntries(_rewardCardBuffer);
+            int nextSafeZone = ResolveNextZone(state.Zone, settings.SafeZoneInterval);
+            int nextSuperZone = ResolveNextZone(state.Zone, settings.SuperZoneInterval);
 
             return new WheelHudSnapshot(
                 state.Zone,
                 state.Phase,
-                zoneCopy.label,
-                theme.primaryTextColor,
-                catalog.ResolveColor(zoneCopy.labelColorKey, theme),
+                zoneCopy.Label,
+                theme.PrimaryTextColor,
+                catalog.ResolveColor(zoneCopy.LabelColorKey, theme),
                 settings.SafeZoneInterval,
                 settings.SuperZoneInterval,
-                ResolveNextZone(state.Zone, settings.SafeZoneInterval),
-                ResolveNextZone(state.Zone, settings.SuperZoneInterval),
+                nextSafeZone,
+                nextSuperZone,
+                string.Format(catalog.SafeMilestoneBadgeFormat, nextSafeZone),
+                string.Format(catalog.SuperMilestoneBadgeFormat, nextSuperZone),
+                theme.SafeMilestoneBadgeBackground,
+                theme.SuperMilestoneBadgeBackground,
                 catalog.ResolveStatusMessage(state.Phase, zoneType, winLabels[hasWinLabel]),
                 !catalog.ShouldHideStatusBar(state.Phase),
-                theme.secondaryTextColor,
-                theme.backgroundColor,
+                theme.SecondaryTextColor,
+                theme.BackgroundColor,
                 state.CanSpin,
                 state.CanLeave,
                 state.CanRestart,
                 !catalog.ShouldHideOutcomePopup(state.Phase),
-                zoneCopy.panelSprite,
-                zoneCopy.mapFrameSprite,
-                layout.rewardPanelFrameSprite,
-                layout.rewardCardFrameSprite,
+                zoneCopy.PanelSprite,
+                zoneCopy.MapFrameSprite,
+                layout.RewardPanelFrameSprite,
+                layout.RewardCardFrameSprite,
                 rewardCardCount,
                 _rewardCardBuffer);
         }
@@ -200,9 +218,9 @@ namespace Vertigo.Wheel.Runtime
                 state.Slices,
                 state.SliceCount,
                 slicePositions,
-                layout.sliceIconSize,
-                zoneCopy.skinTier,
-                settings.Theme.backgroundColor);
+                layout.SliceIconSize,
+                zoneCopy.SkinTier,
+                settings.Theme.BackgroundColor);
         }
 
         public static WheelOutcomeSnapshot CreateOutcome(
@@ -214,19 +232,19 @@ namespace Vertigo.Wheel.Runtime
         {
             WheelOutcomeUiCopy outcomeCopy = settings.UiCopy.GetOutcomeCopy(phase);
             string resultText = ResolveOutcomeResultText(
-                outcomeCopy.resultSource,
-                outcomeCopy.resultFallback,
+                outcomeCopy.ResultSource,
+                outcomeCopy.ResultFallback,
                 result,
                 hasResult,
                 inventory);
-            int iconVisible = System.Convert.ToInt32(outcomeCopy.showIcon && hasResult && result.Icon != null);
+            int iconVisible = System.Convert.ToInt32(outcomeCopy.ShowIcon && hasResult && result.Icon != null);
             Sprite[] icons = { null, result.Icon };
 
             return new WheelOutcomeSnapshot(
-                outcomeCopy.title,
+                outcomeCopy.Title,
                 resultText,
-                outcomeCopy.summary,
-                settings.UiCopy.ResolveColor(outcomeCopy.resultColorKey, settings.Theme),
+                outcomeCopy.Summary,
+                settings.UiCopy.ResolveColor(outcomeCopy.ResultColorKey, settings.Theme),
                 icons[iconVisible],
                 OutcomeIconColors[iconVisible],
                 settings.OutcomePopupMotionCatalog.Motion);

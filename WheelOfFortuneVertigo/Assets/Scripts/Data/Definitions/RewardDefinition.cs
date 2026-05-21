@@ -14,15 +14,22 @@ namespace Vertigo.Wheel.Data
     [Serializable]
     public sealed class RewardDefinition
     {
-        public string id;
-        public string displayName;
-        public Sprite icon;
-        public int amount = 1;
-        public RewardTier tier;
-        public Color accentColor = Color.white;
+        [SerializeField] private string _id;
+        [SerializeField] private string _displayName;
+        [SerializeField] private Sprite _icon;
+        [SerializeField] private int _amount = 1;
+        [SerializeField] private RewardTier _tier;
+        [SerializeField] private Color _accentColor = Color.white;
 
         [NonSerialized] private string _label;
         [NonSerialized] private string _winLabel;
+
+        public string Id { get { return _id; } }
+        public string DisplayName { get { return _displayName; } }
+        public Sprite Icon { get { return _icon; } }
+        public int Amount { get { return _amount; } }
+        public RewardTier Tier { get { return _tier; } }
+        public Color AccentColor { get { return _accentColor; } }
 
         public string Label
         {
@@ -42,6 +49,25 @@ namespace Vertigo.Wheel.Data
             }
         }
 
+        public static RewardDefinition Create(
+            string id,
+            string displayName,
+            Sprite icon,
+            int amount,
+            RewardTier tier,
+            Color accentColor)
+        {
+            return new RewardDefinition
+            {
+                _id = id,
+                _displayName = displayName,
+                _icon = icon,
+                _amount = amount,
+                _tier = tier,
+                _accentColor = accentColor
+            };
+        }
+
         private void RequireCachedText()
         {
             if (_label == null || _winLabel == null)
@@ -52,7 +78,7 @@ namespace Vertigo.Wheel.Data
 
         public void CacheRuntimeText(string winLabelFormat)
         {
-            _label = amount > 1 ? displayName + " x" + amount : displayName;
+            _label = _amount > 1 ? _displayName + " x" + _amount : _displayName;
             _winLabel = string.Format(winLabelFormat, _label);
         }
     }

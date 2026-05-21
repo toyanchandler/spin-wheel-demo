@@ -6,8 +6,6 @@ namespace Vertigo.Wheel.Runtime
 {
     public sealed class WheelGameState : MonoBehaviour
     {
-        [SerializeField] private WheelGameSettings _settings;
-
         private readonly RewardInventory _inventory = new RewardInventory();
         private WheelSliceDefinition[] _sliceBuffer;
         private WheelSpinResult _lastResult;
@@ -17,7 +15,7 @@ namespace Vertigo.Wheel.Runtime
         private WheelGamePhase _phase = WheelGamePhase.Ready;
         private bool _slicesDirty = true;
 
-        public WheelGameSettings Settings { get { return _settings; } }
+        public WheelGameSettings Settings { get { return WheelRuntimeLocator.Settings; } }
         public RewardInventory Inventory { get { return _inventory; } }
         public WheelSliceDefinition[] Slices { get { return _sliceBuffer; } }
         public WheelSpinResult LastResult { get { return _lastResult; } }
@@ -25,27 +23,27 @@ namespace Vertigo.Wheel.Runtime
         public int SliceCount { get { return _sliceCount; } }
         public int Zone { get { return _zone; } }
         public WheelGamePhase Phase { get { return _phase; } }
-        public ZoneType ZoneType { get { return _settings.GetZoneType(_zone); } }
+        public ZoneType ZoneType { get { return Settings.GetZoneType(_zone); } }
 
-        public WheelPhaseGameplayProfile PhaseGameplay { get { return _settings.UiCopy.GetPhaseCopy(_phase).gameplay; } }
+        public WheelPhaseGameplayProfile PhaseGameplay { get { return Settings.UiCopy.GetPhaseCopy(_phase).Gameplay; } }
 
-        public bool CanSpin { get { return _settings != null && PhaseGameplay.allowSpin; } }
+        public bool CanSpin { get { return Settings != null && PhaseGameplay.AllowSpin; } }
 
         public bool CanLeave
         {
             get
             {
-                return _settings != null
-                    && _settings.GetZoneGameplay(ZoneType).allowLeave
-                    && PhaseGameplay.allowLeave;
+                return Settings != null
+                    && Settings.GetZoneGameplay(ZoneType).AllowLeave
+                    && PhaseGameplay.AllowLeave;
             }
         }
 
-        public bool CanRestart { get { return _settings != null && PhaseGameplay.allowRestart; } }
+        public bool CanRestart { get { return Settings != null && PhaseGameplay.AllowRestart; } }
 
         public void InitializeRuntime()
         {
-            _settings.InitializeRuntime();
+            Settings.InitializeRuntime();
             EnsureSliceBuffer();
         }
 
@@ -74,7 +72,7 @@ namespace Vertigo.Wheel.Runtime
         {
             _lastResult = result;
             _hasLastResult = true;
-            WheelSpinResolveProfile profile = _settings.SpinResolveCatalog.GetProfile(result.IsBomb);
+            WheelSpinResolveProfile profile = Settings.SpinResolveCatalog.GetProfile(result.IsBomb);
             ApplyResolveProfile(result, profile);
         }
 
@@ -85,7 +83,7 @@ namespace Vertigo.Wheel.Runtime
 
         private void ApplyResolveProfile(WheelSpinResult result, WheelSpinResolveProfile profile)
         {
-            _phase = profile.targetPhase;
+            _phase = profile.TargetPhase;
             ResolveEffects.Apply(_inventory, this, result, profile);
         }
 
@@ -109,17 +107,17 @@ namespace Vertigo.Wheel.Runtime
         private void FillSlices()
         {
             EnsureSliceBuffer();
-            _sliceCount = _settings.FillSlicesForZone(_zone, _sliceBuffer);
+            _sliceCount = Settings.FillSlicesForZone(_zone, _sliceBuffer);
         }
 
         private void EnsureSliceBuffer()
         {
-            BufferEnsureActions[Convert.ToInt32(_sliceBuffer != null && _sliceBuffer.Length == _settings.SliceCount)](this);
+            BufferEnsureActions[Convert.ToInt32(_sliceBuffer != null && _sliceBuffer.Length == Settings.SliceCount)](this);
         }
 
         private void AllocateSliceBuffer()
         {
-            _sliceBuffer = new WheelSliceDefinition[_settings.SliceCount];
+            _sliceBuffer = new WheelSliceDefinition[Settings.SliceCount];
             for (int i = 0; i < _sliceBuffer.Length; i++)
             {
                 _sliceBuffer[i] = new WheelSliceDefinition();
@@ -170,10 +168,10 @@ namespace Vertigo.Wheel.Runtime
                 WheelSpinResult result,
                 WheelSpinResolveProfile profile)
             {
-                ClearInventoryActions[Convert.ToInt32(profile.clearInventory)](inventory);
-                AddResultActions[Convert.ToInt32(profile.addResultToInventory)](inventory, result);
-                AdvanceZoneActions[Convert.ToInt32(profile.advanceZone)](state);
-                RefreshSliceActions[Convert.ToInt32(profile.markSlicesDirty)](state);
+                ClearInventoryActions[Convert.ToInt32(profile.ClearInventory)](inventory);
+                AddResultActions[Convert.ToInt32(profile.AddResultToInventory)](inventory, result);
+                AdvanceZoneActions[Convert.ToInt32(profile.AdvanceZone)](state);
+                RefreshSliceActions[Convert.ToInt32(profile.MarkSlicesDirty)](state);
             }
         }
     }

@@ -8,14 +8,14 @@ namespace Vertigo.Wheel.Data
 
         public static int RewardSlotsForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
         {
-            int offset = RewardSlotsOffsetByBombMode[System.Convert.ToInt32(zoneGameplay.includesBombSlot)];
+            int offset = RewardSlotsOffsetByBombMode[System.Convert.ToInt32(zoneGameplay.IncludesBombSlot)];
             return sliceCount + offset;
         }
 
         public static int BombIndexForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
         {
             int[] bombIndexByMode = { -1, Random.Range(0, sliceCount) };
-            return bombIndexByMode[System.Convert.ToInt32(zoneGameplay.includesBombSlot)];
+            return bombIndexByMode[System.Convert.ToInt32(zoneGameplay.IncludesBombSlot)];
         }
 
         public static void ApplySlot(
@@ -27,38 +27,34 @@ namespace Vertigo.Wheel.Data
             WheelSliceSlotProfile bombProfile)
         {
             WheelSliceSlotProfile[] profiles = { rewardProfile, bombProfile };
-            Sprite[] icons = { rewardDefinition.icon, bombIcon };
+            Sprite[] icons = { rewardDefinition.Icon, bombIcon };
             int profileIndex = System.Convert.ToInt32(isBombSlot);
+            WheelSliceSlotProfile profile = profiles[profileIndex];
 
-            slice.isBomb = isBombSlot;
-            slice.reward = rewardDefinition;
-            slice.displayIcon = icons[profileIndex];
-            slice.displayAmount = profiles[profileIndex].displayAmount;
-            slice.displayColor = profiles[profileIndex].displayColor;
-            slice.displayLabel = profiles[profileIndex].label;
-            slice.showAmountLabel = profiles[profileIndex].showAmountLabel;
+            slice.ApplySlot(
+                isBombSlot,
+                rewardDefinition,
+                icons[profileIndex],
+                profile.DisplayAmount,
+                profile.DisplayColor,
+                profile.Label,
+                profile.ShowAmountLabel);
         }
 
         private static readonly bool[] ShowAmountByAmountFlag = { false, true };
 
         public static WheelSliceSlotProfile CreateRewardProfile(RewardDefinition reward)
         {
-            return new WheelSliceSlotProfile
-            {
-                label = reward.Label,
-                displayAmount = reward.amount,
-                displayColor = reward.accentColor,
-                showAmountLabel = ShowAmountByAmountFlag[System.Convert.ToInt32(reward.amount > 1)]
-            };
+            return WheelSliceSlotProfile.CreateReward(
+                reward.Label,
+                reward.Amount,
+                reward.AccentColor,
+                ShowAmountByAmountFlag[System.Convert.ToInt32(reward.Amount > 1)]);
         }
 
         public static WheelSliceSlotProfile CreateBombProfile()
         {
-            return new WheelSliceSlotProfile
-            {
-                label = "Bomb",
-                displayColor = Color.white
-            };
+            return WheelSliceSlotProfile.CreateBomb("Bomb", Color.white);
         }
     }
 }

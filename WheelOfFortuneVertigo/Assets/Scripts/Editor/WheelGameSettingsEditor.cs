@@ -39,9 +39,10 @@ namespace Vertigo.Wheel.EditorTools
             EnsureUiCopyReference();
 
             EditorGUILayout.LabelField("Vertigo Wheel Designer", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Scene-bound gameplay settings. UI copy lives in the WheelUiCopyCatalog ScriptableObject referenced below.", MessageType.Info);
+            EditorGUILayout.HelpBox("Gameplay config asset in Assets/Config. UI copy and catalogs are shared ScriptableObjects referenced below.", MessageType.Info);
 
             DrawSection("Zone Rules", _sliceCount, _safeZoneInterval, _superZoneInterval);
+            DrawSection("Spin Motion", serializedObject.FindProperty("_spinDuration"), serializedObject.FindProperty("_minimumSpinRounds"));
             DrawSection("UI Copy", _uiCopy);
             DrawSection("Theme", _theme);
             DrawSection("Layout", _layout);

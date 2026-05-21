@@ -13,8 +13,8 @@ namespace Vertigo.Wheel.Data
         public static Vector2[] BuildPositions(WheelSliceLayoutCatalog catalog, WheelLayoutSettings layout, int sliceCount)
         {
             catalog.ValidateRuntime();
-            float wheelSize = Mathf.Min(layout.wheelSize.x, layout.wheelSize.y);
-            float radius = wheelSize * layout.sliceIconRadius;
+            float wheelSize = Mathf.Min(layout.WheelSize.x, layout.WheelSize.y);
+            float radius = wheelSize * layout.SliceIconRadius;
             Vector2[] positions = new Vector2[sliceCount];
             int layoutIndex = System.Convert.ToInt32(sliceCount == catalog.PresetSliceCount);
             FillActions[layoutIndex](positions, catalog, wheelSize, radius, sliceCount);

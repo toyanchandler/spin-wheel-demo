@@ -31,7 +31,7 @@ namespace Vertigo.Wheel.EditorTools
 
             if (settings == null)
             {
-                EditorGUILayout.HelpBox("Open or rebuild MainScene to create game_wheel_settings.", MessageType.Warning);
+                EditorGUILayout.HelpBox("Create or open Assets/Config/WheelGameSettings.asset via Rebuild Scene or Ensure Project Assets.", MessageType.Warning);
                 return;
             }
 
@@ -74,10 +74,10 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawSelectionButton()
         {
             EditorGUILayout.Space(8f);
-            if (GUILayout.Button("Select Settings In Hierarchy"))
+            if (GUILayout.Button("Select Settings Asset"))
             {
-                Selection.activeObject = settings.gameObject;
-                EditorGUIUtility.PingObject(settings.gameObject);
+                Selection.activeObject = settings;
+                EditorGUIUtility.PingObject(settings);
             }
         }
 
@@ -88,7 +88,12 @@ namespace Vertigo.Wheel.EditorTools
                 return;
             }
 
-            settings = UnityEngine.Object.FindObjectOfType<WheelGameSettings>();
+            settings = AssetDatabase.LoadAssetAtPath<WheelGameSettings>(VertigoWheelPaths.GameSettingsPath);
+            if (settings == null)
+            {
+                settings = VertigoWheelAssetPipeline.EnsureGameSettings();
+            }
+
             serializedSettings = settings == null ? null : new SerializedObject(settings);
         }
 

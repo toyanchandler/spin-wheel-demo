@@ -12,7 +12,7 @@ namespace Vertigo.Wheel.Views
     }
 
     [RequireComponent(typeof(Image))]
-    public sealed class WheelSkinView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelSkinView : MonoBehaviour
     {
         private delegate Sprite SkinSpriteResolver(WheelSkinCatalog catalog, WheelSkinTier tier);
 
@@ -28,13 +28,13 @@ namespace Vertigo.Wheel.Views
 
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
             _eventBus.ZoneChanged += OnZoneChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.ZoneChanged -= OnZoneChanged;
             _eventBus = null;

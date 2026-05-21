@@ -13,7 +13,7 @@ Implemented:
 - Wheel-of-fortune core loop with standard, safe, and super zones
 - Bomb loss, retry, cash-out/exit, and continue-to-next-zone flow
 - Leave/collect allowed only on safe or super zones while not spinning
-- Scene-bound custom editor settings on `game_wheel_settings`
+- Gameplay config asset at `Assets/Config/WheelGameSettings.asset`
 - Instance-scoped event bus between UI and gameplay
 - Composition root controlled runtime lifecycle
 - TextMeshPro UI and provided UI assets

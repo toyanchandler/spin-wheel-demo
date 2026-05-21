@@ -27,7 +27,7 @@ namespace Vertigo.Wheel.Data
                     buffer[i],
                     slotKind == 1,
                     rewardsByKind[slotKind],
-                    settings.BombReward.icon,
+                    settings.BombReward.Icon,
                     profilesByKind[0],
                     bombProfile);
 

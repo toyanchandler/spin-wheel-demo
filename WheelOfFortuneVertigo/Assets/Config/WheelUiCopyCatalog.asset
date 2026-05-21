@@ -13,104 +13,114 @@ MonoBehaviour:
   m_Name: WheelUiCopyCatalog
   m_EditorClassIdentifier: 
   _winLabelFormat: Won {0}
+  _safeMilestoneBadgeFormat: 'SAFE
+
+    ZONE
+
+    {0}'
+  _superMilestoneBadgeFormat: 'SUPER
+
+    ZONE
+
+    {0}'
   _zones:
-  - zoneType: 0
-    label: STANDARD
-    statusHint: Spin to risk your loot and advance toward safe zones.
-    labelColorKey: 2
-    skinTier: 0
-    panelSpriteName: ui_card_panel_zone_current
-    mapFrameSpriteName: ui_card_zone_map_frame
-    panelSprite: {fileID: 21300000, guid: fb1bcb75db84741f6bf5efee16fd98ad, type: 3}
-    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
-  - zoneType: 1
-    label: SAFE
-    statusHint: Safe zone. Spin without a bomb or leave with your loot.
-    labelColorKey: 3
-    skinTier: 1
-    panelSpriteName: ui_card_panel_zone_current_white
-    mapFrameSpriteName: ui_card_zone_map_frame
-    panelSprite: {fileID: 21300000, guid: 32a0d709d578d4bb2b0ab5fe22a63aa4, type: 3}
-    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
-  - zoneType: 2
-    label: SUPER
-    statusHint: Super zone. Spin for premium rewards or leave with your loot.
-    labelColorKey: 4
-    skinTier: 2
-    panelSpriteName: ui_card_panel_zone_super
-    mapFrameSpriteName: ui_card_zone_map_frame
-    panelSprite: {fileID: 21300000, guid: 20751ebbf4f2c4cd79743531fc6f8bfa, type: 3}
-    mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  - _zoneType: 0
+    _label: STANDARD
+    _statusHint: Spin to risk your loot and advance toward safe zones.
+    _labelColorKey: 2
+    _skinTier: 0
+    _panelSpriteName: ui_card_panel_zone_current
+    _mapFrameSpriteName: ui_card_zone_map_frame
+    _panelSprite: {fileID: 21300000, guid: fb1bcb75db84741f6bf5efee16fd98ad, type: 3}
+    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  - _zoneType: 1
+    _label: SAFE
+    _statusHint: Safe zone. Spin without a bomb or leave with your loot.
+    _labelColorKey: 3
+    _skinTier: 1
+    _panelSpriteName: ui_card_panel_zone_current_white
+    _mapFrameSpriteName: ui_card_zone_map_frame
+    _panelSprite: {fileID: 21300000, guid: 32a0d709d578d4bb2b0ab5fe22a63aa4, type: 3}
+    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
+  - _zoneType: 2
+    _label: SUPER
+    _statusHint: Super zone. Spin for premium rewards or leave with your loot.
+    _labelColorKey: 4
+    _skinTier: 2
+    _panelSpriteName: ui_card_panel_zone_super
+    _mapFrameSpriteName: ui_card_zone_map_frame
+    _panelSprite: {fileID: 21300000, guid: 20751ebbf4f2c4cd79743531fc6f8bfa, type: 3}
+    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
   _phases:
-  - phase: 0
-    statusMessage: 
-    hideStatusBar: 0
-    hideOutcomePopup: 1
-    gameplay:
-      allowSpin: 1
-      allowLeave: 1
-      allowRestart: 1
-      publishAllAfterSpin: 1
-      useWinLabelForStatus: 0
-  - phase: 1
-    statusMessage: Spinning...
-    hideStatusBar: 0
-    hideOutcomePopup: 1
-    gameplay:
-      allowSpin: 0
-      allowLeave: 0
-      allowRestart: 0
-      publishAllAfterSpin: 0
-      useWinLabelForStatus: 0
-  - phase: 2
-    statusMessage: 
-    hideStatusBar: 1
-    hideOutcomePopup: 0
-    gameplay:
-      allowSpin: 1
-      allowLeave: 1
-      allowRestart: 1
-      publishAllAfterSpin: 1
-      useWinLabelForStatus: 1
-  - phase: 3
-    statusMessage: 
-    hideStatusBar: 1
-    hideOutcomePopup: 0
-    gameplay:
-      allowSpin: 0
-      allowLeave: 0
-      allowRestart: 1
-      publishAllAfterSpin: 0
-      useWinLabelForStatus: 0
-  - phase: 4
-    statusMessage: 
-    hideStatusBar: 1
-    hideOutcomePopup: 0
-    gameplay:
-      allowSpin: 0
-      allowLeave: 0
-      allowRestart: 1
-      publishAllAfterSpin: 0
-      useWinLabelForStatus: 0
+  - _phase: 0
+    _statusMessage:
+    _hideStatusBar: 0
+    _hideOutcomePopup: 1
+    _gameplay:
+      _allowSpin: 1
+      _allowLeave: 1
+      _allowRestart: 1
+      _publishAllAfterSpin: 1
+      _useWinLabelForStatus: 0
+  - _phase: 1
+    _statusMessage: Spinning...
+    _hideStatusBar: 0
+    _hideOutcomePopup: 1
+    _gameplay:
+      _allowSpin: 0
+      _allowLeave: 0
+      _allowRestart: 0
+      _publishAllAfterSpin: 0
+      _useWinLabelForStatus: 0
+  - _phase: 2
+    _statusMessage:
+    _hideStatusBar: 1
+    _hideOutcomePopup: 0
+    _gameplay:
+      _allowSpin: 1
+      _allowLeave: 1
+      _allowRestart: 1
+      _publishAllAfterSpin: 1
+      _useWinLabelForStatus: 1
+  - _phase: 3
+    _statusMessage:
+    _hideStatusBar: 1
+    _hideOutcomePopup: 0
+    _gameplay:
+      _allowSpin: 0
+      _allowLeave: 0
+      _allowRestart: 1
+      _publishAllAfterSpin: 0
+      _useWinLabelForStatus: 0
+  - _phase: 4
+    _statusMessage:
+    _hideStatusBar: 1
+    _hideOutcomePopup: 0
+    _gameplay:
+      _allowSpin: 0
+      _allowLeave: 0
+      _allowRestart: 1
+      _publishAllAfterSpin: 0
+      _useWinLabelForStatus: 0
   _outcomes:
-  - phase: 2
-    title: REWARD
-    resultFallback: Won
-    summary: Added to your run rewards
-    resultColorKey: 0
-    showIcon: 1
-    resultSource: 0
-  - phase: 3
-    title: BOMB
-    resultFallback: Rewards lost
-    summary: Try again
-    resultColorKey: 5
-    showIcon: 1
-    resultSource: 0
-  - phase: 4
-    title: CASHED OUT
-    resultFallback: Cashed out
-    summary: Rewards secured
-    resultColorKey: 6
-    showIcon: 0
-    resultSource: 1
+  - _phase: 2
+    _title: REWARD
+    _resultFallback: Won
+    _summary: Added to your run rewards
+    _resultColorKey: 0
+    _showIcon: 1
+    _resultSource: 0
+  - _phase: 3
+    _title: BOMB
+    _resultFallback: Rewards lost
+    _summary: Try again
+    _resultColorKey: 5
+    _showIcon: 1
+    _resultSource: 0
+  - _phase: 4
+    _title: CASHED OUT
+    _resultFallback: Cashed out
+    _summary: Rewards secured
+    _resultColorKey: 6
+    _showIcon: 0
+    _resultSource: 1

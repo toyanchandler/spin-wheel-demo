@@ -4,20 +4,20 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
-    public sealed class WheelZonePanelView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelZonePanelView : MonoBehaviour
     {
         [SerializeField] private Image _panelImage;
         [SerializeField] private Image _mapFrameImage;
 
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.HudStateChanged -= OnHudStateChanged;
             _eventBus = null;

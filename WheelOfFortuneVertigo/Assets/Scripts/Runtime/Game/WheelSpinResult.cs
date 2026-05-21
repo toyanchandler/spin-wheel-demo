@@ -18,15 +18,15 @@ namespace Vertigo.Wheel.Runtime
         public WheelSpinResult(int sliceIndex, WheelSliceDefinition slice)
         {
             SliceIndex = sliceIndex;
-            IsBomb = slice.isBomb;
-            RewardDefinition reward = slice.reward;
-            RewardId = reward.id;
-            DisplayName = reward.displayName;
+            IsBomb = slice.IsBomb;
+            RewardDefinition reward = slice.Reward;
+            RewardId = reward.Id;
+            DisplayName = reward.DisplayName;
             Label = slice.Label;
             WinLabel = reward.WinLabel;
-            Icon = reward.icon;
-            Amount = reward.amount;
-            AccentColor = reward.accentColor;
+            Icon = reward.Icon;
+            Amount = reward.Amount;
+            AccentColor = reward.AccentColor;
         }
     }
 }

@@ -5,18 +5,18 @@ using Vertigo.Wheel.Runtime;
 namespace Vertigo.Wheel.Views
 {
     [RequireComponent(typeof(Image))]
-    public sealed class WheelBackgroundView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelBackgroundView : MonoBehaviour
     {
         [SerializeField] private Image _image;
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.HudStateChanged -= OnHudStateChanged;
             _eventBus = null;

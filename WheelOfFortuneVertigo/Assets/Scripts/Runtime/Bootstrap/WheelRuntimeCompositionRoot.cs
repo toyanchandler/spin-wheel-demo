@@ -1,17 +1,38 @@
 using System;
 using DG.Tweening;
 using UnityEngine;
+using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
+    [DefaultExecutionOrder(-100)]
     public sealed class WheelRuntimeCompositionRoot : MonoBehaviour
     {
-        [SerializeField] private MonoBehaviour[] _runtimeComponents;
-        [SerializeField] private WheelGameState _state;
-        [SerializeField] private WheelStatePublisher _publisher;
-
         private readonly WheelEventBus _eventBus = new WheelEventBus();
+        private WheelGameState _state;
+        private WheelStatePublisher _publisher;
+        private WheelGameFlowController _flow;
         private bool _isRunning;
+
+        private void EnsureGameplayComponents()
+        {
+            if (_state != null)
+            {
+                return;
+            }
+
+            _state = GetComponent<WheelGameState>();
+            _publisher = GetComponent<WheelStatePublisher>();
+            _flow = GetComponent<WheelGameFlowController>();
+            WheelGameConfigSource configSource = GetComponent<WheelGameConfigSource>();
+            if (configSource == null || configSource.Settings == null)
+            {
+                throw new InvalidOperationException("game_wheel_runtime requires WheelGameConfigSource with WheelGameSettings assigned.");
+            }
+
+            WheelRuntimeLocator.RegisterSettings(configSource.Settings);
+            WheelRuntimeLocator.RegisterGameplay(_eventBus, _state, _publisher);
+        }
 
         private void Start()
         {
@@ -56,39 +77,25 @@ namespace Vertigo.Wheel.Runtime
         private void BeginRuntime()
         {
             _isRunning = true;
+            EnsureGameplayComponents();
             TweenSetup.ConfigureOnce();
             _state.InitializeRuntime();
-            for (int i = 0; i < _runtimeComponents.Length; i++)
-            {
-                RuntimeComponentAt(i).Initialize(_eventBus);
-            }
-
+            _publisher.Bind(_eventBus);
+            _flow.Bind(_eventBus);
+            WheelRuntimeLocator.Spinner.Bind(_eventBus);
+            WheelRuntimeLocator.NotifyRuntimeReady();
             _state.Restart();
             _publisher.PublishAll();
         }
 
         private void EndRuntime()
         {
-            for (int i = _runtimeComponents.Length - 1; i >= 0; i--)
-            {
-                RuntimeComponentAt(i).Dispose();
-            }
-
+            WheelRuntimeLocator.Spinner.Unbind();
+            _flow.Unbind();
+            _publisher.Unbind();
+            WheelRuntimeLocator.Clear();
             _eventBus.Clear();
             _isRunning = false;
-        }
-
-        private IWheelRuntimeComponent RuntimeComponentAt(int index)
-        {
-            MonoBehaviour component = _runtimeComponents[index];
-            IWheelRuntimeComponent runtimeComponent = component as IWheelRuntimeComponent;
-            if (runtimeComponent != null)
-            {
-                return runtimeComponent;
-            }
-
-            string componentName = component == null ? "null" : component.GetType().Name;
-            throw new InvalidOperationException("Runtime component slot " + index + " must implement IWheelRuntimeComponent. Found: " + componentName);
         }
 
         private static readonly Action<WheelRuntimeCompositionRoot>[] StartActions =

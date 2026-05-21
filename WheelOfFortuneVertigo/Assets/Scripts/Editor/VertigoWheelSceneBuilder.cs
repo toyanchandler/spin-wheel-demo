@@ -40,25 +40,18 @@ namespace Vertigo.Wheel.EditorTools
             WheelOutcomePopupMotionCatalog outcomePopupMotionCatalog = VertigoWheelAssetPipeline.EnsureOutcomePopupMotionCatalog();
             WheelSpinResolveCatalog spinResolveCatalog = VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
 
-            var settingsObject = new GameObject("game_wheel_settings");
-            var settings = settingsObject.AddComponent<WheelGameSettings>();
-            settings.ResetToDefaults();
+            WheelGameSettings settings = VertigoWheelAssetPipeline.EnsureGameSettings();
             settings.ConfigureUiCopy(uiCopyCatalog);
             settings.ConfigureSkinCatalog(skinCatalog);
             settings.ConfigureSliceLayoutCatalog(sliceLayoutCatalog);
             settings.ConfigureOutcomePopupMotionCatalog(outcomePopupMotionCatalog);
             settings.ConfigureSpinResolveCatalog(spinResolveCatalog);
-            WheelEditorWiring.SetReference(settings, "_uiCopy", uiCopyCatalog);
-            WheelEditorWiring.SetReference(settings, "_skinCatalog", skinCatalog);
-            WheelEditorWiring.SetReference(settings, "_sliceLayoutCatalog", sliceLayoutCatalog);
-            WheelEditorWiring.SetReference(settings, "_outcomePopupMotionCatalog", outcomePopupMotionCatalog);
-            WheelEditorWiring.SetReference(settings, "_spinResolveCatalog", spinResolveCatalog);
             ConfigureDefaultRewards(settings);
+            EditorUtility.SetDirty(settings);
 
             var gameObject = new GameObject("game_wheel_runtime");
             var gameState = gameObject.AddComponent<WheelGameState>();
             var publisher = gameObject.AddComponent<WheelStatePublisher>();
-            var spinner = gameObject.AddComponent<WheelSpinner>();
             var flowController = gameObject.AddComponent<WheelGameFlowController>();
 
             Transform staticCanvas = CreateCanvas("ui_static_canvas", settings, 0, false);
@@ -76,8 +69,8 @@ namespace Vertigo.Wheel.EditorTools
             wheelRect.anchorMin = new Vector2(0.5f, 0.5f);
             wheelRect.anchorMax = new Vector2(0.5f, 0.5f);
             wheelRect.pivot = new Vector2(0.5f, 0.5f);
-            wheelRect.anchoredPosition = settings.Layout.wheelPosition;
-            wheelRect.sizeDelta = settings.Layout.wheelSize;
+            wheelRect.anchoredPosition = settings.Layout.WheelPosition;
+            wheelRect.sizeDelta = settings.Layout.WheelSize;
 
             Image wheelBase = CreateImage(wheelRoot.transform, "ui_image_spin_base", FindSprite("ui_spin_silver_base"), FullStretch(), material);
             var wheelBaseSkinView = wheelBase.gameObject.AddComponent<WheelSkinView>();
@@ -94,15 +87,16 @@ namespace Vertigo.Wheel.EditorTools
             sliceRect.offsetMax = Vector2.zero;
             WheelSliceView[] sliceViews = CreateSlicePool(sliceRect, settings.SliceCount, material);
 
-            Image indicator = CreateImage(wheelCanvas, "ui_image_spin_indicator", FindSprite("ui_spin_silver_indicator"), Anchored(new Vector2(0.5f, 0.5f), settings.Layout.indicatorPosition, settings.Layout.indicatorSize), material);
+            Image indicator = CreateImage(wheelCanvas, "ui_image_spin_indicator", FindSprite("ui_spin_silver_indicator"), Anchored(new Vector2(0.5f, 0.5f), settings.Layout.IndicatorPosition, settings.Layout.IndicatorSize), material);
             var indicatorSkinView = indicator.gameObject.AddComponent<WheelSkinView>();
             WheelEditorWiring.SetEnum(indicatorSkinView, "_slot", (int)WheelSkinSlot.Indicator);
             WheelEditorWiring.SetReference(indicatorSkinView, "_catalog", skinCatalog);
             WheelEditorWiring.SetReference(indicatorSkinView, "_image", indicator);
 
             var view = wheelRoot.AddComponent<WheelView>();
-            WheelEditorWiring.SetObjectArray(view, "_sliceViews", sliceViews);
-
+            WheelEditorWiring.SetReference(view, "_slicePoolRoot", sliceRoot.transform);
+            WheelEditorWiring.CollectChildren(view, "_sliceViews", sliceRoot.transform);
+            var spinner = wheelRoot.AddComponent<WheelSpinner>();
             HeaderViews headerViews = BuildHeader(hudCanvas, settings, material);
             WheelOutcomePopupView outcomePopupView = BuildOutcomePopup(hudCanvas, settings, material);
             RewardOpeningViews rewardOpeningViews = BuildRewardOpening(hudCanvas, settings, material);
@@ -110,44 +104,61 @@ namespace Vertigo.Wheel.EditorTools
             ButtonActions buttonActions = BuildButtons(hudCanvas, headerViews.lootRoot, settings, material);
             BuildDebugOverlay(debugCanvas, settings);
 
-            WheelEditorWiring.SetReference(spinner, "_wheelTransform", wheelRect);
-            WheelEditorWiring.SetReference(gameState, "_settings", settings);
-            WheelEditorWiring.SetReference(publisher, "_state", gameState);
-            WheelEditorWiring.SetReference(flowController, "_state", gameState);
-            WheelEditorWiring.SetReference(flowController, "_spinner", spinner);
-            WheelEditorWiring.SetReference(flowController, "_publisher", publisher);
+            WireStaticHost(staticCanvas, backgroundView);
+            WireWheelHost(wheelCanvas, view, wheelBaseSkinView, indicatorSkinView);
+            WireHudHost(hudCanvas, headerViews, outcomePopupView, rewardOpeningViews, statusTextView, buttonActions);
 
-            var compositionRoot = gameObject.AddComponent<WheelRuntimeCompositionRoot>();
-            WheelEditorWiring.SetReference(compositionRoot, "_state", gameState);
-            WheelEditorWiring.SetReference(compositionRoot, "_publisher", publisher);
-            WheelEditorWiring.SetObjectArray(compositionRoot, "_runtimeComponents", new MonoBehaviour[]
-            {
-                publisher,
-                backgroundView,
-                wheelBaseSkinView,
-                indicatorSkinView,
-                view,
-                headerViews.zoneProgress,
-                headerViews.milestoneBadges,
-                headerViews.zonePanel,
-                headerViews.zoneText,
-                headerViews.zoneTypeText,
-                headerViews.lootPanel,
-                outcomePopupView,
-                rewardOpeningViews.opening,
-                statusTextView,
-                spinner,
-                buttonActions.leave,
-                buttonActions.spin,
-                buttonActions.restart,
-                rewardOpeningViews.restart,
-                flowController
-            });
+            var configSource = gameObject.AddComponent<WheelGameConfigSource>();
+            WheelEditorWiring.SetReference(configSource, "_settings", settings);
+            gameObject.AddComponent<WheelRuntimeCompositionRoot>();
 
+            EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, VertigoWheelPaths.ScenePath);
             VertigoWheelProjectSetup.ConfigureAndroidProject();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        private static void WireStaticHost(Transform staticCanvas, WheelBackgroundView backgroundView)
+        {
+            var host = staticCanvas.gameObject.AddComponent<WheelStaticUiHost>();
+            WheelEditorWiring.SetReference(host, "_background", backgroundView);
+        }
+
+        private static void WireWheelHost(
+            Transform wheelCanvas,
+            WheelView wheelView,
+            WheelSkinView wheelBaseSkinView,
+            WheelSkinView indicatorSkinView)
+        {
+            var host = wheelCanvas.gameObject.AddComponent<WheelWheelUiHost>();
+            WheelEditorWiring.SetReference(host, "_wheel", wheelView);
+            WheelEditorWiring.SetReference(host, "_wheelBaseSkin", wheelBaseSkinView);
+            WheelEditorWiring.SetReference(host, "_indicatorSkin", indicatorSkinView);
+        }
+
+        private static void WireHudHost(
+            Transform hudCanvas,
+            HeaderViews headerViews,
+            WheelOutcomePopupView outcomePopupView,
+            RewardOpeningViews rewardOpeningViews,
+            WheelStatusTextView statusTextView,
+            ButtonActions buttonActions)
+        {
+            var host = hudCanvas.gameObject.AddComponent<WheelHudUiHost>();
+            WheelEditorWiring.SetReference(host, "_zoneProgress", headerViews.zoneProgress);
+            WheelEditorWiring.SetReference(host, "_milestoneBadges", headerViews.milestoneBadges);
+            WheelEditorWiring.SetReference(host, "_zonePanel", headerViews.zonePanel);
+            WheelEditorWiring.SetReference(host, "_zoneText", headerViews.zoneText);
+            WheelEditorWiring.SetReference(host, "_zoneTypeText", headerViews.zoneTypeText);
+            WheelEditorWiring.SetReference(host, "_lootPanel", headerViews.lootPanel);
+            WheelEditorWiring.SetReference(host, "_outcomePopup", outcomePopupView);
+            WheelEditorWiring.SetReference(host, "_rewardOpening", rewardOpeningViews.opening);
+            WheelEditorWiring.SetReference(host, "_statusText", statusTextView);
+            WheelEditorWiring.SetReference(host, "_leaveButton", buttonActions.leave);
+            WheelEditorWiring.SetReference(host, "_spinButton", buttonActions.spin);
+            WheelEditorWiring.SetReference(host, "_restartButton", buttonActions.restart);
+            WheelEditorWiring.SetReference(host, "_rewardOpeningRestartButton", rewardOpeningViews.restart);
         }
 
         private static Transform CreateCanvas(string name, WheelGameSettings settings, int sortingOrder, bool raycasterEnabled)
@@ -158,7 +169,7 @@ namespace Vertigo.Wheel.EditorTools
             canvas.sortingOrder = sortingOrder;
             var scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = settings.Layout.referenceResolution;
+            scaler.referenceResolution = settings.Layout.ReferenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             if (raycasterEnabled)
             {
@@ -170,7 +181,6 @@ namespace Vertigo.Wheel.EditorTools
 
         private static void BuildDebugOverlay(Transform parent, WheelGameSettings settings)
         {
-            var monitor = parent.gameObject.AddComponent<WheelPerformanceMonitor>();
             TextMeshProUGUI text = CreateText(
                 parent,
                 "debug_text_performance",
@@ -178,23 +188,22 @@ namespace Vertigo.Wheel.EditorTools
                 Anchored(new Vector2(0f, 1f), new Vector2(168f, -92f), new Vector2(312f, 144f)),
                 16,
                 TextAlignmentOptions.TopLeft,
-                settings.Theme.secondaryTextColor);
+                settings.Theme.SecondaryTextColor);
             text.enableAutoSizing = false;
             text.fontSize = 16f;
-            var overlay = text.gameObject.AddComponent<WheelPerformanceOverlay>();
-            WheelEditorWiring.SetReference(overlay, "_monitor", monitor);
-            WheelEditorWiring.SetReference(overlay, "_text", text);
+            text.gameObject.AddComponent<WheelPerformanceMonitor>();
+            text.gameObject.AddComponent<WheelPerformanceOverlay>();
         }
 
         private static void ConfigureDefaultRewards(WheelGameSettings settings)
         {
-            RewardDefinition bomb = settings.BombReward;
-            bomb.id = "bomb";
-            bomb.displayName = "Bomb";
-            bomb.icon = FindSprite("ui_card_icon_death");
-            bomb.amount = 1;
-            bomb.tier = RewardTier.Legendary;
-            bomb.accentColor = settings.Theme.dangerColor;
+            settings.SetBombReward(RewardDefinition.Create(
+                "bomb",
+                "Bomb",
+                FindSprite("ui_card_icon_death"),
+                1,
+                RewardTier.Legendary,
+                settings.Theme.DangerColor));
 
             settings.StandardRewards.Clear();
             settings.StandardRewards.Add(Reward("cash", "Cash", FindSprite("UI_icon_cash"), 150, RewardTier.Common, new Color(0.52f, 1f, 0.42f, 1f)));
@@ -203,23 +212,24 @@ namespace Vertigo.Wheel.EditorTools
             settings.StandardRewards.Add(Reward("grenade_m26", "M26 Grenade", FindSprite("ui_icon_render_cons_grenade_m26"), 1, RewardTier.Common, Color.white));
             settings.StandardRewards.Add(Reward("molotov", "Molotov", FindSprite("ui_icon_render_t_cons_molotov"), 1, RewardTier.Common, Color.white));
             settings.StandardRewards.Add(Reward("grenade_m67", "M67 Grenade", FindSprite("ui_icon_render_cons_grenade_m67"), 1, RewardTier.Common, Color.white));
-            settings.StandardRewards.Add(Reward("silver_chest", "Silver Chest", FindSprite("UI_icon_chest_silver_nolight"), 1, RewardTier.Rare, settings.Theme.safeZoneColor));
+            settings.StandardRewards.Add(Reward("silver_chest", "Silver Chest", FindSprite("UI_icon_chest_silver_nolight"), 1, RewardTier.Rare, settings.Theme.SafeZoneColor));
 
             settings.SafeRewards.Clear();
-            settings.SafeRewards.Add(Reward("silver_chest", "Silver Chest", FindSprite("UI_icon_chest_silver_nolight"), 1, RewardTier.Rare, settings.Theme.safeZoneColor));
+            settings.SafeRewards.Add(Reward("silver_chest", "Silver Chest", FindSprite("UI_icon_chest_silver_nolight"), 1, RewardTier.Rare, settings.Theme.SafeZoneColor));
             settings.SafeRewards.Add(Reward("grenade_m67", "M67 Grenade", FindSprite("ui_icon_render_cons_grenade_m67"), 1, RewardTier.Common, Color.white));
             settings.SafeRewards.Add(Reward("neurostim", "Neurostim", FindSprite("ui_icon_render_cons_healthshot_2_neurostim"), 1, RewardTier.Common, Color.white));
             settings.SafeRewards.Add(Reward("cash_safe", "Cash", FindSprite("UI_icon_cash"), 300, RewardTier.Common, new Color(0.52f, 1f, 0.42f, 1f)));
 
             settings.SuperRewards.Clear();
-            settings.SuperRewards.Add(Reward("gold_chest", "Gold Chest", FindSprite("UI_icon_chest_gold_nolight"), 1, RewardTier.Epic, settings.Theme.superZoneColor));
-            settings.SuperRewards.Add(Reward("super_chest", "Super Chest", FindSprite("UI_icon_chest_super_nolight"), 1, RewardTier.Legendary, settings.Theme.superZoneColor));
-            settings.SuperRewards.Add(Reward("big_chest", "Big Chest", FindSprite("UI_icon_chest_big_nolight"), 1, RewardTier.Epic, settings.Theme.superZoneColor));
-            settings.SuperRewards.Add(Reward("gold", "Gold", FindSprite("UI_icon_gold"), 25, RewardTier.Legendary, settings.Theme.superZoneColor));
+            settings.SuperRewards.Add(Reward("gold_chest", "Gold Chest", FindSprite("UI_icon_chest_gold_nolight"), 1, RewardTier.Epic, settings.Theme.SuperZoneColor));
+            settings.SuperRewards.Add(Reward("super_chest", "Super Chest", FindSprite("UI_icon_chest_super_nolight"), 1, RewardTier.Legendary, settings.Theme.SuperZoneColor));
+            settings.SuperRewards.Add(Reward("big_chest", "Big Chest", FindSprite("UI_icon_chest_big_nolight"), 1, RewardTier.Epic, settings.Theme.SuperZoneColor));
+            settings.SuperRewards.Add(Reward("gold", "Gold", FindSprite("UI_icon_gold"), 25, RewardTier.Legendary, settings.Theme.SuperZoneColor));
 
             WheelLayoutSettings layout = settings.Layout;
-            layout.rewardPanelFrameSprite = FindSprite(layout.rewardPanelFrameSpriteName);
-            layout.rewardCardFrameSprite = FindSprite(layout.rewardCardFrameSpriteName);
+            layout.BindFrameSprites(
+                FindSprite(layout.RewardPanelFrameSpriteName),
+                FindSprite(layout.RewardCardFrameSpriteName));
         }
 
         private static HeaderViews BuildHeader(Transform parent, WheelGameSettings settings, Material material)
@@ -236,7 +246,7 @@ namespace Vertigo.Wheel.EditorTools
                 Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), new Vector2(720f, 36f)),
                 26,
                 TextAlignmentOptions.Center,
-                settings.Theme.primaryTextColor);
+                settings.Theme.PrimaryTextColor);
             TextMeshProUGUI zoneTypeText = CreateText(
                 zonePanelView.transform,
                 "ui_header_zone_type_value",
@@ -244,7 +254,7 @@ namespace Vertigo.Wheel.EditorTools
                 Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(720f, 24f)),
                 16,
                 TextAlignmentOptions.Center,
-                settings.Theme.standardZoneColor);
+                settings.Theme.StandardZoneColor);
             zoneText.fontStyle = FontStyles.Bold;
             zoneTypeText.fontStyle = FontStyles.Bold;
             WheelZoneTextView zoneTextView = zoneText.gameObject.AddComponent<WheelZoneTextView>();
@@ -271,8 +281,6 @@ namespace Vertigo.Wheel.EditorTools
             Apply(progressRect, Anchored(new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(920f, 70f)));
 
             int cellCount = 11;
-            Image[] cellImages = new Image[cellCount];
-            TextMeshProUGUI[] cellLabels = new TextMeshProUGUI[cellCount];
             float spacing = 78f;
             float startX = -spacing * ((cellCount - 1) * 0.5f);
             for (int i = 0; i < cellCount; i++)
@@ -289,15 +297,12 @@ namespace Vertigo.Wheel.EditorTools
                 cellImage.raycastTarget = false;
                 cellImage.maskable = false;
 
-                TextMeshProUGUI label = CreateText(cellRoot.transform, "ui_zone_progress_cell_" + i + "_value", "1", FullStretch(), 24, TextAlignmentOptions.Center, settings.Theme.secondaryTextColor);
+                TextMeshProUGUI label = CreateText(cellRoot.transform, "ui_zone_progress_cell_" + i + "_value", "1", FullStretch(), 24, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
                 label.fontStyle = FontStyles.Bold;
-                cellImages[i] = cellImage;
-                cellLabels[i] = label;
             }
 
             WheelZoneProgressView view = progressRoot.AddComponent<WheelZoneProgressView>();
-            WheelEditorWiring.SetObjectArray(view, "_cellImages", cellImages);
-            WheelEditorWiring.SetObjectArray(view, "_cellLabels", cellLabels);
+            WheelZoneProgressViewEditor.CollectZoneCells(view);
             WheelEditorWiring.SetReference(view, "_standardSprite", FindSprite("ui_card_panel_zone_white"));
             WheelEditorWiring.SetReference(view, "_currentSprite", FindSprite("ui_card_panel_zone_current_white"));
             WheelEditorWiring.SetReference(view, "_safeSprite", FindSprite("ui_card_panel_zone_current"));
@@ -312,10 +317,10 @@ namespace Vertigo.Wheel.EditorTools
             var badgesRect = badgesRoot.AddComponent<RectTransform>();
             Apply(badgesRect, Anchored(new Vector2(1f, 0.5f), new Vector2(-258f, 178f), new Vector2(328f, 244f)));
 
-            Image superBadge = CreateMilestoneBadge(badgesRoot.transform, "ui_zone_badge_super", new Vector2(0f, 56f), new Color(0.2f, 0.65f, 0.08f, 0.86f), material);
-            Image safeBadge = CreateMilestoneBadge(badgesRoot.transform, "ui_zone_badge_safe", new Vector2(0f, -56f), new Color(0.2f, 0.74f, 0.92f, 0.78f), material);
-            TextMeshProUGUI superText = CreateText(superBadge.transform, "ui_zone_badge_super_value", "SUPER\nZONE\n30", FullStretch(), 30, TextAlignmentOptions.Center, settings.Theme.superZoneColor);
-            TextMeshProUGUI safeText = CreateText(safeBadge.transform, "ui_zone_badge_safe_value", "SAFE\nZONE\n5", FullStretch(), 30, TextAlignmentOptions.Center, settings.Theme.safeZoneColor);
+            Image superBadge = CreateMilestoneBadge(badgesRoot.transform, "ui_zone_badge_super", new Vector2(0f, 56f), settings.Theme.SuperMilestoneBadgeBackground, material);
+            Image safeBadge = CreateMilestoneBadge(badgesRoot.transform, "ui_zone_badge_safe", new Vector2(0f, -56f), settings.Theme.SafeMilestoneBadgeBackground, material);
+            TextMeshProUGUI superText = CreateText(superBadge.transform, "ui_zone_badge_super_value", "SUPER\nZONE\n30", FullStretch(), 30, TextAlignmentOptions.Center, settings.Theme.SuperZoneColor);
+            TextMeshProUGUI safeText = CreateText(safeBadge.transform, "ui_zone_badge_safe_value", "SAFE\nZONE\n5", FullStretch(), 30, TextAlignmentOptions.Center, settings.Theme.SafeZoneColor);
             superText.fontStyle = FontStyles.Bold;
             safeText.fontStyle = FontStyles.Bold;
 
@@ -341,7 +346,7 @@ namespace Vertigo.Wheel.EditorTools
             var zonePanelRoot = new GameObject("ui_zone_panel_root");
             zonePanelRoot.transform.SetParent(parent, false);
             var zonePanelRect = zonePanelRoot.AddComponent<RectTransform>();
-            Apply(zonePanelRect, Anchored(new Vector2(0.5f, 1f), layout.zonePanelPosition, layout.zonePanelSize));
+            Apply(zonePanelRect, Anchored(new Vector2(0.5f, 1f), layout.ZonePanelPosition, layout.ZonePanelSize));
 
             Image panelBg = CreateImage(zonePanelRoot.transform, "ui_zone_panel_bg", null, FullStretch(), material);
             panelBg.type = Image.Type.Sliced;
@@ -365,9 +370,9 @@ namespace Vertigo.Wheel.EditorTools
             var lootRoot = new GameObject("ui_loot_strip_root");
             lootRoot.transform.SetParent(parent, false);
             var lootRect = lootRoot.AddComponent<RectTransform>();
-            Apply(lootRect, Anchored(new Vector2(0.5f, 0.5f), layout.rewardPanelPosition, layout.rewardPanelSize));
+            Apply(lootRect, Anchored(new Vector2(0.5f, 0.5f), layout.RewardPanelPosition, layout.RewardPanelSize));
 
-            Image stripFrame = CreateImage(lootRoot.transform, "ui_loot_strip_frame", layout.rewardPanelFrameSprite, FullStretch(), material);
+            Image stripFrame = CreateImage(lootRoot.transform, "ui_loot_strip_frame", layout.RewardPanelFrameSprite, FullStretch(), material);
             stripFrame.type = Image.Type.Sliced;
             stripFrame.preserveAspect = false;
 
@@ -378,21 +383,22 @@ namespace Vertigo.Wheel.EditorTools
             cardsRect.offsetMin = new Vector2(24f, 24f);
             cardsRect.offsetMax = new Vector2(-24f, -112f);
 
-            WheelRewardCardView[] cardViews = CreateRewardCardPool(cardsRoot.transform, layout, material);
+            CreateRewardCardPool(cardsRoot.transform, layout, material);
             WheelRewardPanelView lootPanelView = lootRoot.AddComponent<WheelRewardPanelView>();
             WheelEditorWiring.SetReference(lootPanelView, "_panelFrameImage", stripFrame);
-            WheelEditorWiring.SetObjectArray(lootPanelView, "_cardViews", cardViews);
+            WheelEditorWiring.SetReference(lootPanelView, "_cardPoolRoot", cardsRoot.transform);
+            WheelEditorWiring.CollectChildren(lootPanelView, "_cardViews", cardsRoot.transform);
             return lootPanelView;
         }
 
         private static WheelRewardCardView[] CreateRewardCardPool(Transform parent, WheelLayoutSettings layout, Material material)
         {
-            int cardCount = layout.maxRewardCards;
+            int cardCount = layout.MaxRewardCards;
             var cardViews = new WheelRewardCardView[cardCount];
-            float cardWidth = layout.rewardCardSize.x;
-            float cardHeight = layout.rewardCardSize.y;
+            float cardWidth = layout.RewardCardSize.x;
+            float cardHeight = layout.RewardCardSize.y;
             float spacing = 12f;
-            bool vertical = layout.rewardPanelSize.y > layout.rewardPanelSize.x;
+            bool vertical = layout.RewardPanelSize.y > layout.RewardPanelSize.x;
             float rowWidth = (cardCount * cardWidth) + ((cardCount - 1) * spacing);
             float columnHeight = (cardCount * cardHeight) + ((cardCount - 1) * spacing);
             float startX = (-rowWidth * 0.5f) + (cardWidth * 0.5f);
@@ -405,9 +411,9 @@ namespace Vertigo.Wheel.EditorTools
                 var cardObject = new GameObject("ui_loot_card_" + i);
                 cardObject.transform.SetParent(parent, false);
                 var cardRect = cardObject.AddComponent<RectTransform>();
-                Apply(cardRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(x, y), layout.rewardCardSize));
+                Apply(cardRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(x, y), layout.RewardCardSize));
 
-                Image frame = CreateImage(cardObject.transform, "ui_loot_card_" + i + "_frame", layout.rewardCardFrameSprite, FullStretch(), material);
+                Image frame = CreateImage(cardObject.transform, "ui_loot_card_" + i + "_frame", layout.RewardCardFrameSprite, FullStretch(), material);
                 frame.type = Image.Type.Sliced;
                 frame.preserveAspect = false;
 
@@ -486,10 +492,10 @@ namespace Vertigo.Wheel.EditorTools
             var contentRect = contentObject.AddComponent<RectTransform>();
             Apply(contentRect, FullStretch());
 
-            TextMeshProUGUI title = CreateText(contentObject.transform, "ui_outcome_title_value", "REWARD", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 154f), new Vector2(620f, 68f)), 48, TextAlignmentOptions.Center, settings.Theme.primaryTextColor);
+            TextMeshProUGUI title = CreateText(contentObject.transform, "ui_outcome_title_value", "REWARD", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 154f), new Vector2(620f, 68f)), 48, TextAlignmentOptions.Center, settings.Theme.PrimaryTextColor);
             Image icon = CreateImage(contentObject.transform, "ui_outcome_icon_value", null, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(160f, 160f)), material);
-            TextMeshProUGUI result = CreateText(contentObject.transform, "ui_outcome_result_value", "Reward", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -104f), new Vector2(760f, 62f)), 36, TextAlignmentOptions.Center, settings.Theme.secondaryTextColor);
-            TextMeshProUGUI summary = CreateText(contentObject.transform, "ui_outcome_summary_value", "Added to your run rewards", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -158f), new Vector2(760f, 40f)), 22, TextAlignmentOptions.Center, settings.Theme.secondaryTextColor);
+            TextMeshProUGUI result = CreateText(contentObject.transform, "ui_outcome_result_value", "Reward", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -104f), new Vector2(760f, 62f)), 36, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
+            TextMeshProUGUI summary = CreateText(contentObject.transform, "ui_outcome_summary_value", "Added to your run rewards", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -158f), new Vector2(760f, 40f)), 22, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
             title.fontStyle = FontStyles.Bold;
 
             WheelOutcomePopupView view = overlay.gameObject.AddComponent<WheelOutcomePopupView>();
@@ -521,14 +527,14 @@ namespace Vertigo.Wheel.EditorTools
                 Anchored(new Vector2(0.5f, 1f), new Vector2(0f, -98f), new Vector2(760f, 96f)),
                 58,
                 TextAlignmentOptions.Center,
-                settings.Theme.primaryTextColor);
+                settings.Theme.PrimaryTextColor);
             title.fontStyle = FontStyles.Bold;
 
             var cardsRoot = new GameObject("ui_reward_opening_cards_root");
             cardsRoot.transform.SetParent(overlayObject.transform, false);
             var cardsRect = cardsRoot.AddComponent<RectTransform>();
             Apply(cardsRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 12f), new Vector2(1780f, 550f)));
-            WheelRewardCardView[] cardViews = CreateOpeningRewardCards(cardsRoot.transform, settings, material);
+            CreateOpeningRewardCards(cardsRoot.transform, settings, material);
 
             Button restartButton = CreateButton(
                 overlayObject.transform,
@@ -543,8 +549,10 @@ namespace Vertigo.Wheel.EditorTools
             WheelRewardOpeningView opening = overlayObject.AddComponent<WheelRewardOpeningView>();
             WheelEditorWiring.SetReference(opening, "_root", overlayObject);
             WheelEditorWiring.SetReference(opening, "_titleText", title);
-            WheelEditorWiring.SetReference(opening, "_cardFrameSource", cardViews[0].GetComponentInChildren<Image>());
-            WheelEditorWiring.SetObjectArray(opening, "_cardViews", cardViews);
+            WheelEditorWiring.SetReference(opening, "_cardPoolRoot", cardsRoot.transform);
+            WheelEditorWiring.CollectChildren(opening, "_rewardCards", cardsRoot.transform);
+            WheelRewardCardView firstCard = cardsRoot.transform.GetChild(0).GetComponent<WheelRewardCardView>();
+            WheelEditorWiring.SetReference(opening, "_cardFrameSource", firstCard.GetComponentInChildren<Image>());
             overlayObject.SetActive(false);
 
             return new RewardOpeningViews
@@ -556,7 +564,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static WheelRewardCardView[] CreateOpeningRewardCards(Transform parent, WheelGameSettings settings, Material material)
         {
-            int cardCount = settings.Layout.maxRewardCards;
+            int cardCount = settings.Layout.MaxRewardCards;
             WheelRewardCardView[] cardViews = new WheelRewardCardView[cardCount];
             Vector2 cardSize = new Vector2(230f, 500f);
             float spacing = 34f;
@@ -570,7 +578,7 @@ namespace Vertigo.Wheel.EditorTools
                 var cardRect = cardObject.AddComponent<RectTransform>();
                 Apply(cardRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(startX + (i * (cardSize.x + spacing)), 0f), cardSize));
 
-                Image frame = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_frame", settings.Layout.rewardCardFrameSprite, FullStretch(), material);
+                Image frame = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_frame", settings.Layout.RewardCardFrameSprite, FullStretch(), material);
                 frame.type = Image.Type.Sliced;
                 frame.preserveAspect = false;
 
@@ -594,7 +602,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static WheelStatusTextView BuildFooter(Transform parent, WheelGameSettings settings)
         {
-            TextMeshProUGUI text = CreateText(parent, "ui_footer_status_value", "Spin to risk your loot and advance toward safe zones.", Anchored(new Vector2(0.5f, 0f), settings.Layout.statusPosition, settings.Layout.statusSize), 20, TextAlignmentOptions.Center, settings.Theme.secondaryTextColor);
+            TextMeshProUGUI text = CreateText(parent, "ui_footer_status_value", "Spin to risk your loot and advance toward safe zones.", Anchored(new Vector2(0.5f, 0f), settings.Layout.StatusPosition, settings.Layout.StatusSize), 20, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
             WheelStatusTextView view = text.gameObject.AddComponent<WheelStatusTextView>();
             WheelEditorWiring.SetReference(view, "_text", text);
             return view;
@@ -613,14 +621,14 @@ namespace Vertigo.Wheel.EditorTools
                 parent,
                 "ui_button_spin",
                 "SPIN",
-                Anchored(new Vector2(0.5f, 0.5f), settings.Layout.wheelPosition, new Vector2(170f, 170f)),
+                Anchored(new Vector2(0.5f, 0.5f), settings.Layout.WheelPosition, new Vector2(170f, 170f)),
                 FindSprite("ui_spin_generic_button"),
                 material);
             Button restartButton = CreateButton(
                 parent,
                 "ui_button_restart",
                 "RETRY",
-                Anchored(new Vector2(0.5f, 0f), settings.Layout.buttonRowPosition, settings.Layout.buttonSize),
+                Anchored(new Vector2(0.5f, 0f), settings.Layout.ButtonRowPosition, settings.Layout.ButtonSize),
                 FindSprite("UI_button_grey_standard"),
                 material);
             WheelLeaveButtonAction leave = leaveButton.gameObject.AddComponent<WheelLeaveButtonAction>();
@@ -728,15 +736,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static RewardDefinition Reward(string id, string displayName, Sprite icon, int amount, RewardTier tier, Color accentColor)
         {
-            return new RewardDefinition
-            {
-                id = id,
-                displayName = displayName,
-                icon = icon,
-                amount = amount,
-                tier = tier,
-                accentColor = accentColor
-            };
+            return RewardDefinition.Create(id, displayName, icon, amount, tier, accentColor);
         }
 
         private static Sprite FindSprite(string name)

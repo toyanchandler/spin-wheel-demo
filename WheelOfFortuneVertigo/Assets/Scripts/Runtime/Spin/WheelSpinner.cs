@@ -5,13 +5,11 @@ using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
-    public sealed class WheelSpinner : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelSpinner : MonoBehaviour
     {
         public event Action<WheelSpinResult> SpinCompleted;
 
-        [SerializeField] private RectTransform _wheelTransform;
-        [SerializeField] private float _spinDuration = 2.2f;
-        [SerializeField] private int _minimumRounds = 4;
+        private RectTransform _wheelTransform;
 
         private WheelSliceDefinition[] _currentSlices;
         private Tween _activeTween;
@@ -22,12 +20,18 @@ namespace Vertigo.Wheel.Runtime
 
         public bool IsSpinning { get { return _spinning; } }
 
-        public void Initialize(WheelEventBus eventBus)
+        private void Awake()
+        {
+            _wheelTransform = GetComponent<RectTransform>();
+            WheelRuntimeLocator.RegisterSpinner(this);
+        }
+
+        public void Bind(WheelEventBus eventBus)
         {
             _completeSpinCallback = CompleteSpin;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             StopActiveTween(false);
             _spinning = false;
@@ -62,11 +66,12 @@ namespace Vertigo.Wheel.Runtime
             float sliceAngle = 360f / _currentSliceCount;
             float startAngle = _wheelTransform.eulerAngles.z;
             float selectedIconAngle = selectedIndex * sliceAngle;
-            float targetDelta = 360f * _minimumRounds + Mathf.DeltaAngle(startAngle, selectedIconAngle);
+            WheelGameSettings settings = WheelRuntimeLocator.Settings;
+            float targetDelta = 360f * settings.MinimumSpinRounds + Mathf.DeltaAngle(startAngle, selectedIconAngle);
             float targetAngle = startAngle + targetDelta;
 
             _activeTween = _wheelTransform
-                .DORotate(new Vector3(0f, 0f, targetAngle), _spinDuration, RotateMode.FastBeyond360)
+                .DORotate(new Vector3(0f, 0f, targetAngle), settings.SpinDuration, RotateMode.FastBeyond360)
                 .SetEase(Ease.OutCubic)
                 .SetRecyclable(true)
                 .SetLink(gameObject, LinkBehaviour.KillOnDisable)

@@ -4,76 +4,77 @@ using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
-    public sealed class WheelGameFlowController : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelGameFlowController : MonoBehaviour
     {
-        [SerializeField] private WheelGameState _state;
-        [SerializeField] private WheelSpinner _spinner;
-        [SerializeField] private WheelStatePublisher _publisher;
-
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
             _eventBus.SpinRequested += OnSpinRequested;
             _eventBus.LeaveRequested += OnLeaveRequested;
             _eventBus.RestartRequested += OnRestartRequested;
-            _spinner.SpinCompleted += OnSpinCompleted;
+            WheelRuntimeLocator.Spinner.SpinCompleted += OnSpinCompleted;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.SpinRequested -= OnSpinRequested;
             _eventBus.LeaveRequested -= OnLeaveRequested;
             _eventBus.RestartRequested -= OnRestartRequested;
-            _spinner.SpinCompleted -= OnSpinCompleted;
+            WheelRuntimeLocator.Spinner.SpinCompleted -= OnSpinCompleted;
             _eventBus = null;
         }
 
         private void OnSpinRequested()
         {
-            int allowed = Convert.ToInt32(_state.CanSpin && !_spinner.IsSpinning);
+            WheelGameState state = WheelRuntimeLocator.State;
+            int allowed = Convert.ToInt32(state.CanSpin && !WheelRuntimeLocator.Spinner.IsSpinning);
             FlowActions.Spin[allowed](this);
         }
 
         private void OnLeaveRequested()
         {
-            FlowActions.Leave[Convert.ToInt32(_state.CanLeave)](this);
+            FlowActions.Leave[Convert.ToInt32(WheelRuntimeLocator.State.CanLeave)](this);
         }
 
         private void OnRestartRequested()
         {
-            FlowActions.Restart[Convert.ToInt32(_state.CanRestart)](this);
+            FlowActions.Restart[Convert.ToInt32(WheelRuntimeLocator.State.CanRestart)](this);
         }
 
         private void OnSpinCompleted(WheelSpinResult result)
         {
-            _state.Resolve(result);
-            FlowActions.PublishAfterSpin[Convert.ToInt32(_state.PhaseGameplay.publishAllAfterSpin)](_publisher);
-            _publisher.PublishOutcome(result, true);
+            WheelGameState state = WheelRuntimeLocator.State;
+            state.Resolve(result);
+            FlowActions.PublishAfterSpin[Convert.ToInt32(state.PhaseGameplay.PublishAllAfterSpin)](WheelRuntimeLocator.Publisher);
+            WheelRuntimeLocator.Publisher.PublishOutcome(result, true);
         }
 
         private void ExecuteSpin()
         {
-            _state.PrepareCurrentZone();
-            _publisher.PublishZone();
-            _state.BeginSpin();
-            _publisher.PublishHud();
-            _spinner.SetSlices(_state.Slices, _state.SliceCount);
-            _spinner.Spin();
+            WheelGameState state = WheelRuntimeLocator.State;
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            state.PrepareCurrentZone();
+            publisher.PublishZone();
+            state.BeginSpin();
+            publisher.PublishHud();
+            WheelRuntimeLocator.Spinner.SetSlices(state.Slices, state.SliceCount);
+            WheelRuntimeLocator.Spinner.Spin();
         }
 
         private void ExecuteLeave()
         {
-            _state.CashOut();
-            _publisher.PublishHud();
-            _publisher.PublishOutcome(default(WheelSpinResult), false);
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            WheelRuntimeLocator.State.CashOut();
+            publisher.PublishHud();
+            publisher.PublishOutcome(default(WheelSpinResult), false);
         }
 
         private void ExecuteRestart()
         {
-            _state.Restart();
-            _publisher.PublishAll();
+            WheelRuntimeLocator.State.Restart();
+            WheelRuntimeLocator.Publisher.PublishAll();
         }
 
         private static class FlowActions

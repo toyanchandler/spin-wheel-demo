@@ -5,16 +5,24 @@ using UnityEngine;
 namespace Vertigo.Wheel.Diagnostics
 {
     [RequireComponent(typeof(TextMeshProUGUI))]
+    [RequireComponent(typeof(WheelPerformanceMonitor))]
     public sealed class WheelPerformanceOverlay : MonoBehaviour
     {
-        [SerializeField] private WheelPerformanceMonitor _monitor;
-        [SerializeField] private TextMeshProUGUI _text;
         [SerializeField] private float _refreshInterval = 0.5f;
+
+        private WheelPerformanceMonitor _monitor;
+        private TextMeshProUGUI _text;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private readonly StringBuilder _builder = new StringBuilder(192);
         private float _elapsed;
 #endif
+
+        private void Awake()
+        {
+            _monitor = GetComponent<WheelPerformanceMonitor>();
+            _text = GetComponent<TextMeshProUGUI>();
+        }
 
         private void OnEnable()
         {

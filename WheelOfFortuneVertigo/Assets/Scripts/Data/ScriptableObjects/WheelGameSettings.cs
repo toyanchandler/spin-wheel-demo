@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace Vertigo.Wheel.Data
 {
-    public sealed class WheelGameSettings : MonoBehaviour, IWheelContentProvider
+    [CreateAssetMenu(fileName = "WheelGameSettings", menuName = "Vertigo/Wheel Game Settings")]
+    public sealed class WheelGameSettings : ScriptableObject, IWheelContentProvider
     {
         [Header("Zone Rules")]
         [SerializeField, Min(4)] private int _sliceCount = 8;
@@ -23,6 +24,10 @@ namespace Vertigo.Wheel.Data
         [Header("Zone Gameplay")]
         [SerializeField] private WheelZoneGameplayProfile[] _zoneGameplayProfiles = CreateDefaultZoneGameplayProfiles();
 
+        [Header("Spin Motion")]
+        [SerializeField, Min(0.5f)] private float _spinDuration = 2.2f;
+        [SerializeField, Min(1)] private int _minimumSpinRounds = 4;
+
         [Header("Presentation")]
         [SerializeField] private WheelUiCopyCatalog _uiCopy;
         [SerializeField] private WheelSkinCatalog _skinCatalog;
@@ -37,6 +42,8 @@ namespace Vertigo.Wheel.Data
         public WheelSliceLayoutCatalog SliceLayoutCatalog { get { return _sliceLayoutCatalog; } }
         public WheelOutcomePopupMotionCatalog OutcomePopupMotionCatalog { get { return _outcomePopupMotionCatalog; } }
         public WheelSpinResolveCatalog SpinResolveCatalog { get { return _spinResolveCatalog; } }
+        public float SpinDuration { get { return _spinDuration; } }
+        public int MinimumSpinRounds { get { return _minimumSpinRounds; } }
         public WheelLayoutSettings Layout { get { return _layout; } }
         public WheelThemeSettings Theme { get { return _theme; } }
 
@@ -49,10 +56,16 @@ namespace Vertigo.Wheel.Data
         {
             return _rewardPoolsByZone[(int)zoneType];
         }
+
         public int SliceCount { get { return Mathf.Max(4, _sliceCount); } }
         public int SafeZoneInterval { get { return Mathf.Max(1, _safeZoneInterval); } }
         public int SuperZoneInterval { get { return Mathf.Max(1, _superZoneInterval); } }
         public RewardDefinition BombReward { get { return _bombReward; } }
+
+        public void SetBombReward(RewardDefinition bombReward)
+        {
+            _bombReward = bombReward;
+        }
         public List<RewardDefinition> StandardRewards { get { return _standardRewards; } }
         public List<RewardDefinition> SafeRewards { get { return _safeRewards; } }
         public List<RewardDefinition> SuperRewards { get { return _superRewards; } }
@@ -123,8 +136,8 @@ namespace Vertigo.Wheel.Data
         {
             return new[]
             {
-                new WheelZoneIntervalRule { interval = _superZoneInterval, zoneType = ZoneType.Super },
-                new WheelZoneIntervalRule { interval = _safeZoneInterval, zoneType = ZoneType.Safe }
+                WheelZoneIntervalRule.Create(_superZoneInterval, ZoneType.Super),
+                WheelZoneIntervalRule.Create(_safeZoneInterval, ZoneType.Safe)
             };
         }
 
@@ -132,9 +145,9 @@ namespace Vertigo.Wheel.Data
         {
             return new[]
             {
-                new WheelZoneGameplayProfile { includesBombSlot = true, allowLeave = false },
-                new WheelZoneGameplayProfile { includesBombSlot = false, allowLeave = true },
-                new WheelZoneGameplayProfile { includesBombSlot = false, allowLeave = true }
+                WheelZoneGameplayProfile.Create(includesBombSlot: true, allowLeave: false),
+                WheelZoneGameplayProfile.Create(includesBombSlot: false, allowLeave: true),
+                WheelZoneGameplayProfile.Create(includesBombSlot: false, allowLeave: true)
             };
         }
 
@@ -166,19 +179,19 @@ namespace Vertigo.Wheel.Data
                 throw new InvalidOperationException("WheelGameSettings has a null reward in " + zoneType + " configuration.");
             }
 
-            if (string.IsNullOrEmpty(reward.id))
+            if (string.IsNullOrEmpty(reward.Id))
             {
                 throw new InvalidOperationException("WheelGameSettings reward in " + zoneType + " configuration requires a stable id.");
             }
 
-            if (string.IsNullOrEmpty(reward.displayName))
+            if (string.IsNullOrEmpty(reward.DisplayName))
             {
-                throw new InvalidOperationException("WheelGameSettings reward '" + reward.id + "' in " + zoneType + " configuration requires a display name.");
+                throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires a display name.");
             }
 
-            if (reward.icon == null)
+            if (reward.Icon == null)
             {
-                throw new InvalidOperationException("WheelGameSettings reward '" + reward.id + "' in " + zoneType + " configuration requires an icon.");
+                throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires an icon.");
             }
         }
 

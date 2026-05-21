@@ -6,9 +6,9 @@ namespace Vertigo.Wheel.Data
         {
             for (int i = 0; i < rules.Length; i++)
             {
-                if (zone % rules[i].interval == 0)
+                if (zone % rules[i].Interval == 0)
                 {
-                    return rules[i].zoneType;
+                    return rules[i].ZoneType;
                 }
             }
 

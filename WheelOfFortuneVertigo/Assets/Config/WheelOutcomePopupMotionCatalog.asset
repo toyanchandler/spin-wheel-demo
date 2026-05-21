@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WheelOutcomePopupMotionCatalog
   m_EditorClassIdentifier: 
   _motion:
-    fadeDuration: 0.18
-    scaleDuration: 0.26
-    startScale: 0.92
-    scaleEase: 27
+    _fadeDuration: 0.18
+    _scaleDuration: 0.26
+    _startScale: 0.92
+    _scaleEase: 27

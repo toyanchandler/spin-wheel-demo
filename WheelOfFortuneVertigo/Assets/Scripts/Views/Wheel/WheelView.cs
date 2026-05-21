@@ -1,23 +1,28 @@
 using System;
 using UnityEngine;
+using Vertigo.Collections;
 using Vertigo.Wheel.Data;
 using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
-    public sealed class WheelView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelView : MonoBehaviour
     {
-        [SerializeField] private WheelSliceView[] _sliceViews;
+        [SerializeField] private Transform _slicePoolRoot;
+
+        [CollectChildren(nameof(_slicePoolRoot))]
+        [SerializeField] private WheelSliceView[] _sliceViews = Array.Empty<WheelSliceView>();
 
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
+            RequireSliceViews();
             _eventBus = eventBus;
             _eventBus.ZoneChanged += OnZoneChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.ZoneChanged -= OnZoneChanged;
             _eventBus = null;
@@ -31,6 +36,15 @@ namespace Vertigo.Wheel.Views
                 snapshot.SliceCount,
                 snapshot.SlicePositions,
                 snapshot.SliceIconSize);
+        }
+
+        private void RequireSliceViews()
+        {
+            if (_sliceViews == null || _sliceViews.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    name + " has no slice views. Collect children in the inspector or rebuild the scene.");
+            }
         }
 
         private static class SlicePoolRenderer
@@ -56,11 +70,11 @@ namespace Vertigo.Wheel.Views
                 for (int i = 0; i < visibleCount; i++)
                 {
                     WheelSlicePresentation presentation = new WheelSlicePresentation(
-                        slices[i].displayIcon,
-                        slices[i].displayAmount,
-                        slices[i].displayColor,
+                        slices[i].DisplayIcon,
+                        slices[i].DisplayAmount,
+                        slices[i].DisplayColor,
                         slicePositions[i],
-                        slices[i].showAmountLabel);
+                        slices[i].ShowAmountLabel);
                     pool[i].Apply(presentation, iconSize);
                 }
 

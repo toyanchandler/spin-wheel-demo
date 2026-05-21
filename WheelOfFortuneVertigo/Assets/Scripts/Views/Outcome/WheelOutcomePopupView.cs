@@ -7,7 +7,7 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
-    public sealed class WheelOutcomePopupView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelOutcomePopupView : MonoBehaviour
     {
         [SerializeField] private GameObject _root;
         [SerializeField] private Image _iconImage;
@@ -20,7 +20,7 @@ namespace Vertigo.Wheel.Views
         private WheelEventBus _eventBus;
         private Presenter _presenter;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
             _presenter = new Presenter(CreateBinding(), this);
@@ -29,7 +29,7 @@ namespace Vertigo.Wheel.Views
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.OutcomeResolved -= OnOutcomeResolved;
             _eventBus.HudStateChanged -= OnHudStateChanged;
@@ -170,13 +170,13 @@ namespace Vertigo.Wheel.Views
                 }
 
                 binding.CanvasGroup.alpha = 0f;
-                float startScale = motion.startScale;
+                float startScale = motion.StartScale;
                 binding.ContentRoot.localScale = new Vector3(startScale, startScale, 1f);
                 sequence = DOTween.Sequence()
                     .SetTarget(tweenTarget)
                     .SetUpdate(true)
-                    .Append(binding.CanvasGroup.DOFade(1f, motion.fadeDuration))
-                    .Join(binding.ContentRoot.DOScale(Vector3.one, motion.scaleDuration).SetEase(motion.scaleEase));
+                    .Append(binding.CanvasGroup.DOFade(1f, motion.FadeDuration))
+                    .Join(binding.ContentRoot.DOScale(Vector3.one, motion.ScaleDuration).SetEase(motion.ScaleEase));
             }
 
             private static void Kill(ref Sequence sequence)

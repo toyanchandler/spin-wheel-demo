@@ -1,0 +1,173 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99efb861be5284d82846a1c9722b50de, type: 3}
+  m_Name: WheelGameSettings
+  m_EditorClassIdentifier: 
+  _sliceCount: 8
+  _safeZoneInterval: 5
+  _superZoneInterval: 30
+  _bombReward:
+    _id: bomb
+    _displayName: Bomb
+    _icon: {fileID: 21300000, guid: ee66e140bc2f8414bb59a0da76347838, type: 3}
+    _amount: 1
+    _tier: 3
+    _accentColor: {r: 0.9, g: 0.22, b: 0.16, a: 1}
+  _standardRewards:
+  - _id: cash
+    _displayName: Cash
+    _icon: {fileID: 21300000, guid: 8f32c65809f794957a1d828aac636743, type: 3}
+    _amount: 150
+    _tier: 0
+    _accentColor: {r: 0.52, g: 1, b: 0.42, a: 1}
+  - _id: gold
+    _displayName: Gold
+    _icon: {fileID: 21300000, guid: 9efc32fbd99f34c7484f5793fccabaef, type: 3}
+    _amount: 5
+    _tier: 1
+    _accentColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  - _id: bronze_chest
+    _displayName: Bronze Chest
+    _icon: {fileID: 21300000, guid: 39247762cd0c7454f950b2bdc609dabc, type: 3}
+    _amount: 1
+    _tier: 1
+    _accentColor: {r: 0.88, g: 0.55, b: 0.24, a: 1}
+  - _id: grenade_m26
+    _displayName: M26 Grenade
+    _icon: {fileID: 21300000, guid: b9f74f87e0ac04ceb8f5333e214be391, type: 3}
+    _amount: 1
+    _tier: 0
+    _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  - _id: molotov
+    _displayName: Molotov
+    _icon: {fileID: 21300000, guid: 879cbbff7d6004b99990d1af09e6ff44, type: 3}
+    _amount: 1
+    _tier: 0
+    _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  - _id: grenade_m67
+    _displayName: M67 Grenade
+    _icon: {fileID: 21300000, guid: d7f106087cf4e486584d45a083f9a2c5, type: 3}
+    _amount: 1
+    _tier: 0
+    _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  - _id: silver_chest
+    _displayName: Silver Chest
+    _icon: {fileID: 21300000, guid: fe888de98dc6e48ad91cee08b9ba9a1d, type: 3}
+    _amount: 1
+    _tier: 1
+    _accentColor: {r: 0.68, g: 0.76, b: 0.88, a: 1}
+  _safeRewards:
+  - _id: silver_chest
+    _displayName: Silver Chest
+    _icon: {fileID: 21300000, guid: fe888de98dc6e48ad91cee08b9ba9a1d, type: 3}
+    _amount: 1
+    _tier: 1
+    _accentColor: {r: 0.68, g: 0.76, b: 0.88, a: 1}
+  - _id: grenade_m67
+    _displayName: M67 Grenade
+    _icon: {fileID: 21300000, guid: d7f106087cf4e486584d45a083f9a2c5, type: 3}
+    _amount: 1
+    _tier: 0
+    _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  - _id: neurostim
+    _displayName: Neurostim
+    _icon: {fileID: 21300000, guid: 30299a67454ea4de68e17a22306e0d8b, type: 3}
+    _amount: 1
+    _tier: 0
+    _accentColor: {r: 1, g: 1, b: 1, a: 1}
+  - _id: cash_safe
+    _displayName: Cash
+    _icon: {fileID: 21300000, guid: 8f32c65809f794957a1d828aac636743, type: 3}
+    _amount: 300
+    _tier: 0
+    _accentColor: {r: 0.52, g: 1, b: 0.42, a: 1}
+  _superRewards:
+  - _id: gold_chest
+    _displayName: Gold Chest
+    _icon: {fileID: 21300000, guid: 3cff2eaff92bb4c8798529ef6c70fbb6, type: 3}
+    _amount: 1
+    _tier: 2
+    _accentColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  - _id: super_chest
+    _displayName: Super Chest
+    _icon: {fileID: 21300000, guid: c1d9a86345be54f6a930276479b9d2bf, type: 3}
+    _amount: 1
+    _tier: 3
+    _accentColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  - _id: big_chest
+    _displayName: Big Chest
+    _icon: {fileID: 21300000, guid: 2dfb614403afb4cbf8659bb4d59f7085, type: 3}
+    _amount: 1
+    _tier: 2
+    _accentColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  - _id: gold
+    _displayName: Gold
+    _icon: {fileID: 21300000, guid: 9efc32fbd99f34c7484f5793fccabaef, type: 3}
+    _amount: 25
+    _tier: 3
+    _accentColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+  _zoneGameplayProfiles:
+  - _includesBombSlot: 1
+    _allowLeave: 0
+  - _includesBombSlot: 0
+    _allowLeave: 1
+  - _includesBombSlot: 0
+    _allowLeave: 1
+  _spinDuration: 2.2
+  _minimumSpinRounds: 4
+  _uiCopy: {fileID: 11400000, guid: c998528a1f2544de6af22af46d7995c7, type: 2}
+  _skinCatalog: {fileID: 11400000, guid: 4b8da56f1929d4fd28442aa747c0ed74, type: 2}
+  _sliceLayoutCatalog: {fileID: 11400000, guid: 9b8a4c1cff9e848d788fefe41355332a, type: 2}
+  _outcomePopupMotionCatalog: {fileID: 11400000, guid: 19c1d868273b04741810067c993b3d30, type: 2}
+  _spinResolveCatalog: {fileID: 11400000, guid: dc3247dd498c3499fafb2277fdcd0fa3, type: 2}
+  _layout:
+    _referenceResolution: {x: 1920, y: 1080}
+    _wheelPosition: {x: 110, y: -8}
+    _wheelSize: {x: 620, y: 620}
+    _indicatorPosition: {x: 110, y: 340}
+    _indicatorSize: {x: 72, y: 98}
+    _zonePanelPosition: {x: 0, y: -86}
+    _zonePanelSize: {x: 780, y: 86}
+    _rewardPanelPosition: {x: -742, y: -22}
+    _rewardPanelSize: {x: 282, y: 692}
+    _rewardCardSize: {x: 214, y: 64}
+    _maxRewardCards: 8
+    _rewardPanelFrameSpriteName: ui_card_frame_gardient
+    _rewardCardFrameSpriteName: ui_card_frame_12px_neutral
+    _rewardPanelFrameSprite: {fileID: 21300000, guid: 4aa0ec944a1174843a3f901a51e99109, type: 3}
+    _rewardCardFrameSprite: {fileID: 21300000, guid: 933f916e969d042d1834a643aad019c2, type: 3}
+    _statusPosition: {x: 110, y: 108}
+    _statusSize: {x: 900, y: 56}
+    _buttonRowPosition: {x: 110, y: 32}
+    _buttonSize: {x: 236, y: 72}
+    _buttonSpacing: 264
+    _sliceIconRadius: 0.335
+    _sliceIconSize: {x: 92, y: 92}
+  _theme:
+    _backgroundColor: {r: 0.045, g: 0.05, b: 0.065, a: 1}
+    _primaryTextColor: {r: 1, g: 1, b: 1, a: 1}
+    _secondaryTextColor: {r: 0.76, g: 0.8, b: 0.88, a: 1}
+    _standardZoneColor: {r: 0.78, g: 0.48, b: 0.18, a: 1}
+    _safeZoneColor: {r: 0.68, g: 0.76, b: 0.88, a: 1}
+    _superZoneColor: {r: 1, g: 0.78, b: 0.22, a: 1}
+    _safeMilestoneBadgeBackground: {r: 0.2, g: 0.74, b: 0.92, a: 0.78}
+    _superMilestoneBadgeBackground: {r: 0.2, g: 0.65, b: 0.08, a: 0.86}
+    _dangerColor: {r: 0.9, g: 0.22, b: 0.16, a: 1}
+    _successColor: {r: 0.28, g: 0.84, b: 0.48, a: 1}
+    _uiColorPalette:
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0.76, g: 0.8, b: 0.88, a: 1}
+    - {r: 0.78, g: 0.48, b: 0.18, a: 1}
+    - {r: 0.68, g: 0.76, b: 0.88, a: 1}
+    - {r: 1, g: 0.78, b: 0.22, a: 1}
+    - {r: 0.9, g: 0.22, b: 0.16, a: 1}
+    - {r: 0.28, g: 0.84, b: 0.48, a: 1}

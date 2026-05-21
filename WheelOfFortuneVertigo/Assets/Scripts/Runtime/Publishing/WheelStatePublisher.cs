@@ -3,17 +3,16 @@ using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
-    public sealed class WheelStatePublisher : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelStatePublisher : MonoBehaviour
     {
-        [SerializeField] private WheelGameState _state;
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus)
         {
             _eventBus = eventBus;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus = null;
         }
@@ -26,22 +25,23 @@ namespace Vertigo.Wheel.Runtime
 
         public void PublishZone()
         {
-            _eventBus.RaiseZoneChanged(WheelSnapshotFactory.CreateZone(_state));
+            _eventBus.RaiseZoneChanged(WheelSnapshotFactory.CreateZone(WheelRuntimeLocator.State));
         }
 
         public void PublishHud()
         {
-            _eventBus.RaiseHudState(WheelSnapshotFactory.CreateHud(_state));
+            _eventBus.RaiseHudState(WheelSnapshotFactory.CreateHud(WheelRuntimeLocator.State));
         }
 
         public void PublishOutcome(WheelSpinResult result, bool hasResult)
         {
+            WheelGameState state = WheelRuntimeLocator.State;
             _eventBus.RaiseOutcome(WheelSnapshotFactory.CreateOutcome(
-                _state.Phase,
+                state.Phase,
                 result,
                 hasResult,
-                _state.Inventory,
-                _state.Settings));
+                state.Inventory,
+                state.Settings));
         }
     }
 }

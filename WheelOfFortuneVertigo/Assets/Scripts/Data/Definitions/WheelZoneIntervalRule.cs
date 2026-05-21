@@ -1,11 +1,24 @@
 using System;
+using UnityEngine;
 
 namespace Vertigo.Wheel.Data
 {
     [Serializable]
     public struct WheelZoneIntervalRule
     {
-        public int interval;
-        public ZoneType zoneType;
+        [SerializeField] private int _interval;
+        [SerializeField] private ZoneType _zoneType;
+
+        public int Interval { get { return _interval; } }
+        public ZoneType ZoneType { get { return _zoneType; } }
+
+        public static WheelZoneIntervalRule Create(int interval, ZoneType zoneType)
+        {
+            return new WheelZoneIntervalRule
+            {
+                _interval = interval,
+                _zoneType = zoneType
+            };
+        }
     }
 }

@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: WheelSpinResolveCatalog
   m_EditorClassIdentifier: 
   _profilesByOutcome:
-  - targetPhase: 2
-    clearInventory: 0
-    advanceZone: 1
-    markSlicesDirty: 1
-    addResultToInventory: 1
-  - targetPhase: 3
-    clearInventory: 1
-    advanceZone: 0
-    markSlicesDirty: 0
-    addResultToInventory: 0
+  - _targetPhase: 2
+    _clearInventory: 0
+    _advanceZone: 1
+    _markSlicesDirty: 1
+    _addResultToInventory: 1
+  - _targetPhase: 3
+    _clearInventory: 1
+    _advanceZone: 0
+    _markSlicesDirty: 0
+    _addResultToInventory: 0

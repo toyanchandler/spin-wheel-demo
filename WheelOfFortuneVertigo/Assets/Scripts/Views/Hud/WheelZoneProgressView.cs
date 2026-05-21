@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -5,103 +6,152 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
-    public sealed class WheelZoneProgressView : MonoBehaviour, IWheelRuntimeComponent
+    public sealed class WheelZoneProgressView : MonoBehaviour
     {
-        [SerializeField] private Image[] _cellImages;
-        [SerializeField] private TextMeshProUGUI[] _cellLabels;
+        [Serializable]
+        private struct ZoneProgressCellBinding
+        {
+            public Image Image;
+            public TextMeshProUGUI Label;
+        }
+
+        private enum ZoneProgressCellKind
+        {
+            Standard,
+            Safe,
+            Super,
+            Current
+        }
+
+        private delegate bool CellRuleMatcher(WheelHudSnapshot snapshot, int zone, bool isCurrent);
+        private delegate Color CellColorResolver(WheelHudSnapshot snapshot);
+
+        private readonly struct ZoneProgressCellStyle
+        {
+            public readonly CellColorResolver TextColor;
+            public readonly CellColorResolver ImageColor;
+
+            public ZoneProgressCellStyle(CellColorResolver textColor, CellColorResolver imageColor)
+            {
+                TextColor = textColor;
+                ImageColor = imageColor;
+            }
+        }
+
+        private readonly struct ZoneProgressCellRule
+        {
+            public readonly ZoneProgressCellKind Kind;
+            public readonly CellRuleMatcher Matches;
+
+            public ZoneProgressCellRule(ZoneProgressCellKind kind, CellRuleMatcher matches)
+            {
+                Kind = kind;
+                Matches = matches;
+            }
+        }
+
+        private static readonly ZoneProgressCellRule[] CellRules =
+        {
+            new ZoneProgressCellRule(ZoneProgressCellKind.Current, (snapshot, zone, isCurrent) => isCurrent),
+            new ZoneProgressCellRule(ZoneProgressCellKind.Super, (snapshot, zone, isCurrent) => IsIntervalZone(zone, snapshot.SuperZoneInterval)),
+            new ZoneProgressCellRule(ZoneProgressCellKind.Safe, (snapshot, zone, isCurrent) => IsIntervalZone(zone, snapshot.SafeZoneInterval)),
+            new ZoneProgressCellRule(ZoneProgressCellKind.Standard, (snapshot, zone, isCurrent) => true)
+        };
+
+        private static readonly ZoneProgressCellStyle[] StylesByKind =
+        {
+            new ZoneProgressCellStyle(
+                snapshot => new Color(0.8f, 0.82f, 0.86f, 0.82f),
+                snapshot => new Color(1f, 1f, 1f, 0.42f)),
+            new ZoneProgressCellStyle(
+                snapshot => new Color(0.45f, 0.9f, 1f, 1f),
+                snapshot => new Color(0.3f, 0.82f, 1f, 0.68f)),
+            new ZoneProgressCellStyle(
+                snapshot => new Color(0.58f, 1f, 0.28f, 1f),
+                snapshot => new Color(0.65f, 1f, 0.25f, 0.72f)),
+            new ZoneProgressCellStyle(
+                snapshot => snapshot.ZoneNumberColor,
+                snapshot => Color.white)
+        };
+
+        [SerializeField] private ZoneProgressCellBinding[] _cells = Array.Empty<ZoneProgressCellBinding>();
         [SerializeField] private Sprite _standardSprite;
         [SerializeField] private Sprite _currentSprite;
         [SerializeField] private Sprite _safeSprite;
         [SerializeField] private Sprite _superSprite;
 
+        private Sprite[] _spritesByKind = Array.Empty<Sprite>();
         private WheelEventBus _eventBus;
 
-        public void Initialize(WheelEventBus eventBus)
+        private void OnValidate()
         {
+            SyncSpriteTable();
+        }
+
+        public void Bind(WheelEventBus eventBus)
+        {
+            RequireCells();
+            SyncSpriteTable();
             _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Dispose()
+        public void Unbind()
         {
             _eventBus.HudStateChanged -= OnHudStateChanged;
             _eventBus = null;
         }
 
+        private void RequireCells()
+        {
+            if (_cells == null || _cells.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    name + " has no collected cells. Use Collect Zone Cells in the inspector or rebuild the scene.");
+            }
+        }
+
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
-            int halfCount = _cellLabels.Length / 2;
+            int halfCount = _cells.Length / 2;
             int firstZone = Mathf.Max(1, snapshot.Zone - halfCount);
 
-            for (int i = 0; i < _cellLabels.Length; i++)
+            for (int i = 0; i < _cells.Length; i++)
             {
                 int zone = firstZone + i;
                 bool isCurrent = zone == snapshot.Zone;
-                _cellLabels[i].SetText("{0}", zone);
-                _cellLabels[i].color = ResolveTextColor(snapshot, zone, isCurrent);
-                _cellImages[i].sprite = ResolveSprite(snapshot, zone, isCurrent);
-                _cellImages[i].color = ResolveImageColor(snapshot, zone, isCurrent);
+                ZoneProgressCellKind kind = ResolveCellKind(snapshot, zone, isCurrent);
+                ZoneProgressCellStyle style = StylesByKind[(int)kind];
+                _cells[i].Label.SetText("{0}", zone);
+                _cells[i].Label.color = style.TextColor(snapshot);
+                _cells[i].Image.sprite = _spritesByKind[(int)kind];
+                _cells[i].Image.color = style.ImageColor(snapshot);
             }
         }
 
-        private Sprite ResolveSprite(WheelHudSnapshot snapshot, int zone, bool isCurrent)
+        private void SyncSpriteTable()
         {
-            if (isCurrent)
+            _spritesByKind = new[]
             {
-                return _currentSprite;
-            }
-
-            if (IsIntervalZone(zone, snapshot.SuperZoneInterval))
-            {
-                return _superSprite;
-            }
-
-            if (IsIntervalZone(zone, snapshot.SafeZoneInterval))
-            {
-                return _safeSprite;
-            }
-
-            return _standardSprite;
+                _standardSprite,
+                _safeSprite,
+                _superSprite,
+                _currentSprite
+            };
         }
 
-        private static Color ResolveTextColor(WheelHudSnapshot snapshot, int zone, bool isCurrent)
+        private static ZoneProgressCellKind ResolveCellKind(WheelHudSnapshot snapshot, int zone, bool isCurrent)
         {
-            if (isCurrent)
+            for (int i = 0; i < CellRules.Length; i++)
             {
-                return snapshot.ZoneNumberColor;
+                ZoneProgressCellRule rule = CellRules[i];
+                if (rule.Matches(snapshot, zone, isCurrent))
+                {
+                    return rule.Kind;
+                }
             }
 
-            if (IsIntervalZone(zone, snapshot.SuperZoneInterval))
-            {
-                return new Color(0.58f, 1f, 0.28f, 1f);
-            }
-
-            if (IsIntervalZone(zone, snapshot.SafeZoneInterval))
-            {
-                return new Color(0.45f, 0.9f, 1f, 1f);
-            }
-
-            return new Color(0.8f, 0.82f, 0.86f, 0.82f);
-        }
-
-        private static Color ResolveImageColor(WheelHudSnapshot snapshot, int zone, bool isCurrent)
-        {
-            if (isCurrent)
-            {
-                return Color.white;
-            }
-
-            if (IsIntervalZone(zone, snapshot.SuperZoneInterval))
-            {
-                return new Color(0.65f, 1f, 0.25f, 0.72f);
-            }
-
-            if (IsIntervalZone(zone, snapshot.SafeZoneInterval))
-            {
-                return new Color(0.3f, 0.82f, 1f, 0.68f);
-            }
-
-            return new Color(1f, 1f, 1f, 0.42f);
+            return ZoneProgressCellKind.Standard;
         }
 
         private static bool IsIntervalZone(int zone, int interval)

@@ -21,42 +21,6 @@ namespace Vertigo.Wheel.Data
         Golden
     }
 
-    [Serializable]
-    public struct WheelZoneUiCopy
-    {
-        public ZoneType zoneType;
-        public string label;
-        [TextArea(2, 4)] public string statusHint;
-        public WheelUiColorKey labelColorKey;
-        public WheelSkinTier skinTier;
-        public string panelSpriteName;
-        public string mapFrameSpriteName;
-        public Sprite panelSprite;
-        public Sprite mapFrameSprite;
-    }
-
-    [Serializable]
-    public struct WheelPhaseUiCopy
-    {
-        public WheelGamePhase phase;
-        [TextArea(1, 3)] public string statusMessage;
-        public bool hideStatusBar;
-        public bool hideOutcomePopup;
-        public WheelPhaseGameplayProfile gameplay;
-    }
-
-    [Serializable]
-    public struct WheelOutcomeUiCopy
-    {
-        public WheelGamePhase phase;
-        public string title;
-        public string resultFallback;
-        [TextArea(1, 3)] public string summary;
-        public WheelUiColorKey resultColorKey;
-        public bool showIcon;
-        public WheelOutcomeResultSource resultSource;
-    }
-
     [CreateAssetMenu(fileName = "WheelUiCopyCatalog", menuName = "Vertigo/Wheel UI Copy Catalog")]
     public sealed class WheelUiCopyCatalog : ScriptableObject
     {
@@ -64,6 +28,8 @@ namespace Vertigo.Wheel.Data
         private const int PhaseCount = 5;
 
         [SerializeField] private string _winLabelFormat = "Won {0}";
+        [SerializeField] private string _safeMilestoneBadgeFormat = "SAFE\nZONE\n{0}";
+        [SerializeField] private string _superMilestoneBadgeFormat = "SUPER\nZONE\n{0}";
         [SerializeField] private WheelZoneUiCopy[] _zones = CreateDefaultZones();
         [SerializeField] private WheelPhaseUiCopy[] _phases = CreateDefaultPhases();
         [SerializeField] private WheelOutcomeUiCopy[] _outcomes = CreateDefaultOutcomes();
@@ -73,6 +39,8 @@ namespace Vertigo.Wheel.Data
         private WheelOutcomeUiCopy[] _outcomeByPhase;
 
         public string WinLabelFormat { get { return _winLabelFormat; } }
+        public string SafeMilestoneBadgeFormat { get { return _safeMilestoneBadgeFormat; } }
+        public string SuperMilestoneBadgeFormat { get { return _superMilestoneBadgeFormat; } }
 
         private void OnEnable()
         {
@@ -96,24 +64,24 @@ namespace Vertigo.Wheel.Data
 
         public bool ShouldHideStatusBar(WheelGamePhase phase)
         {
-            return GetPhaseCopy(phase).hideStatusBar;
+            return GetPhaseCopy(phase).HideStatusBar;
         }
 
         public bool ShouldHideOutcomePopup(WheelGamePhase phase)
         {
-            return GetPhaseCopy(phase).hideOutcomePopup;
+            return GetPhaseCopy(phase).HideOutcomePopup;
         }
 
         public string ResolveStatusMessage(WheelGamePhase phase, ZoneType zoneType, string winLabel)
         {
             WheelPhaseUiCopy phaseCopy = GetPhaseCopy(phase);
-            if (!string.IsNullOrEmpty(phaseCopy.statusMessage))
+            if (!string.IsNullOrEmpty(phaseCopy.StatusMessage))
             {
-                string[] messages = { phaseCopy.statusMessage, winLabel };
-                return messages[System.Convert.ToInt32(phaseCopy.gameplay.useWinLabelForStatus)];
+                string[] messages = { phaseCopy.StatusMessage, winLabel };
+                return messages[System.Convert.ToInt32(phaseCopy.Gameplay.UseWinLabelForStatus)];
             }
 
-            return GetZoneCopy(zoneType).statusHint;
+            return GetZoneCopy(zoneType).StatusHint;
         }
 
         public Color ResolveColor(WheelUiColorKey colorKey, WheelThemeSettings theme)
@@ -137,45 +105,39 @@ namespace Vertigo.Wheel.Data
 
         private void RebuildLookups()
         {
-            _zoneByType = WheelEnumLookup.Build(_zones, entry => (int)entry.zoneType, ZoneTypeCount);
-            _phaseByType = WheelEnumLookup.Build(_phases, entry => (int)entry.phase, PhaseCount);
-            _outcomeByPhase = WheelEnumLookup.Build(_outcomes, entry => (int)entry.phase, PhaseCount);
+            _zoneByType = WheelEnumLookup.Build(_zones, entry => (int)entry.ZoneType, ZoneTypeCount);
+            _phaseByType = WheelEnumLookup.Build(_phases, entry => (int)entry.Phase, PhaseCount);
+            _outcomeByPhase = WheelEnumLookup.Build(_outcomes, entry => (int)entry.Phase, PhaseCount);
         }
 
         private static WheelZoneUiCopy[] CreateDefaultZones()
         {
             return new[]
             {
-                new WheelZoneUiCopy
-                {
-                    zoneType = ZoneType.Standard,
-                    label = "STANDARD",
-                    statusHint = "Spin to risk your loot and advance toward safe zones.",
-                    labelColorKey = WheelUiColorKey.StandardZone,
-                    skinTier = WheelSkinTier.Bronze,
-                    panelSpriteName = "ui_card_panel_zone_current",
-                    mapFrameSpriteName = "ui_card_zone_map_frame"
-                },
-                new WheelZoneUiCopy
-                {
-                    zoneType = ZoneType.Safe,
-                    label = "SAFE",
-                    statusHint = "Safe zone. Spin without a bomb or leave with your loot.",
-                    labelColorKey = WheelUiColorKey.SafeZone,
-                    skinTier = WheelSkinTier.Silver,
-                    panelSpriteName = "ui_card_panel_zone_current_white",
-                    mapFrameSpriteName = "ui_card_zone_map_frame"
-                },
-                new WheelZoneUiCopy
-                {
-                    zoneType = ZoneType.Super,
-                    label = "SUPER",
-                    statusHint = "Super zone. Spin for premium rewards or leave with your loot.",
-                    labelColorKey = WheelUiColorKey.SuperZone,
-                    skinTier = WheelSkinTier.Golden,
-                    panelSpriteName = "ui_card_panel_zone_super",
-                    mapFrameSpriteName = "ui_card_zone_map_frame"
-                }
+                WheelZoneUiCopy.Create(
+                    ZoneType.Standard,
+                    "STANDARD",
+                    "Spin to risk your loot and advance toward safe zones.",
+                    WheelUiColorKey.StandardZone,
+                    WheelSkinTier.Bronze,
+                    "ui_card_panel_zone_current",
+                    "ui_card_zone_map_frame"),
+                WheelZoneUiCopy.Create(
+                    ZoneType.Safe,
+                    "SAFE",
+                    "Safe zone. Spin without a bomb or leave with your loot.",
+                    WheelUiColorKey.SafeZone,
+                    WheelSkinTier.Silver,
+                    "ui_card_panel_zone_current_white",
+                    "ui_card_zone_map_frame"),
+                WheelZoneUiCopy.Create(
+                    ZoneType.Super,
+                    "SUPER",
+                    "Super zone. Spin for premium rewards or leave with your loot.",
+                    WheelUiColorKey.SuperZone,
+                    WheelSkinTier.Golden,
+                    "ui_card_panel_zone_super",
+                    "ui_card_zone_map_frame")
             };
         }
 
@@ -183,56 +145,27 @@ namespace Vertigo.Wheel.Data
         {
             return new[]
             {
-                new WheelPhaseUiCopy
-                {
-                    phase = WheelGamePhase.Ready,
-                    hideOutcomePopup = true,
-                    gameplay = new WheelPhaseGameplayProfile
-                    {
-                        allowSpin = true,
-                        allowLeave = true,
-                        allowRestart = true,
-                        publishAllAfterSpin = true
-                    }
-                },
-                new WheelPhaseUiCopy
-                {
-                    phase = WheelGamePhase.Spinning,
-                    statusMessage = "Spinning...",
-                    hideOutcomePopup = true,
-                    gameplay = new WheelPhaseGameplayProfile()
-                },
-                new WheelPhaseUiCopy
-                {
-                    phase = WheelGamePhase.Won,
-                    hideStatusBar = true,
-                    gameplay = new WheelPhaseGameplayProfile
-                    {
-                        allowSpin = true,
-                        allowLeave = true,
-                        allowRestart = true,
-                        publishAllAfterSpin = true,
-                        useWinLabelForStatus = true
-                    }
-                },
-                new WheelPhaseUiCopy
-                {
-                    phase = WheelGamePhase.Bombed,
-                    hideStatusBar = true,
-                    gameplay = new WheelPhaseGameplayProfile
-                    {
-                        allowRestart = true
-                    }
-                },
-                new WheelPhaseUiCopy
-                {
-                    phase = WheelGamePhase.CashedOut,
-                    hideStatusBar = true,
-                    gameplay = new WheelPhaseGameplayProfile
-                    {
-                        allowRestart = true
-                    }
-                }
+                WheelPhaseUiCopy.Create(
+                    WheelGamePhase.Ready,
+                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, allowRestart: true, publishAllAfterSpin: true),
+                    hideOutcomePopup: true),
+                WheelPhaseUiCopy.Create(
+                    WheelGamePhase.Spinning,
+                    WheelPhaseGameplayProfile.Create(),
+                    statusMessage: "Spinning...",
+                    hideOutcomePopup: true),
+                WheelPhaseUiCopy.Create(
+                    WheelGamePhase.Won,
+                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, allowRestart: true, publishAllAfterSpin: true, useWinLabelForStatus: true),
+                    hideStatusBar: true),
+                WheelPhaseUiCopy.Create(
+                    WheelGamePhase.Bombed,
+                    WheelPhaseGameplayProfile.Create(allowRestart: true),
+                    hideStatusBar: true),
+                WheelPhaseUiCopy.Create(
+                    WheelGamePhase.CashedOut,
+                    WheelPhaseGameplayProfile.Create(allowRestart: true),
+                    hideStatusBar: true)
             };
         }
 
@@ -240,36 +173,30 @@ namespace Vertigo.Wheel.Data
         {
             return new[]
             {
-                new WheelOutcomeUiCopy
-                {
-                    phase = WheelGamePhase.Won,
-                    title = "REWARD",
-                    resultFallback = "Won",
-                    summary = "Added to your run rewards",
-                    resultColorKey = WheelUiColorKey.PrimaryText,
-                    showIcon = true,
-                    resultSource = WheelOutcomeResultSource.SpinResultLabel
-                },
-                new WheelOutcomeUiCopy
-                {
-                    phase = WheelGamePhase.Bombed,
-                    title = "BOMB",
-                    resultFallback = "Rewards lost",
-                    summary = "Try again",
-                    resultColorKey = WheelUiColorKey.Danger,
-                    showIcon = true,
-                    resultSource = WheelOutcomeResultSource.SpinResultLabel
-                },
-                new WheelOutcomeUiCopy
-                {
-                    phase = WheelGamePhase.CashedOut,
-                    title = "CASHED OUT",
-                    resultFallback = "Cashed out",
-                    summary = "Rewards secured",
-                    resultColorKey = WheelUiColorKey.Success,
-                    showIcon = false,
-                    resultSource = WheelOutcomeResultSource.InventorySummary
-                }
+                WheelOutcomeUiCopy.Create(
+                    WheelGamePhase.Won,
+                    "REWARD",
+                    "Won",
+                    "Added to your run rewards",
+                    WheelUiColorKey.PrimaryText,
+                    true,
+                    WheelOutcomeResultSource.SpinResultLabel),
+                WheelOutcomeUiCopy.Create(
+                    WheelGamePhase.Bombed,
+                    "BOMB",
+                    "Rewards lost",
+                    "Try again",
+                    WheelUiColorKey.Danger,
+                    true,
+                    WheelOutcomeResultSource.SpinResultLabel),
+                WheelOutcomeUiCopy.Create(
+                    WheelGamePhase.CashedOut,
+                    "CASHED OUT",
+                    "Cashed out",
+                    "Rewards secured",
+                    WheelUiColorKey.Success,
+                    false,
+                    WheelOutcomeResultSource.InventorySummary)
             };
         }
     }

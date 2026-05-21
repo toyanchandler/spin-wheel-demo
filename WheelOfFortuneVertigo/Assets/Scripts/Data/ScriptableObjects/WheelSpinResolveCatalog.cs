@@ -21,18 +21,12 @@ namespace Vertigo.Wheel.Data
         {
             return new[]
             {
-                new WheelSpinResolveProfile
-                {
-                    targetPhase = WheelGamePhase.Won,
-                    advanceZone = true,
-                    markSlicesDirty = true,
-                    addResultToInventory = true
-                },
-                new WheelSpinResolveProfile
-                {
-                    targetPhase = WheelGamePhase.Bombed,
-                    clearInventory = true
-                }
+                WheelSpinResolveProfile.Create(
+                    WheelGamePhase.Won,
+                    advanceZone: true,
+                    markSlicesDirty: true,
+                    addResultToInventory: true),
+                WheelSpinResolveProfile.Create(WheelGamePhase.Bombed, clearInventory: true)
             };
         }
     }

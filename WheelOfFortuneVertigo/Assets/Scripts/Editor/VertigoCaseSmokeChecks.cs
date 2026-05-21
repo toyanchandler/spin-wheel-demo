@@ -22,7 +22,13 @@ namespace Vertigo.Wheel.EditorTools
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MainScene.unity");
 
-            WheelGameSettings settings = UnityEngine.Object.FindObjectOfType<WheelGameSettings>();
+            WheelGameConfigSource configSource = UnityEngine.Object.FindObjectOfType<WheelGameConfigSource>();
+            WheelGameSettings settings = configSource != null ? configSource.Settings : null;
+            if (settings == null)
+            {
+                settings = AssetDatabase.LoadAssetAtPath<WheelGameSettings>(VertigoWheelPaths.GameSettingsPath);
+            }
+
             WheelGameState state = UnityEngine.Object.FindObjectOfType<WheelGameState>();
             WheelStatePublisher publisher = UnityEngine.Object.FindObjectOfType<WheelStatePublisher>();
             WheelGameFlowController flowController = UnityEngine.Object.FindObjectOfType<WheelGameFlowController>();
@@ -33,12 +39,17 @@ namespace Vertigo.Wheel.EditorTools
             WheelPerformanceOverlay performanceOverlay = UnityEngine.Object.FindObjectOfType<WheelPerformanceOverlay>();
             CanvasScaler[] scalers = UnityEngine.Object.FindObjectsOfType<CanvasScaler>();
 
-            Require(settings != null, "WheelGameSettings component exists");
+            Require(settings != null, "WheelGameSettings asset exists");
+            Require(configSource != null, "WheelGameConfigSource exists on game_wheel_runtime");
+            RequireObjectReference(configSource, "_settings", "WheelGameConfigSource references WheelGameSettings asset");
+            Require(GameObject.Find("game_wheel_settings") == null, "legacy game_wheel_settings scene object is removed");
+            WheelRuntimeLocator.RegisterSettings(settings);
             Require(state != null, "WheelGameState component exists");
             Require(publisher != null, "WheelStatePublisher component exists");
             Require(flowController != null, "WheelGameFlowController component exists");
             Require(compositionRoot != null, "WheelRuntimeCompositionRoot exists");
             Require(spinner != null, "WheelSpinner component exists");
+            WheelRuntimeLocator.RegisterSpinner(spinner);
             Require(view != null, "WheelView component exists");
             Require(performanceMonitor != null, "WheelPerformanceMonitor exists");
             Require(performanceOverlay != null, "WheelPerformanceOverlay exists");
@@ -74,25 +85,22 @@ namespace Vertigo.Wheel.EditorTools
             {
                 Require(scalers[i].screenMatchMode == CanvasScaler.ScreenMatchMode.Expand, "CanvasScaler " + i + " uses Expand screen match mode");
             }
-            RequireObjectReference(state, "_settings", "WheelGameState has serialized settings");
             RequireObjectReference(settings, "_uiCopy", "WheelGameSettings has serialized UI copy catalog");
             RequireObjectReference(settings, "_skinCatalog", "WheelGameSettings has serialized skin catalog");
             RequireObjectReference(settings, "_sliceLayoutCatalog", "WheelGameSettings has serialized slice layout catalog");
             RequireObjectReference(settings, "_outcomePopupMotionCatalog", "WheelGameSettings has serialized outcome popup motion catalog");
             RequireObjectReference(settings, "_spinResolveCatalog", "WheelGameSettings has serialized spin resolve catalog");
-            RequireObjectReference(publisher, "_state", "WheelStatePublisher has serialized state");
-            RequireObjectReference(flowController, "_state", "WheelGameFlowController has serialized state");
-            RequireObjectReference(flowController, "_spinner", "WheelGameFlowController has serialized spinner");
-            RequireObjectReference(flowController, "_publisher", "WheelGameFlowController has serialized publisher");
-            RequireObjectReference(spinner, "_wheelTransform", "WheelSpinner has serialized wheel transform");
-            RequireObjectReference(compositionRoot, "_state", "WheelRuntimeCompositionRoot has serialized state");
-            RequireObjectReference(compositionRoot, "_publisher", "WheelRuntimeCompositionRoot has serialized publisher");
-            RequireObjectReference(performanceOverlay, "_monitor", "WheelPerformanceOverlay has serialized monitor");
-            RequireObjectReference(performanceOverlay, "_text", "WheelPerformanceOverlay has serialized text");
+            Require(WheelRuntimeLocator.Settings != null, "WheelRuntimeLocator has settings");
+            Require(WheelRuntimeLocator.Spinner != null, "WheelRuntimeLocator has spinner on wheel hierarchy");
+            RequireHostReferences();
             RequireOutcomePopupReferences();
             RequireRewardOpeningReferences();
-            RequireObjectArray(compositionRoot, "_runtimeComponents", CountRuntimeComponents(), "WheelRuntimeCompositionRoot has serialized runtime components");
-            RequireObjectArray(view, "_sliceViews", settings.SliceCount, "WheelView has a serialized slice view pool");
+            RequireCompositionRootHasNoSerializedFields(compositionRoot);
+            WheelHierarchyWiringValidator.ValidateScene();
+            RequireObjectReference(view, "_slicePoolRoot", "WheelView references slice pool root");
+            SerializedProperty sliceViews = new SerializedObject(view).FindProperty("_sliceViews");
+            Require(sliceViews != null && sliceViews.isArray, "WheelView has collected slice view array");
+            Require(sliceViews.arraySize == settings.SliceCount, "WheelView slice view count matches settings");
             WheelSliceDefinition[] slices = CreateSliceBuffer(settings.SliceCount);
             settings.InitializeRuntime();
             state.InitializeRuntime();
@@ -106,7 +114,7 @@ namespace Vertigo.Wheel.EditorTools
             WheelZoneSnapshot zoneSnapshot = WheelSnapshotFactory.CreateZone(state);
             Require(zoneSnapshot.SlicePositions != null && zoneSnapshot.SlicePositions.Length == state.SliceCount, "Zone snapshot includes precomputed slice positions");
             WheelOutcomeSnapshot outcomeSnapshot = WheelSnapshotFactory.CreateOutcome(state.Phase, state.LastResult, state.HasLastResult, state.Inventory, settings);
-            Require(outcomeSnapshot.Motion.fadeDuration > 0f, "Outcome snapshot includes popup motion from catalog");
+            Require(outcomeSnapshot.Motion.FadeDuration > 0f, "Outcome snapshot includes popup motion from catalog");
             Require(WheelSliceQueries.ContainsBomb(slices, settings.FillSlicesForZone(1, slices)), "Standard zone contains a bomb");
             Require(!WheelSliceQueries.ContainsBomb(slices, settings.FillSlicesForZone(5, slices)), "Safe zone has no bomb");
             Require(!WheelSliceQueries.ContainsBomb(slices, settings.FillSlicesForZone(30, slices)), "Super zone has no bomb");
@@ -122,6 +130,7 @@ namespace Vertigo.Wheel.EditorTools
             Require(!DeclaresUpdate(typeof(WheelGameState)), "WheelGameState has no Update loop");
             Require(!DeclaresUpdate(typeof(WheelGameFlowController)), "WheelGameFlowController has no Update loop");
             Require(!TypeExists("Vertigo.Wheel.Runtime.WheelSpinRequestHandler"), "WheelSpinRequestHandler class is removed");
+            Require(!TypeExists("Vertigo.Wheel.Runtime.IWheelRuntimeComponent"), "IWheelRuntimeComponent registry is removed");
             Require(!TypeExists("Vertigo.Wheel.Runtime.WheelRuntimeUnityLifecycle"), "WheelRuntimeUnityLifecycle class is removed");
             Require(!DeclaresUpdate(typeof(WheelSpinner)), "WheelSpinner has no Update loop");
             Require(!DeclaresUpdate(typeof(WheelView)), "WheelView has no Update loop");
@@ -150,24 +159,23 @@ namespace Vertigo.Wheel.EditorTools
             }
         }
 
-        private static int CountRuntimeComponents()
+        private static void RequireCompositionRootHasNoSerializedFields(WheelRuntimeCompositionRoot compositionRoot)
         {
-            MonoBehaviour[] components = Resources.FindObjectsOfTypeAll<MonoBehaviour>();
-            int count = 0;
-            for (int i = 0; i < components.Length; i++)
+            var serializedObject = new SerializedObject(compositionRoot);
+            SerializedProperty iterator = serializedObject.GetIterator();
+            bool entered = iterator.NextVisible(true);
+            int serializedFieldCount = 0;
+            while (entered)
             {
-                if (components[i] is IWheelRuntimeComponent && IsSceneObject(components[i]))
+                if (iterator.name != "m_Script")
                 {
-                    count++;
+                    serializedFieldCount++;
                 }
+
+                entered = iterator.NextVisible(false);
             }
 
-            return count;
-        }
-
-        private static bool IsSceneObject(MonoBehaviour component)
-        {
-            return component != null && component.gameObject.scene.IsValid() && !EditorUtility.IsPersistent(component);
+            Require(serializedFieldCount == 0, "WheelRuntimeCompositionRoot has no serialized cross-hierarchy fields");
         }
 
         private static void RequireOutcomePopupReferences()
@@ -188,7 +196,8 @@ namespace Vertigo.Wheel.EditorTools
             RequireObjectReference(opening, "_root", "WheelRewardOpeningView has serialized root");
             RequireObjectReference(opening, "_titleText", "WheelRewardOpeningView has serialized title");
             RequireObjectReference(opening, "_cardFrameSource", "WheelRewardOpeningView has serialized card frame source");
-            RequireObjectArray(opening, "_cardViews", 8, "WheelRewardOpeningView has serialized card pool");
+            RequireObjectReference(opening, "_cardPoolRoot", "WheelRewardOpeningView has serialized card pool root");
+            RequireObjectArray(opening, "_rewardCards", 8, "WheelRewardOpeningView has serialized card pool");
         }
 
         private static void RequireRaycastTargetWhitelist()
@@ -242,14 +251,14 @@ namespace Vertigo.Wheel.EditorTools
             RequireRewardSprites(settings.StandardRewards, ZoneType.Standard);
             RequireRewardSprites(settings.SafeRewards, ZoneType.Safe);
             RequireRewardSprites(settings.SuperRewards, ZoneType.Super);
-            RequireSpriteIsSlotSafe(settings.BombReward.icon, ZoneType.Standard);
+            RequireSpriteIsSlotSafe(settings.BombReward.Icon, ZoneType.Standard);
         }
 
         private static void RequireRewardSprites(System.Collections.Generic.List<RewardDefinition> rewards, ZoneType zoneType)
         {
             for (int i = 0; i < rewards.Count; i++)
             {
-                RequireSpriteIsSlotSafe(rewards[i].icon, zoneType);
+                RequireSpriteIsSlotSafe(rewards[i].Icon, zoneType);
             }
         }
 
@@ -268,27 +277,27 @@ namespace Vertigo.Wheel.EditorTools
             WheelZoneUiCopy standardZone = catalog.GetZoneCopy(ZoneType.Standard);
             WheelZoneUiCopy safeZone = catalog.GetZoneCopy(ZoneType.Safe);
             WheelZoneUiCopy superZone = catalog.GetZoneCopy(ZoneType.Super);
-            Require(standardZone.panelSprite != null, "Standard zone panel sprite is assigned");
-            Require(safeZone.panelSprite != null, "Safe zone panel sprite is assigned");
-            Require(superZone.panelSprite != null, "Super zone panel sprite is assigned");
-            Require(standardZone.mapFrameSprite != null, "Zone map frame sprite is assigned");
+            Require(standardZone.PanelSprite != null, "Standard zone panel sprite is assigned");
+            Require(safeZone.PanelSprite != null, "Safe zone panel sprite is assigned");
+            Require(superZone.PanelSprite != null, "Super zone panel sprite is assigned");
+            Require(standardZone.MapFrameSprite != null, "Zone map frame sprite is assigned");
 
             WheelLayoutSettings layout = settings.Layout;
-            Require(layout.rewardPanelFrameSprite != null, "Loot strip frame sprite is assigned");
-            Require(layout.rewardCardFrameSprite != null, "Loot card frame sprite is assigned");
+            Require(layout.RewardPanelFrameSprite != null, "Loot strip frame sprite is assigned");
+            Require(layout.RewardCardFrameSprite != null, "Loot card frame sprite is assigned");
 
             WheelRewardPanelView lootPanel = UnityEngine.Object.FindObjectOfType<WheelRewardPanelView>();
-            RequireObjectArray(lootPanel, "_cardViews", layout.maxRewardCards, "WheelRewardPanelView has serialized loot card pool");
+            RequireObjectArray(lootPanel, "_cardViews", layout.MaxRewardCards, "WheelRewardPanelView has serialized loot card pool");
         }
 
         private static void RequireHudWheelVerticalSeparation(WheelGameSettings settings)
         {
             WheelLayoutSettings layout = settings.Layout;
-            float referenceHeight = layout.referenceResolution.y;
-            float wheelBottomFromCanvasBottom = (referenceHeight * 0.5f) + layout.wheelPosition.y - (layout.wheelSize.y * 0.5f);
-            float statusTopFromCanvasBottom = layout.statusPosition.y + (layout.statusSize.y * 0.5f);
-            float statusBottomFromCanvasBottom = layout.statusPosition.y - (layout.statusSize.y * 0.5f);
-            float buttonTopFromCanvasBottom = layout.buttonRowPosition.y + (layout.buttonSize.y * 0.5f);
+            float referenceHeight = layout.ReferenceResolution.y;
+            float wheelBottomFromCanvasBottom = (referenceHeight * 0.5f) + layout.WheelPosition.y - (layout.WheelSize.y * 0.5f);
+            float statusTopFromCanvasBottom = layout.StatusPosition.y + (layout.StatusSize.y * 0.5f);
+            float statusBottomFromCanvasBottom = layout.StatusPosition.y - (layout.StatusSize.y * 0.5f);
+            float buttonTopFromCanvasBottom = layout.ButtonRowPosition.y + (layout.ButtonSize.y * 0.5f);
 
             Require(wheelBottomFromCanvasBottom - statusTopFromCanvasBottom >= 40f, "status text keeps at least 40px from wheel bottom");
             Require(statusBottomFromCanvasBottom - buttonTopFromCanvasBottom >= 0f, "status text does not overlap the button row");
@@ -326,6 +335,8 @@ namespace Vertigo.Wheel.EditorTools
                 "DestroyImmediate(",
                 ".GetChild(",
                 "GetComponentsInChildren",
+                "ChildByName",
+                "FindDeepChild",
                 "new GameObject(",
                 "FindObjectOfType",
                 "GameObject.Find",
@@ -344,6 +355,33 @@ namespace Vertigo.Wheel.EditorTools
                     }
                 }
             }
+        }
+
+        private static void RequireHostReferences()
+        {
+            WheelStaticUiHost staticHost = UnityEngine.Object.FindObjectOfType<WheelStaticUiHost>();
+            WheelWheelUiHost wheelHost = UnityEngine.Object.FindObjectOfType<WheelWheelUiHost>();
+            WheelHudUiHost hudHost = UnityEngine.Object.FindObjectOfType<WheelHudUiHost>();
+            Require(staticHost != null, "WheelStaticUiHost exists on static canvas");
+            Require(wheelHost != null, "WheelWheelUiHost exists on wheel canvas");
+            Require(hudHost != null, "WheelHudUiHost exists on HUD canvas");
+            RequireObjectReference(staticHost, "_background", "WheelStaticUiHost references background view");
+            RequireObjectReference(wheelHost, "_wheel", "WheelWheelUiHost references wheel view");
+            RequireObjectReference(wheelHost, "_wheelBaseSkin", "WheelWheelUiHost references wheel base skin");
+            RequireObjectReference(wheelHost, "_indicatorSkin", "WheelWheelUiHost references indicator skin");
+            RequireObjectReference(hudHost, "_zoneProgress", "WheelHudUiHost references zone progress");
+            RequireObjectReference(hudHost, "_milestoneBadges", "WheelHudUiHost references milestone badges");
+            RequireObjectReference(hudHost, "_zonePanel", "WheelHudUiHost references zone panel");
+            RequireObjectReference(hudHost, "_zoneText", "WheelHudUiHost references zone text");
+            RequireObjectReference(hudHost, "_zoneTypeText", "WheelHudUiHost references zone type text");
+            RequireObjectReference(hudHost, "_lootPanel", "WheelHudUiHost references loot panel");
+            RequireObjectReference(hudHost, "_outcomePopup", "WheelHudUiHost references outcome popup");
+            RequireObjectReference(hudHost, "_rewardOpening", "WheelHudUiHost references reward opening");
+            RequireObjectReference(hudHost, "_statusText", "WheelHudUiHost references status text");
+            RequireObjectReference(hudHost, "_leaveButton", "WheelHudUiHost references leave button");
+            RequireObjectReference(hudHost, "_spinButton", "WheelHudUiHost references spin button");
+            RequireObjectReference(hudHost, "_restartButton", "WheelHudUiHost references restart button");
+            RequireObjectReference(hudHost, "_rewardOpeningRestartButton", "WheelHudUiHost references reward opening restart button");
         }
 
         private static void RequireRuntimeUiAvoidAllocationTextPatterns()

@@ -6,7 +6,7 @@ namespace Vertigo.Wheel.Data
         {
             for (int i = 0; i < sliceCount; i++)
             {
-                if (slices[i].isBomb == isBomb)
+                if (slices[i].IsBomb == isBomb)
                 {
                     return i;
                 }
