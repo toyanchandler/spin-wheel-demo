@@ -28,6 +28,11 @@ namespace Vertigo.Wheel.EditorTools
         {
             try
             {
+                AddGameViewSize("Vertigo 2:1 Landscape 1118x558", 1118, 558);
+                AddGameViewSize("Vertigo 16:9 Landscape 1920x1080", 1920, 1080);
+                AddGameViewSize("Vertigo 20:9 Landscape 2400x1080", 2400, 1080);
+                AddGameViewSize("Vertigo 21:9 Landscape 2520x1080", 2520, 1080);
+                AddGameViewSize("Vertigo 4:3 Landscape 2048x1536", 2048, 1536);
                 AddGameViewSize("Vertigo 20:9 1080x2400", 1080, 2400);
                 AddGameViewSize("Vertigo 16:9 1080x1920", 1080, 1920);
                 AddGameViewSize("Vertigo 4:3 1536x2048", 1536, 2048);

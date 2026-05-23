@@ -120,36 +120,53 @@ namespace Vertigo.Wheel.Runtime
 
     public readonly struct WheelOutcomeSnapshot
     {
+        public readonly WheelGamePhase Phase;
         public readonly string Title;
         public readonly string ResultText;
         public readonly string SummaryText;
         public readonly Color ResultColor;
         public readonly Sprite Icon;
         public readonly Color IconImageColor;
+        public readonly string RewardId;
+        public readonly string RewardDisplayName;
+        public readonly int RewardAmount;
+        public readonly int SourceSliceIndex;
+        public readonly bool HasPresentableOutcome;
         public readonly WheelOutcomePopupMotion Motion;
 
         public WheelOutcomeSnapshot(
+            WheelGamePhase phase,
             string title,
             string resultText,
             string summaryText,
             Color resultColor,
             Sprite icon,
             Color iconImageColor,
+            string rewardId,
+            string rewardDisplayName,
+            int rewardAmount,
+            int sourceSliceIndex,
+            bool hasPresentableOutcome,
             WheelOutcomePopupMotion motion)
         {
+            Phase = phase;
             Title = title;
             ResultText = resultText;
             SummaryText = summaryText;
             ResultColor = resultColor;
             Icon = icon;
             IconImageColor = iconImageColor;
+            RewardId = rewardId;
+            RewardDisplayName = rewardDisplayName;
+            RewardAmount = rewardAmount;
+            SourceSliceIndex = sourceSliceIndex;
+            HasPresentableOutcome = hasPresentableOutcome;
             Motion = motion;
         }
     }
 
     public static class WheelSnapshotFactory
     {
-        private static readonly Color[] OutcomeIconColors = { Color.clear, Color.white };
         private static RewardInventoryEntry[] _rewardCardBuffer = new RewardInventoryEntry[16];
 
         public static WheelHudSnapshot CreateHud(WheelGameState state)
@@ -237,17 +254,64 @@ namespace Vertigo.Wheel.Runtime
                 result,
                 hasResult,
                 inventory);
+            string title = outcomeCopy.Title;
+            string summary = outcomeCopy.Summary;
+            ApplyRewardOutcomeCopy(phase, result, hasResult, ref title, ref resultText, ref summary);
             int iconVisible = System.Convert.ToInt32(outcomeCopy.ShowIcon && hasResult && result.Icon != null);
             Sprite[] icons = { null, result.Icon };
+            Color[] iconColors = { Color.clear, ResolveOutcomeIconColor(result, hasResult) };
+            bool hasPresentableOutcome = hasResult && iconVisible == 1;
 
             return new WheelOutcomeSnapshot(
-                outcomeCopy.Title,
+                phase,
+                title,
                 resultText,
-                outcomeCopy.Summary,
+                summary,
                 settings.UiCopy.ResolveColor(outcomeCopy.ResultColorKey, settings.Theme),
                 icons[iconVisible],
-                OutcomeIconColors[iconVisible],
+                iconColors[iconVisible],
+                hasResult ? result.RewardId : string.Empty,
+                hasResult ? result.DisplayName : string.Empty,
+                hasResult ? result.Amount : 0,
+                hasResult ? result.SliceIndex : -1,
+                hasPresentableOutcome,
                 settings.OutcomePopupMotionCatalog.Motion);
+        }
+
+        private static Color ResolveOutcomeIconColor(WheelSpinResult result, bool hasResult)
+        {
+            if (!hasResult)
+            {
+                return Color.clear;
+            }
+
+            Color color = result.AccentColor;
+            color.a = 1f;
+            if (color.maxColorComponent <= 0.02f)
+            {
+                return Color.white;
+            }
+
+            return color;
+        }
+
+        private static void ApplyRewardOutcomeCopy(
+            WheelGamePhase phase,
+            WheelSpinResult result,
+            bool hasResult,
+            ref string title,
+            ref string resultText,
+            ref string summary)
+        {
+            if (phase != WheelGamePhase.Won || !hasResult || result.IsBomb)
+            {
+                return;
+            }
+
+            string displayName = string.IsNullOrEmpty(result.DisplayName) ? resultText : result.DisplayName;
+            title = "REWARD WON";
+            resultText = result.Amount > 1 ? string.Format("{0} x{1}", displayName, result.Amount) : displayName;
+            summary = "Flying into your reward stash";
         }
 
         private static string ResolveOutcomeResultText(

@@ -24,7 +24,7 @@ namespace Vertigo.Wheel.Runtime
             DisplayName = reward.DisplayName;
             Label = slice.Label;
             WinLabel = reward.WinLabel;
-            Icon = reward.Icon;
+            Icon = slice.Reward.WheelIcon;
             Amount = reward.Amount;
             AccentColor = reward.AccentColor;
         }

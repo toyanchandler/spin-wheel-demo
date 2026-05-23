@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 namespace Vertigo.Wheel.Data
@@ -25,8 +26,9 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private WheelZoneGameplayProfile[] _zoneGameplayProfiles = CreateDefaultZoneGameplayProfiles();
 
         [Header("Spin Motion")]
-        [SerializeField, Min(0.5f)] private float _spinDuration = 2.2f;
-        [SerializeField, Min(1)] private int _minimumSpinRounds = 4;
+        [SerializeField, Min(0.5f)] private float _spinDuration = 3.4f;
+        [SerializeField, Min(1)] private int _minimumSpinRounds = 5;
+        [SerializeField] private Ease _spinEase = Ease.InOutQuart;
 
         [Header("Presentation")]
         [SerializeField] private WheelUiCopyCatalog _uiCopy;
@@ -44,6 +46,7 @@ namespace Vertigo.Wheel.Data
         public WheelSpinResolveCatalog SpinResolveCatalog { get { return _spinResolveCatalog; } }
         public float SpinDuration { get { return _spinDuration; } }
         public int MinimumSpinRounds { get { return _minimumSpinRounds; } }
+        public Ease SpinEase { get { return _spinEase; } }
         public WheelLayoutSettings Layout { get { return _layout; } }
         public WheelThemeSettings Theme { get { return _theme; } }
 

@@ -2,11 +2,12 @@
 using System.IO;
 using DG.Tweening;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Vertigo.Wheel.Data;
 using Vertigo.Wheel.Runtime;
+using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.EditorTools
 {
@@ -16,8 +17,10 @@ namespace Vertigo.Wheel.EditorTools
 
         private static readonly CaptureSize[] Sizes =
         {
+            new CaptureSize("2x1_1118x558", 1118, 558),
             new CaptureSize("16x9_1920x1080", 1920, 1080),
             new CaptureSize("20x9_2400x1080", 2400, 1080),
+            new CaptureSize("21x9_2520x1080", 2520, 1080),
             new CaptureSize("4x3_2048x1536", 2048, 1536)
         };
 
@@ -25,14 +28,16 @@ namespace Vertigo.Wheel.EditorTools
         public static void ExportLandscapeScreenshots()
         {
             Directory.CreateDirectory(OutputRoot);
-            EditorSceneManager.OpenScene(VertigoWheelPaths.ScenePath);
+            RequireCurrentMainScene();
 
             Camera camera = Object.FindObjectOfType<Camera>();
             WheelRuntimeCompositionRoot runtime = Object.FindObjectOfType<WheelRuntimeCompositionRoot>();
             WheelGameState state = Object.FindObjectOfType<WheelGameState>();
             WheelStatePublisher publisher = Object.FindObjectOfType<WheelStatePublisher>();
+            WheelSpinner spinner = Object.FindObjectOfType<WheelSpinner>();
             RectTransform wheelRoot = GameObject.Find("ui_wheel_animator_root").GetComponent<RectTransform>();
             GameObject debugCanvas = GameObject.Find("debug_canvas");
+            WheelUiHostBase[] hosts = new WheelUiHostBase[0];
 
             bool debugCanvasWasActive = debugCanvas != null && debugCanvas.activeSelf;
             if (debugCanvas != null)
@@ -40,21 +45,68 @@ namespace Vertigo.Wheel.EditorTools
                 debugCanvas.SetActive(false);
             }
 
-            runtime.StartRuntime();
-
-            CaptureState("01_start", camera, runtime, state, publisher, wheelRoot, PrepareStart);
-            CaptureState("02_spinning", camera, runtime, state, publisher, wheelRoot, PrepareSpinning);
-            CaptureState("03_reward_active", camera, runtime, state, publisher, wheelRoot, PrepareReward);
-            CaptureState("04_bomb_fail", camera, runtime, state, publisher, wheelRoot, PrepareBomb);
-
-            runtime.StopRuntime();
-            if (debugCanvas != null)
+            try
             {
-                debugCanvas.SetActive(debugCanvasWasActive);
+                WheelRuntimeLocator.RegisterSpinner(spinner);
+                runtime.StopRuntime();
+                WheelRuntimeLocator.RegisterSpinner(spinner);
+                runtime.StartRuntime();
+                if (WheelRuntimeLocator.EventBus == null)
+                {
+                    throw new System.InvalidOperationException("Screenshot export could not start the current MainScene runtime event bus.");
+                }
+
+                hosts = Object.FindObjectsOfType<WheelUiHostBase>(true);
+                for (int i = 0; i < hosts.Length; i++)
+                {
+                    hosts[i].BindForEditorCapture(WheelRuntimeLocator.EventBus);
+                }
+
+                publisher.PublishAll();
+
+                CaptureState("01_start", camera, runtime, state, publisher, wheelRoot, PrepareStart);
+                CaptureState("02_spinning", camera, runtime, state, publisher, wheelRoot, PrepareSpinning);
+                CaptureState("03_reward_active", camera, runtime, state, publisher, wheelRoot, PrepareReward);
+                CaptureState("04_bomb_fail", camera, runtime, state, publisher, wheelRoot, PrepareBomb);
+                CaptureState("05_exit_confirmation", camera, runtime, state, publisher, wheelRoot, PrepareExitConfirmation);
+                CaptureState("06_reward_opening", camera, runtime, state, publisher, wheelRoot, PrepareRewardOpening);
+            }
+            finally
+            {
+                for (int i = 0; i < hosts.Length; i++)
+                {
+                    hosts[i].UnbindForEditorCapture();
+                }
+
+                if (runtime != null)
+                {
+                    runtime.StopRuntime();
+                }
+
+                if (debugCanvas != null)
+                {
+                    debugCanvas.SetActive(debugCanvasWasActive);
+                }
             }
 
             AssetDatabase.Refresh();
             Debug.Log("Landscape screenshots exported to " + OutputRoot);
+        }
+
+        private static void RequireCurrentMainScene()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                throw new System.InvalidOperationException("Export Landscape Screenshots must run from edit mode.");
+            }
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.path != VertigoWheelPaths.ScenePath)
+            {
+                throw new System.InvalidOperationException(
+                    "Export Landscape Screenshots now captures the currently open MainScene only. Open " +
+                    VertigoWheelPaths.ScenePath + " before exporting. Active scene: " + activeScene.path);
+            }
         }
 
         private static void CaptureState(
@@ -114,6 +166,32 @@ namespace Vertigo.Wheel.EditorTools
             state.Resolve(new WheelSpinResult(index, state.Slices[index]));
             publisher.PublishHud();
             publisher.PublishOutcome(state.LastResult, true);
+        }
+
+        private static void PrepareExitConfirmation(WheelRuntimeCompositionRoot runtime, WheelGameState state, WheelStatePublisher publisher, RectTransform wheelRoot)
+        {
+            PrepareSafeZoneWithRewards(state, publisher, wheelRoot);
+            runtime.RequestLeaveConfirmation();
+        }
+
+        private static void PrepareRewardOpening(WheelRuntimeCompositionRoot runtime, WheelGameState state, WheelStatePublisher publisher, RectTransform wheelRoot)
+        {
+            PrepareSafeZoneWithRewards(state, publisher, wheelRoot);
+            runtime.RequestLeave();
+        }
+
+        private static void PrepareSafeZoneWithRewards(WheelGameState state, WheelStatePublisher publisher, RectTransform wheelRoot)
+        {
+            state.Restart();
+            wheelRoot.localEulerAngles = Vector3.zero;
+            for (int i = 0; i < 4; i++)
+            {
+                int index = WheelSliceQueries.FindFirst(state.Slices, state.SliceCount, false);
+                index = index < 0 ? 0 : index;
+                state.Resolve(new WheelSpinResult(index, state.Slices[index]));
+            }
+
+            publisher.PublishAll();
         }
 
         private static void ConfigureCanvases(Camera camera, int width, int height)

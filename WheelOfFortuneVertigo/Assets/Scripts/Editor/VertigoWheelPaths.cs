@@ -13,6 +13,8 @@ namespace Vertigo.Wheel.EditorTools
         public const string AtlasPath = "Assets/Art/ui_demo_content.spriteatlas";
         public const string MaterialPath = "Assets/Materials/UI_Default_Batched.mat";
         public const string DemoContentPath = "Assets/Art/demo_content";
+        public const string HudFontPath = "Assets/Fonts/Rajdhani-Bold.ttf";
+        public const string HudFontAssetPath = "Assets/Fonts/Rajdhani-Bold SDF.asset";
     }
 }
 #endif

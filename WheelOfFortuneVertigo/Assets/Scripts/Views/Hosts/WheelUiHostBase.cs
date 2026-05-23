@@ -21,6 +21,22 @@ namespace Vertigo.Wheel.Views
             ReleaseBinding();
         }
 
+        public void BindForEditorCapture(WheelEventBus eventBus)
+        {
+            if (_isBound)
+            {
+                return;
+            }
+
+            BindChildren(eventBus);
+            _isBound = true;
+        }
+
+        public void UnbindForEditorCapture()
+        {
+            ReleaseBinding();
+        }
+
         private void OnRuntimeStopped()
         {
             ReleaseBinding();

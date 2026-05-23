@@ -175,9 +175,9 @@ namespace Vertigo.Wheel.Data
             {
                 WheelOutcomeUiCopy.Create(
                     WheelGamePhase.Won,
-                    "REWARD",
-                    "Won",
-                    "Added to your run rewards",
+                    "REWARD WON",
+                    "Reward secured",
+                    "Flying into your reward stash",
                     WheelUiColorKey.PrimaryText,
                     true,
                     WheelOutcomeResultSource.SpinResultLabel),

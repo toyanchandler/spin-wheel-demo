@@ -40,7 +40,22 @@ namespace Vertigo.Wheel.EditorTools
 
             ChildCollectionUtility.VisitOrdered(settings, child =>
             {
+                if (!child.name.StartsWith("ui_zone_progress_cell_", StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 Image image = child.GetComponent<Image>();
+                Image glow = null;
+                Image[] childImages = child.GetComponentsInChildren<Image>(true);
+                for (int i = 0; i < childImages.Length; i++)
+                {
+                    if (childImages[i].name.Contains("_glow"))
+                    {
+                        glow = childImages[i];
+                    }
+                }
+
                 TextMeshProUGUI label = child.GetComponentInChildren<TextMeshProUGUI>(true);
                 if (image == null || label == null)
                 {
@@ -48,7 +63,7 @@ namespace Vertigo.Wheel.EditorTools
                         "Zone cell " + child.name + " requires Image on the cell and TextMeshProUGUI in descendants.");
                 }
 
-                bindings.Add(new ZoneProgressCellBinding { Image = image, Label = label });
+                bindings.Add(new ZoneProgressCellBinding { Root = (RectTransform)child, Image = image, Glow = glow, Label = label });
             });
 
             ChildCollectionUtility.ApplySerializedStructArray(
@@ -61,13 +76,17 @@ namespace Vertigo.Wheel.EditorTools
 
         private static void WriteCellBinding(SerializedProperty property, ZoneProgressCellBinding binding)
         {
+            property.FindPropertyRelative("Root").objectReferenceValue = binding.Root;
             property.FindPropertyRelative("Image").objectReferenceValue = binding.Image;
+            property.FindPropertyRelative("Glow").objectReferenceValue = binding.Glow;
             property.FindPropertyRelative("Label").objectReferenceValue = binding.Label;
         }
 
         private struct ZoneProgressCellBinding
         {
+            public RectTransform Root;
             public Image Image;
+            public Image Glow;
             public TextMeshProUGUI Label;
         }
     }

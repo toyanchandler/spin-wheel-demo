@@ -1,5 +1,6 @@
 using System;
 using Vertigo.Wheel.Data;
+using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.Runtime
 {
@@ -13,7 +14,13 @@ namespace Vertigo.Wheel.Runtime
         public static WheelGameState State { get; private set; }
         public static WheelStatePublisher Publisher { get; private set; }
         public static WheelSpinner Spinner { get; private set; }
+        public static WheelView WheelView { get; private set; }
         public static bool IsReady { get; private set; }
+
+        public static void RegisterWheelView(WheelView wheelView)
+        {
+            WheelView = wheelView;
+        }
 
         public static void RegisterSettings(WheelGameSettings settings)
         {
@@ -49,6 +56,7 @@ namespace Vertigo.Wheel.Runtime
             State = null;
             Publisher = null;
             Spinner = null;
+            WheelView = null;
         }
     }
 }

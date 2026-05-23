@@ -19,10 +19,18 @@ namespace Vertigo.Wheel.Runtime
 
         public void Unbind()
         {
-            _eventBus.SpinRequested -= OnSpinRequested;
-            _eventBus.LeaveRequested -= OnLeaveRequested;
-            _eventBus.RestartRequested -= OnRestartRequested;
-            WheelRuntimeLocator.Spinner.SpinCompleted -= OnSpinCompleted;
+            if (_eventBus != null)
+            {
+                _eventBus.SpinRequested -= OnSpinRequested;
+                _eventBus.LeaveRequested -= OnLeaveRequested;
+                _eventBus.RestartRequested -= OnRestartRequested;
+            }
+
+            if (WheelRuntimeLocator.Spinner != null)
+            {
+                WheelRuntimeLocator.Spinner.SpinCompleted -= OnSpinCompleted;
+            }
+
             _eventBus = null;
         }
 
@@ -47,8 +55,8 @@ namespace Vertigo.Wheel.Runtime
         {
             WheelGameState state = WheelRuntimeLocator.State;
             state.Resolve(result);
-            FlowActions.PublishAfterSpin[Convert.ToInt32(state.PhaseGameplay.PublishAllAfterSpin)](WheelRuntimeLocator.Publisher);
             WheelRuntimeLocator.Publisher.PublishOutcome(result, true);
+            FlowActions.PublishAfterSpin[Convert.ToInt32(state.PhaseGameplay.PublishAllAfterSpin)](WheelRuntimeLocator.Publisher);
         }
 
         private void ExecuteSpin()

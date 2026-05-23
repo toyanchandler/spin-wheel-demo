@@ -1,7 +1,9 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.Collections;
+using Vertigo.Wheel.Data;
 using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
@@ -13,12 +15,25 @@ namespace Vertigo.Wheel.Views
 
         [CollectChildren(nameof(_cardPoolRoot))]
         [SerializeField] private WheelRewardCardView[] _cardViews = Array.Empty<WheelRewardCardView>();
+        [SerializeField] private RectTransform _viewportRect;
+        [SerializeField] private RectTransform _contentRect;
+        [SerializeField] private ScrollRect _scrollRect;
 
         private WheelEventBus _eventBus;
+        private RewardInventoryEntry[] _renderedCards = Array.Empty<RewardInventoryEntry>();
+        private RewardInventoryEntry[] _pendingCards = Array.Empty<RewardInventoryEntry>();
+        private int _renderedCount;
+        private int _pendingCount;
+        private int _pendingChangedIndex = -1;
+        private bool _hasPendingCards;
+        private Tween _pendingFallbackTween;
+        private Sprite _cardFrameSprite;
 
         public void Bind(WheelEventBus eventBus)
         {
             RequireCardViews();
+            EnsureBuffers();
+            EnsureScrollableStrip();
             _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
@@ -27,22 +42,306 @@ namespace Vertigo.Wheel.Views
         {
             _eventBus.HudStateChanged -= OnHudStateChanged;
             _eventBus = null;
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = null;
+        }
+
+        private void OnDisable()
+        {
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = null;
+            if (_panelFrameImage != null)
+            {
+                _panelFrameImage.transform.DOKill();
+            }
         }
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             _panelFrameImage.sprite = snapshot.RewardPanelFrameSprite;
             _panelFrameImage.color = Color.white;
-            RenderCards(snapshot);
+            _panelFrameImage.raycastTarget = true;
+            _cardFrameSprite = snapshot.RewardCardFrameSprite;
+            if (ShouldDeferRewardGain(snapshot))
+            {
+                StorePending(snapshot);
+                RenderStoredCards(_renderedCards, _renderedCount);
+                ScheduleFallbackCommit();
+                return;
+            }
+
+            ApplySnapshotImmediately(snapshot);
         }
 
-        private void RenderCards(WheelHudSnapshot snapshot)
+        public void CommitPendingRewards(float delay)
         {
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = DOVirtual.DelayedCall(delay, CommitPendingNow, false)
+                .SetTarget(this)
+                .SetUpdate(true);
+        }
+
+        public Vector3 ResolveLandingWorldPosition(string rewardId, int burstIndex, int burstCount)
+        {
+            int index = FindPendingIndex(rewardId);
+            if (index < 0)
+            {
+                index = Mathf.Max(0, Mathf.Min(_pendingCount - 1, _renderedCount));
+            }
+
+            if (index < 0 || index >= _cardViews.Length)
+            {
+                return transform.position;
+            }
+
+            RectTransform rect = _cardViews[index].GetComponent<RectTransform>();
+            Vector3 target = rect.TransformPoint(rect.rect.center);
+            float spread = Mathf.Min(26f, 8f + burstCount * 2f);
+            float offsetX = burstCount <= 1 ? 0f : Mathf.Lerp(-spread, spread, burstIndex / Mathf.Max(1f, burstCount - 1f));
+            float offsetY = burstCount <= 1 ? 0f : UnityEngine.Random.Range(-8f, 8f);
+            return target + new Vector3(offsetX, offsetY, 0f);
+        }
+
+        private bool ShouldDeferRewardGain(WheelHudSnapshot snapshot)
+        {
+            return snapshot.Phase == WheelGamePhase.Won && SnapshotDiffersFromRendered(snapshot);
+        }
+
+        private bool SnapshotDiffersFromRendered(WheelHudSnapshot snapshot)
+        {
+            if (snapshot.RewardCardCount != _renderedCount)
+            {
+                return true;
+            }
+
+            int count = Mathf.Min(snapshot.RewardCardCount, _renderedCards.Length);
+            for (int i = 0; i < count; i++)
+            {
+                RewardInventoryEntry incoming = snapshot.RewardCards[i];
+                RewardInventoryEntry rendered = _renderedCards[i];
+                if (incoming.RewardId != rendered.RewardId || incoming.Amount != rendered.Amount)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void StorePending(WheelHudSnapshot snapshot)
+        {
+            _pendingChangedIndex = FindFirstChangedIndex(snapshot);
+            _pendingCount = CopyCards(snapshot, _pendingCards);
+            _hasPendingCards = true;
+            ArrangeCards(Mathf.Max(_renderedCount, _pendingCount));
+        }
+
+        private void ScheduleFallbackCommit()
+        {
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = DOVirtual.DelayedCall(2.35f, CommitPendingNow, false)
+                .SetTarget(this)
+                .SetUpdate(true);
+        }
+
+        private void CommitPendingNow()
+        {
+            if (!_hasPendingCards)
+            {
+                return;
+            }
+
+            int oldCount = _renderedCount;
+            CopyCards(_pendingCards, _pendingCount, _renderedCards);
+            _renderedCount = _pendingCount;
+            _hasPendingCards = false;
+            RenderStoredCards(_renderedCards, _renderedCount);
+            PlayPanelPulse();
+            PulseChangedCards(oldCount, _pendingChangedIndex);
+            _pendingChangedIndex = -1;
+        }
+
+        private void ApplySnapshotImmediately(WheelHudSnapshot snapshot)
+        {
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = null;
+            _hasPendingCards = false;
+            _renderedCount = CopyCards(snapshot, _renderedCards);
+            RenderStoredCards(_renderedCards, _renderedCount);
+        }
+
+        private void RenderStoredCards(RewardInventoryEntry[] cards, int count)
+        {
+            ArrangeCards(count);
             for (int i = 0; i < _cardViews.Length; i++)
             {
-                int visible = System.Convert.ToInt32(i < snapshot.RewardCardCount);
-                CardSlotActions[visible](_cardViews[i], snapshot, i);
+                int visible = System.Convert.ToInt32(i < count);
+                CardSlotActions[visible](_cardViews[i], cards, _cardFrameSprite, i);
             }
+
+            if (_scrollRect != null)
+            {
+                _scrollRect.verticalNormalizedPosition = 1f;
+            }
+        }
+
+        private void PulseChangedCards(int oldCount, int changedIndex)
+        {
+            int count = Mathf.Min(_renderedCount, _cardViews.Length);
+            for (int i = 0; i < count; i++)
+            {
+                bool isNewSlot = i >= oldCount;
+                bool amountChanged = !isNewSlot && i == changedIndex;
+                if (isNewSlot || amountChanged)
+                {
+                    _cardViews[i].PlayLandingPulse(0.02f * i);
+                }
+            }
+        }
+
+        private void PlayPanelPulse()
+        {
+            Transform panelTransform = _panelFrameImage.transform;
+            panelTransform.DOKill();
+            panelTransform.localScale = Vector3.one;
+            DOTween.Sequence()
+                .SetTarget(panelTransform)
+                .SetUpdate(true)
+                .Append(panelTransform.DOScale(new Vector3(1.025f, 1.025f, 1f), 0.12f).SetEase(Ease.OutQuad))
+                .Append(panelTransform.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutBack));
+        }
+
+        private int FindFirstChangedIndex(WheelHudSnapshot snapshot)
+        {
+            int count = Mathf.Min(snapshot.RewardCardCount, _renderedCards.Length);
+            for (int i = 0; i < count; i++)
+            {
+                RewardInventoryEntry incoming = snapshot.RewardCards[i];
+                RewardInventoryEntry rendered = _renderedCards[i];
+                if (incoming.RewardId != rendered.RewardId || incoming.Amount != rendered.Amount)
+                {
+                    return i;
+                }
+            }
+
+            return snapshot.RewardCardCount > _renderedCount ? _renderedCount : -1;
+        }
+
+        private int FindPendingIndex(string rewardId)
+        {
+            if (string.IsNullOrEmpty(rewardId))
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < _pendingCount; i++)
+            {
+                if (_pendingCards[i].RewardId == rewardId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private void EnsureBuffers()
+        {
+            if (_renderedCards.Length != _cardViews.Length)
+            {
+                _renderedCards = new RewardInventoryEntry[_cardViews.Length];
+                _pendingCards = new RewardInventoryEntry[_cardViews.Length];
+            }
+        }
+
+        private int CopyCards(WheelHudSnapshot snapshot, RewardInventoryEntry[] target)
+        {
+            return CopyCards(snapshot.RewardCards, snapshot.RewardCardCount, target);
+        }
+
+        private static int CopyCards(RewardInventoryEntry[] source, int sourceCount, RewardInventoryEntry[] target)
+        {
+            int count = Mathf.Min(sourceCount, target.Length);
+            for (int i = 0; i < count; i++)
+            {
+                target[i] = source[i];
+            }
+
+            return count;
+        }
+
+        private void EnsureScrollableStrip()
+        {
+            if (_viewportRect == null)
+            {
+                _viewportRect = _cardPoolRoot as RectTransform;
+            }
+
+            if (_viewportRect == null)
+            {
+                return;
+            }
+
+            if (_contentRect == null)
+            {
+                _contentRect = FindExistingScrollContent();
+            }
+
+            if (_contentRect == null)
+            {
+                _contentRect = _cardPoolRoot as RectTransform;
+            }
+
+            _cardPoolRoot = _contentRect;
+
+            if (_scrollRect == null)
+            {
+                _scrollRect = GetComponent<ScrollRect>();
+            }
+
+            if (_scrollRect == null)
+            {
+                return;
+            }
+
+            _scrollRect.viewport = _viewportRect;
+            _scrollRect.content = _contentRect;
+            _scrollRect.horizontal = false;
+            _scrollRect.vertical = true;
+            _scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            _scrollRect.inertia = true;
+            _scrollRect.scrollSensitivity = 28f;
+        }
+
+        private RectTransform FindExistingScrollContent()
+        {
+            Transform content = _viewportRect.Find("ui_loot_cards_scroll_content");
+            return content == null ? null : content as RectTransform;
+        }
+
+        private void ArrangeCards(int visibleCount)
+        {
+            if (_contentRect == null)
+            {
+                return;
+            }
+
+            float spacing = 12f;
+            float contentHeight = 0f;
+            int arrangedCount = Mathf.Max(visibleCount, _cardViews.Length);
+            for (int i = 0; i < arrangedCount && i < _cardViews.Length; i++)
+            {
+                RectTransform rect = _cardViews[i].GetComponent<RectTransform>();
+                Vector2 size = rect.sizeDelta;
+                rect.anchorMin = new Vector2(0.5f, 1f);
+                rect.anchorMax = new Vector2(0.5f, 1f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0f, -((size.y * 0.5f) + (i * (size.y + spacing))));
+                contentHeight = Mathf.Max(contentHeight, ((i + 1) * size.y) + (i * spacing));
+            }
+
+            float viewportHeight = _viewportRect == null ? 0f : _viewportRect.rect.height;
+            _contentRect.sizeDelta = new Vector2(0f, Mathf.Max(viewportHeight, contentHeight));
         }
 
         private void RequireCardViews()
@@ -54,13 +353,13 @@ namespace Vertigo.Wheel.Views
             }
         }
 
-        private static readonly System.Action<WheelRewardCardView, WheelHudSnapshot, int>[] CardSlotActions =
+        private static readonly System.Action<WheelRewardCardView, RewardInventoryEntry[], Sprite, int>[] CardSlotActions =
         {
-            (view, snapshot, index) => view.Hide(),
-            (view, snapshot, index) =>
+            (view, cards, frameSprite, index) => view.Hide(),
+            (view, cards, frameSprite, index) =>
             {
-                view.ApplyFrames(snapshot.RewardCardFrameSprite);
-                view.Apply(snapshot.RewardCards[index]);
+                view.ApplyFrames(frameSprite);
+                view.Apply(cards[index]);
             }
         };
     }

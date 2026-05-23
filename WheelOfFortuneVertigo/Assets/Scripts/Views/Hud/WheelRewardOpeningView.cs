@@ -44,16 +44,37 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
+            _root.transform.SetAsLastSibling();
             _titleText.text = "YOUR REWARDS:";
             RenderCards(snapshot);
         }
 
         private void RenderCards(WheelHudSnapshot snapshot)
         {
+            LayoutVisibleCards(snapshot.RewardCardCount);
             for (int i = 0; i < _rewardCards.Length; i++)
             {
                 int visible = System.Convert.ToInt32(i < snapshot.RewardCardCount);
                 CardSlotActions[visible](_rewardCards[i], snapshot, _cardFrameSource.sprite, i);
+            }
+        }
+
+        private void LayoutVisibleCards(int visibleCount)
+        {
+            int count = Mathf.Min(visibleCount, _rewardCards.Length);
+            if (count <= 0)
+            {
+                return;
+            }
+
+            const float cardWidth = 230f;
+            const float spacing = 34f;
+            float rowWidth = (count * cardWidth) + ((count - 1) * spacing);
+            float startX = (-rowWidth * 0.5f) + (cardWidth * 0.5f);
+            for (int i = 0; i < count; i++)
+            {
+                RectTransform rect = _rewardCards[i].GetComponent<RectTransform>();
+                rect.anchoredPosition = new Vector2(startX + (i * (cardWidth + spacing)), rect.anchoredPosition.y);
             }
         }
 

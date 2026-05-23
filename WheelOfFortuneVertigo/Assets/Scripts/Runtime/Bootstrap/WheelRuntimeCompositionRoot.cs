@@ -16,14 +16,21 @@ namespace Vertigo.Wheel.Runtime
 
         private void EnsureGameplayComponents()
         {
-            if (_state != null)
+            if (_state == null)
             {
-                return;
+                _state = GetComponent<WheelGameState>();
             }
 
-            _state = GetComponent<WheelGameState>();
-            _publisher = GetComponent<WheelStatePublisher>();
-            _flow = GetComponent<WheelGameFlowController>();
+            if (_publisher == null)
+            {
+                _publisher = GetComponent<WheelStatePublisher>();
+            }
+
+            if (_flow == null)
+            {
+                _flow = GetComponent<WheelGameFlowController>();
+            }
+
             WheelGameConfigSource configSource = GetComponent<WheelGameConfigSource>();
             if (configSource == null || configSource.Settings == null)
             {
@@ -56,12 +63,17 @@ namespace Vertigo.Wheel.Runtime
 
         public void StopRuntime()
         {
-            StopActions[Convert.ToInt32(!_isRunning)](this);
+            StopActions[Convert.ToInt32(_isRunning)](this);
         }
 
         public void RequestSpin()
         {
             _eventBus.RequestSpin();
+        }
+
+        public void RequestLeaveConfirmation()
+        {
+            _eventBus.RequestLeaveConfirmation();
         }
 
         public void RequestLeave()
@@ -90,9 +102,21 @@ namespace Vertigo.Wheel.Runtime
 
         private void EndRuntime()
         {
-            WheelRuntimeLocator.Spinner.Unbind();
-            _flow.Unbind();
-            _publisher.Unbind();
+            if (WheelRuntimeLocator.Spinner != null)
+            {
+                WheelRuntimeLocator.Spinner.Unbind();
+            }
+
+            if (_flow != null)
+            {
+                _flow.Unbind();
+            }
+
+            if (_publisher != null)
+            {
+                _publisher.Unbind();
+            }
+
             WheelRuntimeLocator.Clear();
             _eventBus.Clear();
             _isRunning = false;

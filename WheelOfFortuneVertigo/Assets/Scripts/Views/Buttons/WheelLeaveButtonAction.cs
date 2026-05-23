@@ -11,7 +11,7 @@ namespace Vertigo.Wheel.Views
 
         protected override void Execute()
         {
-            EventBus.RequestLeave();
+            EventBus.RequestLeaveConfirmation();
         }
     }
 }

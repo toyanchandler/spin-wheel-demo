@@ -2,6 +2,7 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Data;
+using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.Runtime
 {
@@ -19,11 +20,25 @@ namespace Vertigo.Wheel.Runtime
         private bool _spinning;
 
         public bool IsSpinning { get { return _spinning; } }
+        public int CurrentSliceCount { get { return _currentSliceCount; } }
+
+        public RectTransform WheelTransform { get { return _wheelTransform; } }
 
         private void Awake()
         {
             _wheelTransform = GetComponent<RectTransform>();
             WheelRuntimeLocator.RegisterSpinner(this);
+        }
+
+        private void LateUpdate()
+        {
+            WheelView wheelView = WheelRuntimeLocator.WheelView;
+            if (wheelView == null)
+            {
+                return;
+            }
+
+            wheelView.ApplyUprightSlicePresentations();
         }
 
         public void Bind(WheelEventBus eventBus)
@@ -63,16 +78,20 @@ namespace Vertigo.Wheel.Runtime
             StopActiveTween(false);
             _pendingResult = new WheelSpinResult(selectedIndex, _currentSlices[selectedIndex]);
 
-            float sliceAngle = 360f / _currentSliceCount;
             float startAngle = _wheelTransform.eulerAngles.z;
-            float selectedIconAngle = selectedIndex * sliceAngle;
             WheelGameSettings settings = WheelRuntimeLocator.Settings;
+            Vector2[] slicePositions = WheelSliceLayoutResolver.BuildPositions(
+                settings.SliceLayoutCatalog,
+                settings.Layout,
+                _currentSliceCount);
+            float selectedIconAngle = WheelSliceLayoutResolver.ResolvePointerAngle(slicePositions[selectedIndex]);
             float targetDelta = 360f * settings.MinimumSpinRounds + Mathf.DeltaAngle(startAngle, selectedIconAngle);
             float targetAngle = startAngle + targetDelta;
+            float spinDuration = settings.SpinDuration;
 
             _activeTween = _wheelTransform
-                .DORotate(new Vector3(0f, 0f, targetAngle), settings.SpinDuration, RotateMode.FastBeyond360)
-                .SetEase(Ease.OutCubic)
+                .DORotate(new Vector3(0f, 0f, targetAngle), spinDuration, RotateMode.FastBeyond360)
+                .SetEase(settings.SpinEase)
                 .SetRecyclable(true)
                 .SetLink(gameObject, LinkBehaviour.KillOnDisable)
                 .OnComplete(_completeSpinCallback);

@@ -21,6 +21,11 @@ namespace Vertigo.Wheel.Data
             return positions;
         }
 
+        public static float ResolvePointerAngle(Vector2 slicePosition)
+        {
+            return Mathf.Atan2(slicePosition.x, slicePosition.y) * Mathf.Rad2Deg;
+        }
+
         private static void FillPresetCenters(Vector2[] buffer, WheelSliceLayoutCatalog catalog, float wheelSize, float radius, int sliceCount)
         {
             Vector2[] centers = catalog.NormalizedPresetCenters;

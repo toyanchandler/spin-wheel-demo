@@ -53,7 +53,7 @@ MonoBehaviour:
     _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
   _phases:
   - _phase: 0
-    _statusMessage:
+    _statusMessage: 
     _hideStatusBar: 0
     _hideOutcomePopup: 1
     _gameplay:
@@ -73,7 +73,7 @@ MonoBehaviour:
       _publishAllAfterSpin: 0
       _useWinLabelForStatus: 0
   - _phase: 2
-    _statusMessage:
+    _statusMessage: 
     _hideStatusBar: 1
     _hideOutcomePopup: 0
     _gameplay:
@@ -83,7 +83,7 @@ MonoBehaviour:
       _publishAllAfterSpin: 1
       _useWinLabelForStatus: 1
   - _phase: 3
-    _statusMessage:
+    _statusMessage: 
     _hideStatusBar: 1
     _hideOutcomePopup: 0
     _gameplay:
@@ -93,7 +93,7 @@ MonoBehaviour:
       _publishAllAfterSpin: 0
       _useWinLabelForStatus: 0
   - _phase: 4
-    _statusMessage:
+    _statusMessage: 
     _hideStatusBar: 1
     _hideOutcomePopup: 0
     _gameplay:

@@ -26,7 +26,7 @@ namespace Vertigo.Wheel.Views
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             _panelImage.sprite = snapshot.ZonePanelSprite;
-            _panelImage.color = Color.white;
+            _panelImage.color = Color.clear;
             ApplyMapFrame(snapshot.ZoneMapFrameSprite);
         }
 
@@ -46,7 +46,7 @@ namespace Vertigo.Wheel.Views
             (image, sprite) =>
             {
                 image.sprite = sprite;
-                image.color = Color.white;
+                image.color = Color.clear;
             }
         };
     }

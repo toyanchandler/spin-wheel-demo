@@ -6,6 +6,7 @@ namespace Vertigo.Wheel.Runtime
     public sealed class WheelEventBus
     {
         public event Action SpinRequested;
+        public event Action LeaveConfirmationRequested;
         public event Action LeaveRequested;
         public event Action RestartRequested;
         public event Action<WheelZoneSnapshot> ZoneChanged;
@@ -15,6 +16,11 @@ namespace Vertigo.Wheel.Runtime
         public void RequestSpin()
         {
             SpinRequested?.Invoke();
+        }
+
+        public void RequestLeaveConfirmation()
+        {
+            LeaveConfirmationRequested?.Invoke();
         }
 
         public void RequestLeave()
@@ -45,6 +51,7 @@ namespace Vertigo.Wheel.Runtime
         public void Clear()
         {
             SpinRequested = null;
+            LeaveConfirmationRequested = null;
             LeaveRequested = null;
             RestartRequested = null;
             ZoneChanged = null;

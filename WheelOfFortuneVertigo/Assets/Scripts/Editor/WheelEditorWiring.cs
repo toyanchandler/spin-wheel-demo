@@ -24,6 +24,14 @@ namespace Vertigo.Wheel.EditorTools
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        public static void SetFloat(Object target, string propertyName, float value)
+        {
+            var serializedObject = new SerializedObject(target);
+            SerializedProperty property = serializedObject.FindProperty(propertyName);
+            property.floatValue = value;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         public static void SetObjectArray(Object target, string propertyName, Object[] values)
         {
             var serializedObject = new SerializedObject(target);

@@ -20,6 +20,8 @@ namespace Vertigo.Wheel.Views
         [SerializeField, RequiredSceneReference]
         private WheelOutcomePopupView _outcomePopup;
         [SerializeField, RequiredSceneReference]
+        private WheelExitConfirmationView _exitConfirmation;
+        [SerializeField, RequiredSceneReference]
         private WheelRewardOpeningView _rewardOpening;
         [SerializeField, RequiredSceneReference]
         private WheelStatusTextView _statusText;
@@ -40,7 +42,8 @@ namespace Vertigo.Wheel.Views
             RequireAssigned(_zoneText, nameof(_zoneText)).Bind(eventBus);
             RequireAssigned(_zoneTypeText, nameof(_zoneTypeText)).Bind(eventBus);
             RequireAssigned(_lootPanel, nameof(_lootPanel)).Bind(eventBus);
-            RequireAssigned(_outcomePopup, nameof(_outcomePopup)).Bind(eventBus);
+            RequireAssigned(_outcomePopup, nameof(_outcomePopup)).Bind(eventBus, _lootPanel);
+            RequireAssigned(_exitConfirmation, nameof(_exitConfirmation)).Bind(eventBus);
             RequireAssigned(_rewardOpening, nameof(_rewardOpening)).Bind(eventBus);
             RequireAssigned(_statusText, nameof(_statusText)).Bind(eventBus);
             RequireAssigned(_leaveButton, nameof(_leaveButton)).Bind(eventBus);
@@ -57,6 +60,7 @@ namespace Vertigo.Wheel.Views
             _leaveButton.Unbind();
             _statusText.Unbind();
             _rewardOpening.Unbind();
+            _exitConfirmation.Unbind();
             _outcomePopup.Unbind();
             _lootPanel.Unbind();
             _zoneTypeText.Unbind();

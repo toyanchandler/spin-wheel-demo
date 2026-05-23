@@ -14,18 +14,130 @@ namespace Vertigo.Wheel.Views
         [SerializeField] private WheelSliceView[] _sliceViews = Array.Empty<WheelSliceView>();
 
         private WheelEventBus _eventBus;
+        private int _suppressedRewardVisualSliceIndex = -1;
 
         public void Bind(WheelEventBus eventBus)
         {
             RequireSliceViews();
+            WheelRuntimeLocator.RegisterWheelView(this);
             _eventBus = eventBus;
             _eventBus.ZoneChanged += OnZoneChanged;
         }
 
         public void Unbind()
         {
+            if (WheelRuntimeLocator.WheelView == this)
+            {
+                WheelRuntimeLocator.RegisterWheelView(null);
+            }
+
             _eventBus.ZoneChanged -= OnZoneChanged;
             _eventBus = null;
+        }
+
+        public void ApplyUprightSlicePresentations()
+        {
+            if (_sliceViews == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _sliceViews.Length; i++)
+            {
+                WheelSliceView sliceView = _sliceViews[i];
+                if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                sliceView.ApplyUprightPresentation();
+            }
+        }
+
+        public bool TryResolveSliceIconAnchoredPosition(int sliceIndex, RectTransform targetParent, out Vector2 anchoredPosition)
+        {
+            anchoredPosition = default(Vector2);
+            return TryResolveSliceIconPresentation(sliceIndex, targetParent, out anchoredPosition, out Sprite _, out Color _);
+        }
+
+        public bool TryResolveSliceIconPresentation(
+            int sliceIndex,
+            RectTransform targetParent,
+            out Vector2 anchoredPosition,
+            out Sprite sprite,
+            out Color color)
+        {
+            anchoredPosition = default(Vector2);
+            sprite = null;
+            color = Color.white;
+            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Length)
+            {
+                return false;
+            }
+
+            WheelSliceView sliceView = _sliceViews[sliceIndex];
+            if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            RectTransform iconRect = sliceView.IconRect;
+            sprite = sliceView.IconSprite;
+            color = sliceView.IconColor;
+            if (iconRect == null || sprite == null)
+            {
+                return false;
+            }
+
+            if (targetParent == null)
+            {
+                return true;
+            }
+
+            Canvas canvas = targetParent.GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                return false;
+            }
+
+            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(camera, iconRect.position);
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(targetParent, screenPoint, camera, out anchoredPosition);
+        }
+
+        public void SuppressSliceRewardVisual(int sliceIndex)
+        {
+            RestoreSuppressedSliceRewardVisual();
+            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Length)
+            {
+                return;
+            }
+
+            WheelSliceView sliceView = _sliceViews[sliceIndex];
+            if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            _suppressedRewardVisualSliceIndex = sliceIndex;
+            sliceView.SetRewardVisualVisible(false);
+        }
+
+        public void RestoreSuppressedSliceRewardVisual()
+        {
+            if (_suppressedRewardVisualSliceIndex < 0 || _suppressedRewardVisualSliceIndex >= _sliceViews.Length)
+            {
+                _suppressedRewardVisualSliceIndex = -1;
+                return;
+            }
+
+            WheelSliceView sliceView = _sliceViews[_suppressedRewardVisualSliceIndex];
+            if (sliceView != null && sliceView.gameObject.activeInHierarchy)
+            {
+                sliceView.SetRewardVisualVisible(true);
+            }
+
+            _suppressedRewardVisualSliceIndex = -1;
         }
 
         private void OnZoneChanged(WheelZoneSnapshot snapshot)
@@ -36,6 +148,21 @@ namespace Vertigo.Wheel.Views
                 snapshot.SliceCount,
                 snapshot.SlicePositions,
                 snapshot.SliceIconSize);
+            ApplySuppressedSliceRewardVisual();
+        }
+
+        private void ApplySuppressedSliceRewardVisual()
+        {
+            if (_suppressedRewardVisualSliceIndex < 0 || _suppressedRewardVisualSliceIndex >= _sliceViews.Length)
+            {
+                return;
+            }
+
+            WheelSliceView sliceView = _sliceViews[_suppressedRewardVisualSliceIndex];
+            if (sliceView != null && sliceView.gameObject.activeInHierarchy)
+            {
+                sliceView.SetRewardVisualVisible(false);
+            }
         }
 
         private void RequireSliceViews()
@@ -74,7 +201,8 @@ namespace Vertigo.Wheel.Views
                         slices[i].DisplayAmount,
                         slices[i].DisplayColor,
                         slicePositions[i],
-                        slices[i].ShowAmountLabel);
+                        slices[i].ShowAmountLabel,
+                        slices[i].DisplayLabel);
                     pool[i].Apply(presentation, iconSize);
                 }
 

@@ -11,55 +11,50 @@ namespace Vertigo.Wheel.EditorTools
         private SerializedProperty _sliceCount;
         private SerializedProperty _safeZoneInterval;
         private SerializedProperty _superZoneInterval;
-        private SerializedProperty _bombReward;
         private SerializedProperty _standardRewards;
         private SerializedProperty _safeRewards;
         private SerializedProperty _superRewards;
         private SerializedProperty _uiCopy;
-        private SerializedProperty _layout;
-        private SerializedProperty _theme;
+        private SerializedProperty _skinCatalog;
+        private SerializedProperty _sliceLayoutCatalog;
+        private SerializedProperty _outcomePopupMotionCatalog;
+        private SerializedProperty _spinResolveCatalog;
 
         private void OnEnable()
         {
             _sliceCount = serializedObject.FindProperty("_sliceCount");
             _safeZoneInterval = serializedObject.FindProperty("_safeZoneInterval");
             _superZoneInterval = serializedObject.FindProperty("_superZoneInterval");
-            _bombReward = serializedObject.FindProperty("_bombReward");
             _standardRewards = serializedObject.FindProperty("_standardRewards");
             _safeRewards = serializedObject.FindProperty("_safeRewards");
             _superRewards = serializedObject.FindProperty("_superRewards");
             _uiCopy = serializedObject.FindProperty("_uiCopy");
-            _layout = serializedObject.FindProperty("_layout");
-            _theme = serializedObject.FindProperty("_theme");
+            _skinCatalog = serializedObject.FindProperty("_skinCatalog");
+            _sliceLayoutCatalog = serializedObject.FindProperty("_sliceLayoutCatalog");
+            _outcomePopupMotionCatalog = serializedObject.FindProperty("_outcomePopupMotionCatalog");
+            _spinResolveCatalog = serializedObject.FindProperty("_spinResolveCatalog");
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            EnsureUiCopyReference();
+            EnsureCatalogReferences();
 
-            EditorGUILayout.LabelField("Vertigo Wheel Designer", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Gameplay config asset in Assets/Config. UI copy and catalogs are shared ScriptableObjects referenced below.", MessageType.Info);
+            EditorGUILayout.LabelField("Vertigo Wheel Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Use Wheel Designer as the main editing surface. This inspector is intentionally kept as a compact summary.", MessageType.Info);
 
-            DrawSection("Zone Rules", _sliceCount, _safeZoneInterval, _superZoneInterval);
-            DrawSection("Spin Motion", serializedObject.FindProperty("_spinDuration"), serializedObject.FindProperty("_minimumSpinRounds"));
-            DrawSection("UI Copy", _uiCopy);
-            DrawSection("Theme", _theme);
-            DrawSection("Layout", _layout);
-            DrawSection("Bomb", _bombReward);
-            DrawSection("Standard Zone Rewards", _standardRewards);
-            DrawSection("Safe Zone Rewards", _safeRewards);
-            DrawSection("Super Zone Rewards", _superRewards);
+            DrawSummary();
+            DrawLinkedAssetsSummary();
 
             EditorGUILayout.Space(8f);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Open Designer"))
+                if (GUILayout.Button("Open Wheel Designer", GUILayout.Height(30f)))
                 {
                     VertigoWheelDesignerWindow.Open();
                 }
 
-                if (GUILayout.Button("Rebuild Scene"))
+                if (GUILayout.Button("Rebuild Scene", GUILayout.Height(30f)))
                 {
                     VertigoWheelBootstrapper.RebuildScene();
                 }
@@ -68,30 +63,82 @@ namespace Vertigo.Wheel.EditorTools
             serializedObject.ApplyModifiedProperties();
         }
 
-        private void EnsureUiCopyReference()
-        {
-            if (_uiCopy.objectReferenceValue != null)
-            {
-                return;
-            }
-
-            WheelUiCopyCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelUiCopyCatalog>(VertigoWheelPaths.UiCopyCatalogPath);
-            if (catalog == null)
-            {
-                catalog = VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
-            }
-
-            _uiCopy.objectReferenceValue = catalog;
-            serializedObject.ApplyModifiedProperties();
-        }
-
-        private static void DrawSection(string title, params SerializedProperty[] properties)
+        private void DrawSummary()
         {
             EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
-            for (int i = 0; i < properties.Length; i++)
+            EditorGUILayout.LabelField("Summary", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Wheel slices", _sliceCount.intValue.ToString());
+            EditorGUILayout.LabelField("Safe zone cadence", "Every " + _safeZoneInterval.intValue + " zones");
+            EditorGUILayout.LabelField("Super zone cadence", "Every " + _superZoneInterval.intValue + " zones");
+            EditorGUILayout.LabelField("Reward pool count", RewardCount().ToString());
+        }
+
+        private void DrawLinkedAssetsSummary()
+        {
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("Linked Assets", EditorStyles.boldLabel);
+            DrawReadOnlyObject("Zone Texts", _uiCopy);
+            DrawReadOnlyObject("Wheel Skins", _skinCatalog);
+            DrawReadOnlyObject("Slice Positions", _sliceLayoutCatalog);
+            DrawReadOnlyObject("Popup Motion", _outcomePopupMotionCatalog);
+            DrawReadOnlyObject("Resolve Rules", _spinResolveCatalog);
+        }
+
+        private static void DrawReadOnlyObject(string label, SerializedProperty property)
+        {
+            using (new EditorGUI.DisabledScope(true))
             {
-                EditorGUILayout.PropertyField(properties[i], true);
+                EditorGUILayout.PropertyField(property, new GUIContent(label), false);
+            }
+        }
+
+        private int RewardCount()
+        {
+            return ArraySize(_standardRewards) + ArraySize(_safeRewards) + ArraySize(_superRewards);
+        }
+
+        private static int ArraySize(SerializedProperty property)
+        {
+            return property == null || !property.isArray ? 0 : property.arraySize;
+        }
+
+        private void EnsureCatalogReferences()
+        {
+            bool dirty = false;
+            if (_uiCopy.objectReferenceValue == null)
+            {
+                _uiCopy.objectReferenceValue = VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
+                dirty = true;
+            }
+
+            if (_skinCatalog.objectReferenceValue == null)
+            {
+                _skinCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureSkinCatalog();
+                dirty = true;
+            }
+
+            if (_sliceLayoutCatalog.objectReferenceValue == null)
+            {
+                _sliceLayoutCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
+                dirty = true;
+            }
+
+            if (_outcomePopupMotionCatalog.objectReferenceValue == null)
+            {
+                _outcomePopupMotionCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureOutcomePopupMotionCatalog();
+                dirty = true;
+            }
+
+            if (_spinResolveCatalog.objectReferenceValue == null)
+            {
+                _spinResolveCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
+                dirty = true;
+            }
+
+            if (dirty)
+            {
+                serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(target);
             }
         }
     }

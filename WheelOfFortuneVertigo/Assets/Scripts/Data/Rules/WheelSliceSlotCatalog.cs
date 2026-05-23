@@ -27,7 +27,7 @@ namespace Vertigo.Wheel.Data
             WheelSliceSlotProfile bombProfile)
         {
             WheelSliceSlotProfile[] profiles = { rewardProfile, bombProfile };
-            Sprite[] icons = { rewardDefinition.Icon, bombIcon };
+            Sprite[] icons = { rewardDefinition.WheelIcon, bombIcon };
             int profileIndex = System.Convert.ToInt32(isBombSlot);
             WheelSliceSlotProfile profile = profiles[profileIndex];
 

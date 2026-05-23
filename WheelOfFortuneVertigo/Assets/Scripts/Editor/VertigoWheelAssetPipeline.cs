@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEditor;
 using UnityEditor.U2D;
 using UnityEngine;
@@ -230,6 +231,46 @@ namespace Vertigo.Wheel.EditorTools
                         dirty = true;
                     }
 
+                    if (importer.filterMode != FilterMode.Bilinear)
+                    {
+                        importer.filterMode = FilterMode.Bilinear;
+                        dirty = true;
+                    }
+
+                    if (importer.textureCompression != TextureImporterCompression.Uncompressed)
+                    {
+                        importer.textureCompression = TextureImporterCompression.Uncompressed;
+                        dirty = true;
+                    }
+
+                    int maxTextureSize = 2048;
+                    var defaultPlatform = importer.GetDefaultPlatformTextureSettings();
+                    if (defaultPlatform.maxTextureSize != maxTextureSize
+                        || defaultPlatform.textureCompression != TextureImporterCompression.Uncompressed
+                        || defaultPlatform.format != TextureImporterFormat.RGBA32)
+                    {
+                        defaultPlatform.maxTextureSize = maxTextureSize;
+                        defaultPlatform.textureCompression = TextureImporterCompression.Uncompressed;
+                        defaultPlatform.format = TextureImporterFormat.RGBA32;
+                        importer.SetPlatformTextureSettings(defaultPlatform);
+                        dirty = true;
+                    }
+
+                    var androidPlatform = importer.GetPlatformTextureSettings("Android");
+                    if (!androidPlatform.overridden
+                        || androidPlatform.maxTextureSize != maxTextureSize
+                        || androidPlatform.textureCompression != TextureImporterCompression.Uncompressed
+                        || androidPlatform.format != TextureImporterFormat.RGBA32)
+                    {
+                        androidPlatform.name = "Android";
+                        androidPlatform.overridden = true;
+                        androidPlatform.maxTextureSize = maxTextureSize;
+                        androidPlatform.textureCompression = TextureImporterCompression.Uncompressed;
+                        androidPlatform.format = TextureImporterFormat.RGBA32;
+                        importer.SetPlatformTextureSettings(androidPlatform);
+                        dirty = true;
+                    }
+
                     Vector4 border = IsSlicedSprite(path) ? new Vector4(12f, 12f, 12f, 12f) : Vector4.zero;
                     if (importer.spriteBorder != border)
                     {
@@ -262,6 +303,49 @@ namespace Vertigo.Wheel.EditorTools
             material = new Material(shader) { name = "UI_Default_Batched" };
             AssetDatabase.CreateAsset(material, VertigoWheelPaths.MaterialPath);
             return material;
+        }
+
+        public static TMP_FontAsset EnsureHudFontAsset()
+        {
+            Directory.CreateDirectory("Assets/Fonts");
+            TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(VertigoWheelPaths.HudFontAssetPath);
+            if (fontAsset != null)
+            {
+                if (fontAsset.atlasTexture != null)
+                {
+                    return fontAsset;
+                }
+
+                AssetDatabase.DeleteAsset(VertigoWheelPaths.HudFontAssetPath);
+            }
+
+            AssetDatabase.ImportAsset(VertigoWheelPaths.HudFontPath, ImportAssetOptions.ForceSynchronousImport);
+            Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(VertigoWheelPaths.HudFontPath);
+            if (sourceFont == null)
+            {
+                Debug.LogWarning("HUD font source missing at " + VertigoWheelPaths.HudFontPath + ". Falling back to TMP default.");
+                return TMP_Settings.defaultFontAsset;
+            }
+
+            fontAsset = TMP_FontAsset.CreateFontAsset(sourceFont);
+            fontAsset.name = "Rajdhani-Bold SDF";
+            fontAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            fontAsset.material.name = "Rajdhani-Bold SDF Material";
+            fontAsset.TryAddCharacters("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ");
+
+            AssetDatabase.CreateAsset(fontAsset, VertigoWheelPaths.HudFontAssetPath);
+            Texture2D atlasTexture = fontAsset.atlasTexture;
+            if (atlasTexture != null)
+            {
+                atlasTexture.name = "Rajdhani-Bold SDF Atlas";
+                AssetDatabase.AddObjectToAsset(atlasTexture, fontAsset);
+                fontAsset.material.SetTexture(ShaderUtilities.ID_MainTex, atlasTexture);
+            }
+
+            AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(VertigoWheelPaths.HudFontAssetPath, ImportAssetOptions.ForceSynchronousImport);
+            return fontAsset;
         }
 
         public static void EnsureAtlas()
@@ -311,10 +395,10 @@ namespace Vertigo.Wheel.EditorTools
             {
                 name = "Android",
                 overridden = true,
-                maxTextureSize = 2048,
-                format = TextureImporterFormat.Automatic,
-                textureCompression = TextureImporterCompression.Compressed,
-                compressionQuality = 50
+                maxTextureSize = 8192,
+                format = TextureImporterFormat.RGBA32,
+                textureCompression = TextureImporterCompression.Uncompressed,
+                compressionQuality = 100
             });
             EditorUtility.SetDirty(atlas);
             AssetDatabase.SaveAssets();
@@ -336,6 +420,7 @@ namespace Vertigo.Wheel.EditorTools
             string fileName = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
             return fileName.Contains("button") || fileName.Contains("frame") || fileName.Contains("panel");
         }
+
     }
 }
 #endif

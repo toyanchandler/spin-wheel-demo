@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using DG.Tweening;
@@ -62,12 +63,15 @@ namespace Vertigo.Wheel.EditorTools
             Require(UnityEngine.Object.FindObjectOfType<WheelZoneProgressView>() != null, "Zone progress row view exists");
             Require(UnityEngine.Object.FindObjectOfType<WheelMilestoneBadgesView>() != null, "Safe and super milestone badge view exists");
             Require(UnityEngine.Object.FindObjectOfType<WheelRewardPanelView>() != null, "Loot panel view exists");
+            Require(UnityEngine.Object.FindObjectOfType<WheelExitConfirmationView>(true) != null, "Exit confirmation view exists");
             Require(UnityEngine.Object.FindObjectOfType<WheelRewardOpeningView>(true) != null, "Reward opening view exists");
             Require(GameObject.Find("ui_zone_panel_root") != null, "ui_zone_panel_root exists in HUD hierarchy");
             Require(GameObject.Find("ui_zone_progress_root") != null, "ui_zone_progress_root exists in HUD hierarchy");
             Require(GameObject.Find("ui_zone_milestone_badges_root") != null, "ui_zone_milestone_badges_root exists in HUD hierarchy");
             Require(GameObject.Find("ui_loot_strip_root") != null, "ui_loot_strip_root exists in HUD hierarchy");
+            settings.InitializeRuntime();
             RequireZoneAndLootPresentation(settings);
+            RequireUxFlowAssetCoverage(settings);
             Require(UnityEngine.Object.FindObjectOfType<WheelOutcomePopupView>(true) != null, "Outcome popup view exists");
             Require(UnityEngine.Object.FindObjectOfType<WheelStatusTextView>() != null, "Status text view exists");
             Require(UnityEngine.Object.FindObjectOfType<WheelBackgroundView>() != null, "Background view exists");
@@ -77,13 +81,15 @@ namespace Vertigo.Wheel.EditorTools
             Require(UnityEngine.Object.FindObjectsOfType<GraphicRaycaster>().Length == 1, "Only HUD canvas has a GraphicRaycaster");
             RequireDebugCanvas();
             RequireNoLegacyRewardPanelObjects();
-            RequireWheelRewardsUseSlotSafeSprites(settings);
+            RequireWheelRewardsUseConfiguredIcons(settings);
             RequireHudWheelVerticalSeparation(settings);
             RequireRaycastTargetWhitelist();
             Require(scalers.Length == 4, "Scene has four CanvasScaler components");
             for (int i = 0; i < scalers.Length; i++)
             {
-                Require(scalers[i].screenMatchMode == CanvasScaler.ScreenMatchMode.Expand, "CanvasScaler " + i + " uses Expand screen match mode");
+                Require(scalers[i].screenMatchMode == CanvasScaler.ScreenMatchMode.MatchWidthOrHeight, "CanvasScaler " + i + " uses balanced screen match mode");
+                Require(Mathf.Approximately(scalers[i].matchWidthOrHeight, 1f), "CanvasScaler " + i + " scales from landscape height");
+                Require(scalers[i].referenceResolution == settings.Layout.ReferenceResolution, "CanvasScaler " + i + " uses configured reference resolution");
             }
             RequireObjectReference(settings, "_uiCopy", "WheelGameSettings has serialized UI copy catalog");
             RequireObjectReference(settings, "_skinCatalog", "WheelGameSettings has serialized skin catalog");
@@ -94,6 +100,7 @@ namespace Vertigo.Wheel.EditorTools
             Require(WheelRuntimeLocator.Spinner != null, "WheelRuntimeLocator has spinner on wheel hierarchy");
             RequireHostReferences();
             RequireOutcomePopupReferences();
+            RequireExitConfirmationReferences();
             RequireRewardOpeningReferences();
             RequireCompositionRootHasNoSerializedFields(compositionRoot);
             WheelHierarchyWiringValidator.ValidateScene();
@@ -102,7 +109,6 @@ namespace Vertigo.Wheel.EditorTools
             Require(sliceViews != null && sliceViews.isArray, "WheelView has collected slice view array");
             Require(sliceViews.arraySize == settings.SliceCount, "WheelView slice view count matches settings");
             WheelSliceDefinition[] slices = CreateSliceBuffer(settings.SliceCount);
-            settings.InitializeRuntime();
             state.InitializeRuntime();
             Require(settings.GetZoneType(1) == ZoneType.Standard, "Zone 1 is standard");
             Require(settings.GetZoneType(5) == ZoneType.Safe, "Zone 5 is safe");
@@ -187,6 +193,8 @@ namespace Vertigo.Wheel.EditorTools
             RequireObjectReference(popup, "_titleText", "WheelOutcomePopupView has serialized title");
             RequireObjectReference(popup, "_resultText", "WheelOutcomePopupView has serialized result");
             RequireObjectReference(popup, "_summaryText", "WheelOutcomePopupView has serialized summary");
+            RequireObjectReference(popup, "_rewardChromeGroup", "WheelOutcomePopupView has serialized reward chrome group");
+            RequireObjectArray(popup, "_flightIconPool", 1, "WheelOutcomePopupView uses one pooled reward flight icon");
         }
 
         private static void RequireRewardOpeningReferences()
@@ -246,28 +254,37 @@ namespace Vertigo.Wheel.EditorTools
             }
         }
 
-        private static void RequireWheelRewardsUseSlotSafeSprites(WheelGameSettings settings)
+        private static void RequireWheelRewardsUseConfiguredIcons(WheelGameSettings settings)
         {
-            RequireRewardSprites(settings.StandardRewards, ZoneType.Standard);
-            RequireRewardSprites(settings.SafeRewards, ZoneType.Safe);
-            RequireRewardSprites(settings.SuperRewards, ZoneType.Super);
-            RequireSpriteIsSlotSafe(settings.BombReward.Icon, ZoneType.Standard);
+            RequireRewardIcons(settings.StandardRewards, ZoneType.Standard);
+            RequireRewardIcons(settings.SafeRewards, ZoneType.Safe);
+            RequireRewardIcons(settings.SuperRewards, ZoneType.Super);
+            Require(settings.BombReward.Icon != null, "Bomb reward icon exists");
+            RequireWheelSlicesUseConfiguredIcons(settings, 1);
+            RequireWheelSlicesUseConfiguredIcons(settings, 5);
+            RequireWheelSlicesUseConfiguredIcons(settings, 30);
         }
 
-        private static void RequireRewardSprites(System.Collections.Generic.List<RewardDefinition> rewards, ZoneType zoneType)
+        private static void RequireRewardIcons(System.Collections.Generic.List<RewardDefinition> rewards, ZoneType zoneType)
         {
             for (int i = 0; i < rewards.Count; i++)
             {
-                RequireSpriteIsSlotSafe(rewards[i].Icon, zoneType);
+                Require(rewards[i].Icon != null, zoneType + " reward icon exists");
             }
         }
 
-        private static void RequireSpriteIsSlotSafe(Sprite sprite, ZoneType zoneType)
+        private static void RequireWheelSlicesUseConfiguredIcons(WheelGameSettings settings, int zone)
         {
-            Require(sprite != null, zoneType + " reward sprite exists");
-            string spriteName = sprite.name;
-            Require(!spriteName.StartsWith("UI_Icons_", StringComparison.Ordinal), spriteName + " is a square points icon and cannot be used in wheel slots");
-            Require(!spriteName.Contains("_Points"), spriteName + " is a points icon and cannot be used in wheel slots");
+            WheelSliceDefinition[] slices = CreateSliceBuffer(settings.SliceCount);
+            int sliceCount = settings.FillSlicesForZone(zone, slices);
+            for (int i = 0; i < sliceCount; i++)
+            {
+                WheelSliceDefinition slice = slices[i];
+                Sprite expectedIcon = slice.IsBomb ? settings.BombReward.WheelIcon : slice.Reward.WheelIcon;
+                Require(slice.DisplayIcon == expectedIcon, "Zone " + zone + " slice " + i + " uses the configured wheel reward icon");
+                Require(new WheelSpinResult(i, slice).Icon == slice.Reward.WheelIcon, "Zone " + zone + " slice " + i + " result icon matches reward wheel icon");
+                Require(slice.DisplayIcon == slice.Reward.WheelIcon, "Zone " + zone + " slice " + i + " display icon matches reward wheel icon");
+            }
         }
 
         private static void RequireZoneAndLootPresentation(WheelGameSettings settings)
@@ -289,6 +306,179 @@ namespace Vertigo.Wheel.EditorTools
             WheelRewardPanelView lootPanel = UnityEngine.Object.FindObjectOfType<WheelRewardPanelView>();
             RequireObjectArray(lootPanel, "_cardViews", layout.MaxRewardCards, "WheelRewardPanelView has serialized loot card pool");
         }
+
+        private static void RequireUxFlowAssetCoverage(WheelGameSettings settings)
+        {
+            var usedSpriteNames = new HashSet<string>();
+            CollectSettingsSpriteNames(settings, usedSpriteNames);
+
+            Image[] images = UnityEngine.Object.FindObjectsOfType<Image>(true);
+            for (int i = 0; i < images.Length; i++)
+            {
+                if (images[i].sprite != null)
+                {
+                    usedSpriteNames.Add(images[i].sprite.name);
+                    string imageSpritePath = AssetDatabase.GetAssetPath(images[i].sprite);
+                    if (!string.IsNullOrEmpty(imageSpritePath))
+                    {
+                        usedSpriteNames.Add(Path.GetFileNameWithoutExtension(imageSpritePath));
+                    }
+                }
+            }
+
+            MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>(true);
+            for (int i = 0; i < behaviours.Length; i++)
+            {
+                CollectSerializedSpriteNames(behaviours[i], usedSpriteNames);
+            }
+
+            for (int i = 0; i < RequiredUxFlowSprites.Length; i++)
+            {
+                string spriteName = Path.GetFileNameWithoutExtension(RequiredUxFlowSprites[i]);
+                Require(usedSpriteNames.Contains(spriteName), RequiredUxFlowSprites[i] + " is assigned outside the atlas");
+            }
+        }
+
+        private static void CollectSerializedSpriteNames(UnityEngine.Object target, HashSet<string> usedSpriteNames)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            var serializedObject = new SerializedObject(target);
+            SerializedProperty iterator = serializedObject.GetIterator();
+            bool entered = iterator.NextVisible(true);
+            while (entered)
+            {
+                if (iterator.propertyType == SerializedPropertyType.ObjectReference && iterator.objectReferenceValue is Sprite sprite)
+                {
+                    AddSprite(usedSpriteNames, sprite);
+                }
+
+                entered = iterator.NextVisible(false);
+            }
+        }
+
+        private static void CollectSettingsSpriteNames(WheelGameSettings settings, HashSet<string> usedSpriteNames)
+        {
+            AddSprite(usedSpriteNames, settings.BombReward.Icon);
+            CollectRewardSpriteNames(settings.StandardRewards, usedSpriteNames);
+            CollectRewardSpriteNames(settings.SafeRewards, usedSpriteNames);
+            CollectRewardSpriteNames(settings.SuperRewards, usedSpriteNames);
+
+            WheelLayoutSettings layout = settings.Layout;
+            AddSprite(usedSpriteNames, layout.RewardPanelFrameSprite);
+            AddSprite(usedSpriteNames, layout.RewardCardFrameSprite);
+            AddSprite(usedSpriteNames, layout.ZoneStandardPanelSprite);
+            AddSprite(usedSpriteNames, layout.ZoneUpcomingPanelSprite);
+            AddSprite(usedSpriteNames, layout.ZoneSmallFrameSprite);
+            AddSprite(usedSpriteNames, layout.StarFlashSprite);
+            AddSprite(usedSpriteNames, layout.StarGlowSprite);
+            AddSprite(usedSpriteNames, layout.ShineSprite);
+
+            WheelUiCopyCatalog uiCopy = settings.UiCopy;
+            AddZoneSprites(uiCopy.GetZoneCopy(ZoneType.Standard), usedSpriteNames);
+            AddZoneSprites(uiCopy.GetZoneCopy(ZoneType.Safe), usedSpriteNames);
+            AddZoneSprites(uiCopy.GetZoneCopy(ZoneType.Super), usedSpriteNames);
+
+            WheelSkinCatalog skinCatalog = settings.SkinCatalog;
+            AddSprite(usedSpriteNames, skinCatalog.GetWheelBase(WheelSkinTier.Bronze));
+            AddSprite(usedSpriteNames, skinCatalog.GetIndicator(WheelSkinTier.Bronze));
+            AddSprite(usedSpriteNames, skinCatalog.GetWheelBase(WheelSkinTier.Silver));
+            AddSprite(usedSpriteNames, skinCatalog.GetIndicator(WheelSkinTier.Silver));
+            AddSprite(usedSpriteNames, skinCatalog.GetWheelBase(WheelSkinTier.Golden));
+            AddSprite(usedSpriteNames, skinCatalog.GetIndicator(WheelSkinTier.Golden));
+        }
+
+        private static void CollectRewardSpriteNames(List<RewardDefinition> rewards, HashSet<string> usedSpriteNames)
+        {
+            for (int i = 0; i < rewards.Count; i++)
+            {
+                AddSprite(usedSpriteNames, rewards[i].Icon);
+            }
+        }
+
+        private static void AddZoneSprites(WheelZoneUiCopy zoneCopy, HashSet<string> usedSpriteNames)
+        {
+            AddSprite(usedSpriteNames, zoneCopy.PanelSprite);
+            AddSprite(usedSpriteNames, zoneCopy.MapFrameSprite);
+        }
+
+        private static void AddSprite(HashSet<string> usedSpriteNames, Sprite sprite)
+        {
+            if (sprite != null)
+            {
+                usedSpriteNames.Add(sprite.name);
+                string assetPath = AssetDatabase.GetAssetPath(sprite);
+                if (!string.IsNullOrEmpty(assetPath))
+                {
+                    usedSpriteNames.Add(Path.GetFileNameWithoutExtension(assetPath));
+                }
+            }
+        }
+
+        private static readonly string[] RequiredUxFlowSprites =
+        {
+            "ui_spin_bronze_base.png",
+            "ui_spin_bronze_indicator.png",
+            "ui_spin_silver_base.png",
+            "ui_spin_silver_indicator.png",
+            "ui_spin_golden_base.png",
+            "ui_spin_golden_indicator.png",
+            "ui_spin_generic_button.png",
+            "UI_button_orange_standard.png",
+            "UI_button_grey_standard.png",
+            "ui_card_zone_map_frame.png",
+            "ui_card_panel_zone_bg.png",
+            "ui_card_panel_zone_coming.png",
+            "ui_card_panel_zone_current.png",
+            "ui_card_panel_zone_current_white.png",
+            "ui_card_panel_zone_super.png",
+            "ui_card_panel_zone_white.png",
+            "ui_card_frame_12px_neutral.png",
+            "ui_card_frame_4px_zone.png",
+            "ui_card_frame_gardient.png",
+            "ui_card_icon_death.png",
+            "star_flash_alpha.png",
+            "star_glow_alpha.png",
+            "ui_vfx_offer_shine.tga",
+            "UI_icon_cash.png",
+            "UI_icon_gold.png",
+            "UI_icon_chest_small_noligt.png",
+            "UI_icon_chest_standart_nolight.png",
+            "UI_icon_chest_Bronze_nolight.png",
+            "UI_icon_chest_silver_nolight.png",
+            "UI_icon_chest_gold_nolight.png",
+            "UI_icon_chest_big_nolight.png",
+            "UI_icon_chest_super_nolight.png",
+            "UI_Icons_Pistol_Points.png",
+            "UI_Icons_Pistol_Points_.png",
+            "UI_Icons_Shotgun_Points.png",
+            "UI_Icons_Rifle_Points.png",
+            "UI_Icons_SMG_Points.png",
+            "UI_Icons_Submachine_Points.png",
+            "UI_Icons_Sniper_Points.png",
+            "UI_Icons_Knife_Points.png",
+            "UI_Icons_Armor_Points.png",
+            "UI_Icons_Vest_Points.png",
+            "UI_Icon_Renders_tier1_shotgun.png",
+            "UI_Icon_Renders_tier2_rifle.png",
+            "UI_Icon_Renders_tier2_mle.png",
+            "UI_Icon_Renders_tier3_shotgun.png",
+            "UI_Icon_Renders_tier3_smg.png",
+            "UI_Icon_Renders_tier3_sniper.png",
+            "ui_icon_mle_bayonet_easter_time.png",
+            "ui_icon_mle_bayonet_summer_vice.png",
+            "ui_icon_aviator_glasses_easter.png",
+            "ui_icon_baseball_cap_easter.png",
+            "ui_icon_helmet_pumpkin.png",
+            "ui_icon_render_cons_grenade_m26.png",
+            "ui_icon_render_cons_grenade_m67.png",
+            "ui_icon_render_t_cons_molotov.png",
+            "ui_icon_render_cons_healthshot_2_neurostim.png",
+            "ui_icon_render_cons_healthshot_2_regenerator.png"
+        };
 
         private static void RequireHudWheelVerticalSeparation(WheelGameSettings settings)
         {
@@ -376,12 +566,26 @@ namespace Vertigo.Wheel.EditorTools
             RequireObjectReference(hudHost, "_zoneTypeText", "WheelHudUiHost references zone type text");
             RequireObjectReference(hudHost, "_lootPanel", "WheelHudUiHost references loot panel");
             RequireObjectReference(hudHost, "_outcomePopup", "WheelHudUiHost references outcome popup");
+            RequireObjectReference(hudHost, "_exitConfirmation", "WheelHudUiHost references exit confirmation");
             RequireObjectReference(hudHost, "_rewardOpening", "WheelHudUiHost references reward opening");
             RequireObjectReference(hudHost, "_statusText", "WheelHudUiHost references status text");
             RequireObjectReference(hudHost, "_leaveButton", "WheelHudUiHost references leave button");
             RequireObjectReference(hudHost, "_spinButton", "WheelHudUiHost references spin button");
             RequireObjectReference(hudHost, "_restartButton", "WheelHudUiHost references restart button");
             RequireObjectReference(hudHost, "_rewardOpeningRestartButton", "WheelHudUiHost references reward opening restart button");
+        }
+
+        private static void RequireExitConfirmationReferences()
+        {
+            WheelExitConfirmationView confirmation = UnityEngine.Object.FindObjectOfType<WheelExitConfirmationView>(true);
+            Require(confirmation != null, "WheelExitConfirmationView exists including inactive overlay");
+            RequireObjectReference(confirmation, "_root", "WheelExitConfirmationView has serialized root");
+            RequireObjectReference(confirmation, "_canvasGroup", "WheelExitConfirmationView has serialized canvas group");
+            RequireObjectReference(confirmation, "_contentRoot", "WheelExitConfirmationView has serialized content root");
+            RequireObjectReference(confirmation, "_titleText", "WheelExitConfirmationView has serialized title");
+            RequireObjectReference(confirmation, "_bodyText", "WheelExitConfirmationView has serialized body");
+            RequireObjectReference(confirmation, "_collectButton", "WheelExitConfirmationView has collect button");
+            RequireObjectReference(confirmation, "_comeBackButton", "WheelExitConfirmationView has come back button");
         }
 
         private static void RequireRuntimeUiAvoidAllocationTextPatterns()
