@@ -58,6 +58,8 @@ namespace Vertigo.Wheel.Views
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
+            EnsureCardCapacity(snapshot.RewardCardCount);
+            EnsureBuffers();
             _panelFrameImage.sprite = snapshot.RewardPanelFrameSprite;
             _panelFrameImage.color = Color.white;
             _panelFrameImage.raycastTarget = true;
@@ -94,6 +96,7 @@ namespace Vertigo.Wheel.Views
                 return transform.position;
             }
 
+            FocusCardIndex(index, false);
             RectTransform rect = _cardViews[index].GetComponent<RectTransform>();
             Vector3 target = rect.TransformPoint(rect.rect.center);
             float spread = Mathf.Min(26f, 8f + burstCount * 2f);
@@ -157,6 +160,7 @@ namespace Vertigo.Wheel.Views
             _hasPendingCards = false;
             RenderStoredCards(_renderedCards, _renderedCount);
             PlayPanelPulse();
+            FocusCardIndex(_pendingChangedIndex >= 0 ? _pendingChangedIndex : _renderedCount - 1, true);
             PulseChangedCards(oldCount, _pendingChangedIndex);
             _pendingChangedIndex = -1;
         }
@@ -179,10 +183,7 @@ namespace Vertigo.Wheel.Views
                 CardSlotActions[visible](_cardViews[i], cards, _cardFrameSprite, i);
             }
 
-            if (_scrollRect != null)
-            {
-                _scrollRect.verticalNormalizedPosition = 1f;
-            }
+            FocusCardIndex(count - 1, false);
         }
 
         private void PulseChangedCards(int oldCount, int changedIndex)
@@ -249,9 +250,30 @@ namespace Vertigo.Wheel.Views
         {
             if (_renderedCards.Length != _cardViews.Length)
             {
-                _renderedCards = new RewardInventoryEntry[_cardViews.Length];
-                _pendingCards = new RewardInventoryEntry[_cardViews.Length];
+                Array.Resize(ref _renderedCards, _cardViews.Length);
+                Array.Resize(ref _pendingCards, _cardViews.Length);
             }
+        }
+
+        private void EnsureCardCapacity(int requiredCount)
+        {
+            if (requiredCount <= _cardViews.Length || _cardViews.Length == 0 || _cardPoolRoot == null)
+            {
+                return;
+            }
+
+            var expandedViews = new WheelRewardCardView[requiredCount];
+            Array.Copy(_cardViews, expandedViews, _cardViews.Length);
+            WheelRewardCardView template = _cardViews[0];
+            for (int i = _cardViews.Length; i < requiredCount; i++)
+            {
+                WheelRewardCardView view = Instantiate(template, _cardPoolRoot);
+                view.name = "ui_loot_card_runtime_" + i;
+                view.Hide();
+                expandedViews[i] = view;
+            }
+
+            _cardViews = expandedViews;
         }
 
         private int CopyCards(WheelHudSnapshot snapshot, RewardInventoryEntry[] target)
@@ -281,6 +303,8 @@ namespace Vertigo.Wheel.Views
             {
                 return;
             }
+
+            EnsureViewportMask();
 
             if (_contentRect == null)
             {
@@ -313,6 +337,14 @@ namespace Vertigo.Wheel.Views
             _scrollRect.scrollSensitivity = 28f;
         }
 
+        private void EnsureViewportMask()
+        {
+            if (_viewportRect.GetComponent<RectMask2D>() == null)
+            {
+                _viewportRect.gameObject.AddComponent<RectMask2D>();
+            }
+        }
+
         private RectTransform FindExistingScrollContent()
         {
             Transform content = _viewportRect.Find("ui_loot_cards_scroll_content");
@@ -342,6 +374,47 @@ namespace Vertigo.Wheel.Views
 
             float viewportHeight = _viewportRect == null ? 0f : _viewportRect.rect.height;
             _contentRect.sizeDelta = new Vector2(0f, Mathf.Max(viewportHeight, contentHeight));
+        }
+
+        private void FocusCardIndex(int index, bool animated)
+        {
+            if (_scrollRect == null || _contentRect == null || _viewportRect == null || _cardViews.Length == 0)
+            {
+                return;
+            }
+
+            int clampedIndex = Mathf.Clamp(index, 0, _cardViews.Length - 1);
+            RectTransform cardRect = _cardViews[clampedIndex].GetComponent<RectTransform>();
+            float viewportHeight = _viewportRect.rect.height;
+            float contentHeight = _contentRect.rect.height;
+            float maxScrollY = Mathf.Max(0f, contentHeight - viewportHeight);
+            float cardBottomFromContentTop = -cardRect.anchoredPosition.y + (cardRect.rect.height * (1f - cardRect.pivot.y));
+            float targetY = Mathf.Clamp(cardBottomFromContentTop - viewportHeight, 0f, maxScrollY);
+            ApplyScrollY(targetY, animated);
+        }
+
+        private void ApplyScrollY(float targetY, bool animated)
+        {
+            _contentRect.DOKill();
+            _scrollRect.StopMovement();
+            if (!animated)
+            {
+                SetContentScrollY(targetY);
+                return;
+            }
+
+            _contentRect.DOAnchorPosY(targetY, 0.18f)
+                .SetEase(Ease.OutCubic)
+                .SetTarget(_contentRect)
+                .SetUpdate(true);
+        }
+
+        private void SetContentScrollY(float targetY)
+        {
+            Vector2 position = _contentRect.anchoredPosition;
+            position.y = targetY;
+            _contentRect.anchoredPosition = position;
+            _scrollRect.verticalNormalizedPosition = targetY <= 0f ? 1f : 0f;
         }
 
         private void RequireCardViews()

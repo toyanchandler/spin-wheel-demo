@@ -107,6 +107,7 @@ namespace Vertigo.Wheel.Data
             _rewardPanelPosition = new Vector2(-720f, -10f);
             _rewardPanelSize = new Vector2(320f, 760f);
             _rewardCardSize = new Vector2(248f, 72f);
+            _maxRewardCards = 8;
             _statusPosition = new Vector2(0f, 100f);
             _buttonRowPosition = new Vector2(0f, 32f);
             _buttonSize = new Vector2(252f, 76f);

@@ -16,6 +16,7 @@ namespace Vertigo.Wheel.Views
         {
             _frameImage.sprite = cardFrameSprite;
             _frameImage.color = Color.white;
+            _frameImage.maskable = true;
         }
 
         public void Apply(RewardInventoryEntry entry)
@@ -23,6 +24,8 @@ namespace Vertigo.Wheel.Views
             _iconImage.sprite = entry.Icon;
             _iconImage.color = Color.white;
             _iconImage.preserveAspect = true;
+            _iconImage.maskable = true;
+            _amountText.maskable = true;
             AmountTable.Apply(_amountText, entry.Amount, entry.AccentColor);
             gameObject.SetActive(true);
             transform.DOKill();

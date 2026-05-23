@@ -629,6 +629,7 @@ namespace Vertigo.Wheel.EditorTools
                 Image frame = CreateImage(cardObject.transform, "ui_loot_card_" + i + "_frame", layout.RewardCardFrameSprite, FullStretch(), material);
                 frame.type = Image.Type.Sliced;
                 frame.preserveAspect = false;
+                frame.maskable = true;
 
                 Image icon = CreateImage(
                     cardObject.transform,
@@ -636,6 +637,7 @@ namespace Vertigo.Wheel.EditorTools
                     null,
                     Anchored(new Vector2(0.5f, 0.5f), ResolveRewardCardIconPosition(vertical), ResolveRewardCardIconSize(cardWidth, cardHeight, vertical)),
                     material);
+                icon.maskable = true;
 
                 TextMeshProUGUI amount = CreateText(
                     cardObject.transform,
@@ -646,6 +648,7 @@ namespace Vertigo.Wheel.EditorTools
                     TextAlignmentOptions.Center,
                     Color.white);
                 amount.fontStyle = FontStyles.Bold;
+                amount.maskable = true;
                 amount.enabled = false;
 
                 WheelRewardCardView cardView = cardObject.AddComponent<WheelRewardCardView>();

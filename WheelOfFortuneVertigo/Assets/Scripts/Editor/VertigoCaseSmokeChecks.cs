@@ -101,7 +101,7 @@ namespace Vertigo.Wheel.EditorTools
             RequireHostReferences();
             RequireOutcomePopupReferences();
             RequireExitConfirmationReferences();
-            RequireRewardOpeningReferences();
+            RequireRewardOpeningReferences(settings);
             RequireCompositionRootHasNoSerializedFields(compositionRoot);
             WheelHierarchyWiringValidator.ValidateScene();
             RequireObjectReference(view, "_slicePoolRoot", "WheelView references slice pool root");
@@ -157,7 +157,8 @@ namespace Vertigo.Wheel.EditorTools
         {
             var serializedObject = new SerializedObject(target);
             SerializedProperty property = serializedObject.FindProperty(propertyName);
-            Require(property != null && property.isArray && property.arraySize == expectedSize, message + " size");
+            int actualSize = property != null && property.isArray ? property.arraySize : -1;
+            Require(property != null && property.isArray && actualSize == expectedSize, message + " size expected " + expectedSize + " actual " + actualSize);
 
             for (int i = 0; i < expectedSize; i++)
             {
@@ -197,7 +198,7 @@ namespace Vertigo.Wheel.EditorTools
             RequireObjectArray(popup, "_flightIconPool", 1, "WheelOutcomePopupView uses one pooled reward flight icon");
         }
 
-        private static void RequireRewardOpeningReferences()
+        private static void RequireRewardOpeningReferences(WheelGameSettings settings)
         {
             WheelRewardOpeningView opening = UnityEngine.Object.FindObjectOfType<WheelRewardOpeningView>(true);
             Require(opening != null, "WheelRewardOpeningView exists including inactive overlay");
@@ -205,7 +206,7 @@ namespace Vertigo.Wheel.EditorTools
             RequireObjectReference(opening, "_titleText", "WheelRewardOpeningView has serialized title");
             RequireObjectReference(opening, "_cardFrameSource", "WheelRewardOpeningView has serialized card frame source");
             RequireObjectReference(opening, "_cardPoolRoot", "WheelRewardOpeningView has serialized card pool root");
-            RequireObjectArray(opening, "_rewardCards", 8, "WheelRewardOpeningView has serialized card pool");
+            RequireObjectArray(opening, "_rewardCards", settings.Layout.MaxRewardCards, "WheelRewardOpeningView has serialized card pool");
         }
 
         private static void RequireRaycastTargetWhitelist()
