@@ -204,8 +204,15 @@ namespace Vertigo.Wheel.EditorTools
             Require(opening != null, "WheelRewardOpeningView exists including inactive overlay");
             RequireObjectReference(opening, "_root", "WheelRewardOpeningView has serialized root");
             RequireObjectReference(opening, "_titleText", "WheelRewardOpeningView has serialized title");
+            RequireObjectReference(opening, "_canvasGroup", "WheelRewardOpeningView has serialized canvas group");
+            RequireObjectReference(opening, "_contentRoot", "WheelRewardOpeningView has serialized content root");
             RequireObjectReference(opening, "_cardFrameSource", "WheelRewardOpeningView has serialized card frame source");
             RequireObjectReference(opening, "_cardPoolRoot", "WheelRewardOpeningView has serialized card pool root");
+            RequireObjectReference(opening, "_viewportRect", "WheelRewardOpeningView has serialized scroll viewport");
+            RequireObjectReference(opening, "_contentRect", "WheelRewardOpeningView has serialized scroll content");
+            RequireObjectReference(opening, "_scrollRect", "WheelRewardOpeningView has serialized horizontal scroll rect");
+            RequireObjectReference(opening, "_previousButton", "WheelRewardOpeningView has serialized previous scroll button");
+            RequireObjectReference(opening, "_nextButton", "WheelRewardOpeningView has serialized next scroll button");
             RequireObjectArray(opening, "_rewardCards", settings.Layout.MaxRewardCards, "WheelRewardOpeningView has serialized card pool");
         }
 
@@ -221,7 +228,7 @@ namespace Vertigo.Wheel.EditorTools
                 }
 
                 string objectName = graphics[i].gameObject.name;
-                bool allowed = objectName == "ui_button_leave" || objectName == "ui_button_spin" || objectName == "ui_button_restart" || objectName == "ui_button_reward_opening_restart";
+                bool allowed = objectName == "ui_button_leave" || objectName == "ui_button_spin" || objectName == "ui_button_restart" || objectName == "ui_button_reward_opening_restart" || objectName == "ui_button_reward_opening_scroll_previous" || objectName == "ui_button_reward_opening_scroll_next";
                 Require(allowed, objectName + " is not allowed to receive raycasts");
                 enabledCount++;
             }

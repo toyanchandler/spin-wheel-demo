@@ -65,7 +65,7 @@ Shader "Vertigo/UI/UIParticleDisplay"
             {
                 fixed4 tex = tex2D(_MainTex, i.texcoord);
                 float luminanceAlpha = saturate((max(tex.r, max(tex.g, tex.b)) - _BlackCutoff) / _AlphaSoftness);
-                tex.a = max(tex.a, luminanceAlpha);
+                tex.a = max(tex.a, luminanceAlpha) * luminanceAlpha;
                 tex *= i.color;
                 return tex;
             }

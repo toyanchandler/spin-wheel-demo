@@ -9,8 +9,8 @@ This folder is the shared UI particle setup for the wheel case.
   - Depth Buffer: `16-bit`
   - Anti Aliasing: `1x`
   - Format: `ARGB32`
-- `UIParticle_Additive.mat`
-  - Particle material used by the world Particle System.
+- `UIParticle_AlphaBlend.mat`
+  - Alpha-blended particle material used by the world Particle System.
 - `UIParticle_Display.shader`
   - UI display shader that cuts the black RenderTexture background into alpha.
 - `UIParticle_Display.mat`

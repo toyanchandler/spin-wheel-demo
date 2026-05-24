@@ -19,7 +19,7 @@ namespace Vertigo.Wheel.EditorTools
         private const string UiParticleLayerName = "UIParticle";
         private const string UiParticleFolder = "Assets/UIPrefab";
         private const string UiParticleRenderTexturePath = UiParticleFolder + "/UIParticleRenderTexture.renderTexture";
-        private const string UiParticleMaterialPath = UiParticleFolder + "/UIParticle_Additive.mat";
+        private const string UiParticleMaterialPath = UiParticleFolder + "/UIParticle_AlphaBlend.mat";
         private const string UiParticleDisplayMaterialPath = UiParticleFolder + "/UIParticle_Display.mat";
         private const string UiParticleDisplayShaderPath = UiParticleFolder + "/UIParticle_Display.shader";
         private const string UiParticlePrefabPath = UiParticleFolder + "/UIParticlePrefab.prefab";
@@ -113,10 +113,11 @@ namespace Vertigo.Wheel.EditorTools
             HeaderViews headerViews = BuildHeader(hudCanvas, settings, material);
             WheelOutcomePopupView outcomePopupView = BuildOutcomePopup(hudCanvas, settings, material, uiParticleAssets);
             WheelExitConfirmationView exitConfirmationView = BuildExitConfirmation(hudCanvas, settings, material);
-            RewardOpeningViews rewardOpeningViews = BuildRewardOpening(hudCanvas, settings, material);
+            RewardOpeningViews rewardOpeningViews = BuildRewardOpening(hudCanvas, settings, material, uiParticleAssets);
             WheelStatusTextView statusTextView = BuildFooter(hudCanvas, settings);
             ButtonActions buttonActions = BuildButtons(hudCanvas, headerViews.lootRoot, settings, material);
             outcomePopupView.transform.SetAsLastSibling();
+            exitConfirmationView.transform.SetAsLastSibling();
             BuildDebugOverlay(debugCanvas, settings);
 
             WireStaticHost(staticCanvas, backgroundView);
@@ -625,6 +626,16 @@ namespace Vertigo.Wheel.EditorTools
                 cardObject.transform.SetParent(parent, false);
                 var cardRect = cardObject.AddComponent<RectTransform>();
                 Apply(cardRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(x, y), layout.RewardCardSize));
+                CanvasGroup cardGroup = cardObject.AddComponent<CanvasGroup>();
+
+                Image glow = CreateImage(
+                    cardObject.transform,
+                    "ui_loot_card_" + i + "_glow",
+                    layout.StarGlowSprite,
+                    Anchored(new Vector2(0.5f, 0.5f), ResolveRewardCardIconPosition(vertical), ResolveRewardCardGlowSize(cardWidth, cardHeight, vertical)),
+                    material);
+                glow.color = new Color(1f, 1f, 1f, 0.10f);
+                glow.maskable = true;
 
                 Image frame = CreateImage(cardObject.transform, "ui_loot_card_" + i + "_frame", layout.RewardCardFrameSprite, FullStretch(), material);
                 frame.type = Image.Type.Sliced;
@@ -638,6 +649,15 @@ namespace Vertigo.Wheel.EditorTools
                     Anchored(new Vector2(0.5f, 0.5f), ResolveRewardCardIconPosition(vertical), ResolveRewardCardIconSize(cardWidth, cardHeight, vertical)),
                     material);
                 icon.maskable = true;
+
+                Image shine = CreateImage(
+                    cardObject.transform,
+                    "ui_loot_card_" + i + "_shine",
+                    layout.ShineSprite,
+                    Anchored(new Vector2(0.5f, 0.5f), ResolveRewardCardShinePosition(vertical), ResolveRewardCardShineSize(cardWidth, cardHeight, vertical)),
+                    material);
+                shine.color = new Color(1f, 1f, 1f, 0f);
+                shine.maskable = true;
 
                 TextMeshProUGUI amount = CreateText(
                     cardObject.transform,
@@ -655,6 +675,9 @@ namespace Vertigo.Wheel.EditorTools
                 WheelEditorWiring.SetReference(cardView, "_frameImage", frame);
                 WheelEditorWiring.SetReference(cardView, "_iconImage", icon);
                 WheelEditorWiring.SetReference(cardView, "_amountText", amount);
+                WheelEditorWiring.SetReference(cardView, "_canvasGroup", cardGroup);
+                WheelEditorWiring.SetReference(cardView, "_glowImage", glow);
+                WheelEditorWiring.SetReference(cardView, "_shineImage", shine);
                 cardObject.SetActive(false);
                 cardViews[i] = cardView;
             }
@@ -666,6 +689,32 @@ namespace Vertigo.Wheel.EditorTools
         {
             Vector2[] positions = { new Vector2(0f, 8f), new Vector2(-58f, 0f) };
             return positions[System.Convert.ToInt32(vertical)];
+        }
+
+        private static Vector2 ResolveRewardCardGlowSize(float cardWidth, float cardHeight, bool vertical)
+        {
+            Vector2[] sizes =
+            {
+                new Vector2(cardWidth * 0.76f, cardHeight * 0.86f),
+                new Vector2(86f, 82f)
+            };
+            return sizes[System.Convert.ToInt32(vertical)];
+        }
+
+        private static Vector2 ResolveRewardCardShinePosition(bool vertical)
+        {
+            Vector2[] positions = { new Vector2(0f, 4f), new Vector2(-2f, 0f) };
+            return positions[System.Convert.ToInt32(vertical)];
+        }
+
+        private static Vector2 ResolveRewardCardShineSize(float cardWidth, float cardHeight, bool vertical)
+        {
+            Vector2[] sizes =
+            {
+                new Vector2(cardWidth * 0.70f, 18f),
+                new Vector2(92f, 18f)
+            };
+            return sizes[System.Convert.ToInt32(vertical)];
         }
 
         private static Vector2 ResolveRewardCardIconSize(float cardWidth, float cardHeight, bool vertical)
@@ -708,14 +757,6 @@ namespace Vertigo.Wheel.EditorTools
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
 
-            RawImage rewardBurstDisplay = CreateRawImage(
-                overlay.transform,
-                "ui_reward_burst_render_texture",
-                uiParticleAssets.renderTexture,
-                uiParticleAssets.displayMaterial,
-                Anchored(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1824f, 1824f)));
-            rewardBurstDisplay.enabled = false;
-
             var contentObject = new GameObject("ui_outcome_content_root");
             contentObject.transform.SetParent(overlay.transform, false);
             var contentRect = contentObject.AddComponent<RectTransform>();
@@ -723,12 +764,30 @@ namespace Vertigo.Wheel.EditorTools
             UiParticleRig rewardBurstRig = CreateUiParticleSceneRig(controllerObject.transform, settings, uiParticleAssets);
 
             CanvasGroup chromeGroup = BuildOutcomeChrome(contentObject.transform, material);
-            TextMeshProUGUI title = CreateText(contentObject.transform, "ui_outcome_title_value", "REWARD WON", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 182f), new Vector2(560f, 50f)), 38, TextAlignmentOptions.Center, settings.Theme.PrimaryTextColor);
-            Image icon = CreateImage(contentObject.transform, "ui_outcome_icon_value", null, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(160f, 160f)), material);
+            Image flash = CreateImage(contentObject.transform, "ui_outcome_flash", settings.Layout.StarFlashSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 34f), new Vector2(420f, 420f)), material);
+            Image icon = CreateImage(contentObject.transform, "ui_outcome_icon_value", null, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 34f), new Vector2(330f, 240f)), material);
+            Image shine = CreateImage(contentObject.transform, "ui_outcome_shine", settings.Layout.ShineSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 34f), new Vector2(330f, 52f)), material);
+            RawImage rewardBurstDisplay = CreateRawImage(
+                contentObject.transform,
+                "ui_reward_burst_render_texture",
+                uiParticleAssets.renderTexture,
+                uiParticleAssets.displayMaterial,
+                Anchored(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 900f)));
+            rewardBurstDisplay.enabled = false;
+            TextMeshProUGUI title = CreateText(contentObject.transform, "ui_outcome_title_value", "YOU GOT", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 158f), new Vector2(480f, 46f)), 34, TextAlignmentOptions.Center, settings.Theme.PrimaryTextColor);
             Image[] flightIconPool = CreateFlightIconPool(overlay.transform, material, 1);
-            TextMeshProUGUI result = CreateText(contentObject.transform, "ui_outcome_result_value", "Reward", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -160f), new Vector2(620f, 58f)), 31, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
-            TextMeshProUGUI summary = CreateText(contentObject.transform, "ui_outcome_summary_value", "Flying into your reward stash", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -206f), new Vector2(760f, 38f)), 21, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
+            TextMeshProUGUI result = CreateText(contentObject.transform, "ui_outcome_result_value", "Reward", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -116f), new Vector2(680f, 56f)), 34, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
+            TextMeshProUGUI summary = CreateText(contentObject.transform, "ui_outcome_summary_value", "Added to your stash", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -156f), new Vector2(720f, 34f)), 19, TextAlignmentOptions.Center, settings.Theme.SecondaryTextColor);
             title.fontStyle = FontStyles.Bold;
+            title.characterSpacing = 4f;
+            title.outlineWidth = 0.12f;
+            title.outlineColor = new Color32(7, 5, 2, 255);
+            result.fontStyle = FontStyles.Bold;
+            result.outlineWidth = 0.1f;
+            result.outlineColor = new Color32(5, 5, 5, 255);
+            summary.color = new Color(settings.Theme.SecondaryTextColor.r, settings.Theme.SecondaryTextColor.g, settings.Theme.SecondaryTextColor.b, 0.72f);
+            flash.color = new Color(1f, 0.8f, 0.28f, 0f);
+            shine.color = new Color(1f, 0.92f, 0.58f, 0f);
 
             WheelOutcomePopupView view = controllerObject.AddComponent<WheelOutcomePopupView>();
             WheelEditorWiring.SetReference(view, "_root", overlay.gameObject);
@@ -739,6 +798,8 @@ namespace Vertigo.Wheel.EditorTools
             WheelEditorWiring.SetReference(view, "_canvasGroup", canvasGroup);
             WheelEditorWiring.SetReference(view, "_contentRoot", contentRect);
             WheelEditorWiring.SetReference(view, "_rewardChromeGroup", chromeGroup);
+            WheelEditorWiring.SetReference(view, "_flashImage", flash);
+            WheelEditorWiring.SetReference(view, "_shineImage", shine);
             WheelEditorWiring.SetObjectArray(view, "_flightIconPool", flightIconPool);
             WheelEditorWiring.SetReference(view, "_rewardBurstCamera", rewardBurstRig.camera);
             WheelEditorWiring.SetReference(view, "_rewardBurstDisplay", rewardBurstDisplay);
@@ -765,12 +826,12 @@ namespace Vertigo.Wheel.EditorTools
                 popupSprite = FindSprite("ui_card_frame_12px_neutral");
             }
 
-            Image popupBackground = CreateImage(chromeObject.transform, "ui_outcome_popup_bg", popupSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), new Vector2(552f, 488f)), material);
+            Image popupBackground = CreateImage(chromeObject.transform, "ui_outcome_popup_bg", popupSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 14f), new Vector2(570f, 426f)), material);
             popupBackground.type = Image.Type.Sliced;
             popupBackground.color = new Color(0.92f, 0.66f, 0.28f, 0.88f);
             popupBackground.preserveAspect = false;
 
-            WheelCircleGraphic halo = CreateCircleGraphic(chromeObject.transform, "ui_outcome_halo", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(360f, 360f)), new Color(1f, 0.62f, 0.16f, 0.16f), 0f);
+            WheelCircleGraphic halo = CreateCircleGraphic(chromeObject.transform, "ui_outcome_halo", Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 34f), new Vector2(340f, 340f)), new Color(1f, 0.62f, 0.16f, 0.22f), 0f);
             halo.raycastTarget = false;
 
             return chromeGroup;
@@ -844,54 +905,57 @@ namespace Vertigo.Wheel.EditorTools
             var particle = particleObject.AddComponent<ParticleSystem>();
 
             ParticleSystem.MainModule main = particle.main;
-            main.duration = 1.1f;
+            main.duration = 2.45f;
             main.loop = false;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.72f, 1.24f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(230f, 420f);
-            main.startSize = new ParticleSystem.MinMaxCurve(44f, 82f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.65f, 3.65f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(260f, 420f);
+            main.startSize = new ParticleSystem.MinMaxCurve(34f, 58f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.283185f);
-            main.startColor = Color.white;
+            main.startColor = new Color(1f, 1f, 1f, 0.86f);
             main.gravityModifier = 0f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 64;
+            main.maxParticles = 72;
             main.playOnAwake = false;
 
             ParticleSystem.EmissionModule emission = particle.emission;
             emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 28) });
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 22) });
 
             ParticleSystem.ShapeModule shape = particle.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 8f;
+            shape.radius = 46f;
             shape.arc = 360f;
+
+            ParticleSystem.LimitVelocityOverLifetimeModule limitVelocity = particle.limitVelocityOverLifetime;
+            limitVelocity.enabled = true;
+            limitVelocity.limit = new ParticleSystem.MinMaxCurve(52f);
+            limitVelocity.dampen = 0.72f;
 
             ParticleSystem.ColorOverLifetimeModule color = particle.colorOverLifetime;
             color.enabled = true;
             Gradient gradient = new Gradient();
             gradient.SetKeys(
                 new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+                new[]
+                {
+                    new GradientAlphaKey(0.86f, 0f),
+                    new GradientAlphaKey(0.66f, 0.64f),
+                    new GradientAlphaKey(0f, 1f)
+                });
             color.color = gradient;
 
             ParticleSystem.SizeOverLifetimeModule size = particle.sizeOverLifetime;
             size.enabled = true;
             AnimationCurve sizeCurve = new AnimationCurve(
-                new Keyframe(0f, 0.7f),
-                new Keyframe(0.18f, 1f),
-                new Keyframe(1f, 0f));
+                new Keyframe(0f, 0.56f),
+                new Keyframe(0.24f, 1f),
+                new Keyframe(0.76f, 0.88f),
+                new Keyframe(1f, 0.08f));
             size.size = new ParticleSystem.MinMaxCurve(1f, sizeCurve);
 
             ParticleSystem.TextureSheetAnimationModule textureSheet = particle.textureSheetAnimation;
-            textureSheet.enabled = true;
-            textureSheet.mode = ParticleSystemAnimationMode.Sprites;
-            textureSheet.timeMode = ParticleSystemAnimationTimeMode.Lifetime;
-            textureSheet.fps = 1f;
-            Sprite seedSprite = settings.BombReward.Icon != null ? settings.BombReward.Icon : settings.Layout.StarFlashSprite;
-            if (seedSprite != null)
-            {
-                textureSheet.AddSprite(seedSprite);
-            }
+            textureSheet.enabled = false;
 
             var renderer = particle.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
@@ -936,28 +1000,43 @@ namespace Vertigo.Wheel.EditorTools
                 EditorUtility.SetDirty(renderTexture);
             }
 
+            Shader particleShader = ResolveUiParticleShader();
             Material particleMaterial = AssetDatabase.LoadAssetAtPath<Material>(UiParticleMaterialPath);
             if (particleMaterial == null)
             {
-                Shader shader = Shader.Find("Particles/Additive");
-                if (shader == null)
-                {
-                    shader = Shader.Find("Legacy Shaders/Particles/Additive");
-                }
-
-                if (shader == null)
-                {
-                    shader = Shader.Find("Sprites/Default");
-                }
-
-                particleMaterial = new Material(shader);
-                particleMaterial.name = "UIParticle_Additive";
+                particleMaterial = new Material(particleShader);
+                particleMaterial.name = "UIParticle_AlphaBlend";
                 if (settings.Layout.StarGlowSprite != null)
                 {
                     particleMaterial.mainTexture = settings.Layout.StarGlowSprite.texture;
                 }
+                else if (settings.Layout.StarFlashSprite != null)
+                {
+                    particleMaterial.mainTexture = settings.Layout.StarFlashSprite.texture;
+                }
 
                 AssetDatabase.CreateAsset(particleMaterial, UiParticleMaterialPath);
+                ConfigureUiParticleMaterial(particleMaterial);
+            }
+            else
+            {
+                if (particleShader != null && particleMaterial.shader != particleShader)
+                {
+                    particleMaterial.shader = particleShader;
+                }
+
+                particleMaterial.name = "UIParticle_AlphaBlend";
+                if (settings.Layout.StarGlowSprite != null)
+                {
+                    particleMaterial.mainTexture = settings.Layout.StarGlowSprite.texture;
+                }
+                else if (settings.Layout.StarFlashSprite != null)
+                {
+                    particleMaterial.mainTexture = settings.Layout.StarFlashSprite.texture;
+                }
+
+                ConfigureUiParticleMaterial(particleMaterial);
+                EditorUtility.SetDirty(particleMaterial);
             }
 
             Material displayMaterial = AssetDatabase.LoadAssetAtPath<Material>(UiParticleDisplayMaterialPath);
@@ -1012,6 +1091,39 @@ namespace Vertigo.Wheel.EditorTools
                 particleMaterial = particleMaterial,
                 displayMaterial = displayMaterial
             };
+        }
+
+        private static Shader ResolveUiParticleShader()
+        {
+            Shader shader = Shader.Find("Particles/Alpha Blended");
+            if (shader == null)
+            {
+                shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended");
+            }
+
+            if (shader == null)
+            {
+                shader = Shader.Find("Sprites/Default");
+            }
+
+            return shader;
+        }
+
+        private static void ConfigureUiParticleMaterial(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty("_TintColor"))
+            {
+                material.SetColor("_TintColor", new Color(1f, 0.84f, 0.34f, 0.9f));
+            }
+            else if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", new Color(1f, 0.84f, 0.34f, 0.9f));
+            }
         }
 
         private static void EnsureUiParticlePrefab(WheelGameSettings settings, UiParticleAssets uiParticleAssets)
@@ -1131,16 +1243,31 @@ namespace Vertigo.Wheel.EditorTools
             return view;
         }
 
-        private static RewardOpeningViews BuildRewardOpening(Transform parent, WheelGameSettings settings, Material material)
+        private static RewardOpeningViews BuildRewardOpening(Transform parent, WheelGameSettings settings, Material material, UiParticleAssets uiParticleAssets)
         {
             var overlayObject = new GameObject("ui_reward_opening_overlay");
             overlayObject.transform.SetParent(parent, false);
             var overlayRect = overlayObject.AddComponent<RectTransform>();
             Apply(overlayRect, FullStretch());
+            Canvas overlayCanvas = overlayObject.AddComponent<Canvas>();
+            overlayCanvas.overrideSorting = true;
+            overlayCanvas.sortingOrder = 40;
+            overlayObject.AddComponent<GraphicRaycaster>();
+            CanvasGroup overlayGroup = overlayObject.AddComponent<CanvasGroup>();
+            overlayGroup.alpha = 0f;
             Image overlayImage = overlayObject.AddComponent<Image>();
-            overlayImage.color = new Color(0.06f, 0.18f, 0.25f, 0.94f);
+            overlayImage.color = new Color(0.04f, 0.13f, 0.19f, 0.985f);
             overlayImage.raycastTarget = false;
             overlayImage.maskable = false;
+            UiParticleRig rewardBurstRig = CreateUiParticleSceneRig(overlayObject.transform, settings, uiParticleAssets);
+            RawImage rewardBurstDisplay = CreateRawImage(
+                overlayObject.transform,
+                "ui_reward_opening_particle_field",
+                uiParticleAssets.renderTexture,
+                uiParticleAssets.displayMaterial,
+                Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(1540f, 760f)));
+            rewardBurstDisplay.enabled = false;
+            rewardBurstDisplay.color = new Color(1f, 1f, 1f, 0f);
 
             TextMeshProUGUI title = CreateText(
                 overlayObject.transform,
@@ -1152,11 +1279,52 @@ namespace Vertigo.Wheel.EditorTools
                 settings.Theme.PrimaryTextColor);
             title.fontStyle = FontStyles.Bold;
 
-            var cardsRoot = new GameObject("ui_reward_opening_cards_root");
-            cardsRoot.transform.SetParent(overlayObject.transform, false);
+            var cardsViewport = new GameObject("ui_reward_opening_cards_viewport");
+            cardsViewport.transform.SetParent(overlayObject.transform, false);
+            var viewportRect = cardsViewport.AddComponent<RectTransform>();
+            Apply(viewportRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 6f), new Vector2(1780f, 650f)));
+            cardsViewport.AddComponent<RectMask2D>();
+
+            Image scrollHitArea = CreateImage(cardsViewport.transform, "ui_reward_opening_scroll_hit_area", null, FullStretch(), material);
+            scrollHitArea.color = new Color(1f, 1f, 1f, 0f);
+            scrollHitArea.raycastTarget = true;
+
+            var cardsRoot = new GameObject("ui_reward_opening_cards_content");
+            cardsRoot.transform.SetParent(cardsViewport.transform, false);
             var cardsRect = cardsRoot.AddComponent<RectTransform>();
-            Apply(cardsRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 12f), new Vector2(1780f, 550f)));
+            cardsRect.anchorMin = new Vector2(0f, 0.5f);
+            cardsRect.anchorMax = new Vector2(0f, 0.5f);
+            cardsRect.pivot = new Vector2(0f, 0.5f);
+            cardsRect.anchoredPosition = Vector2.zero;
+            cardsRect.sizeDelta = new Vector2(1780f, 0f);
             CreateOpeningRewardCards(cardsRoot.transform, settings, material);
+
+            ScrollRect scrollRect = overlayObject.AddComponent<ScrollRect>();
+            scrollRect.viewport = viewportRect;
+            scrollRect.content = cardsRect;
+            scrollRect.horizontal = true;
+            scrollRect.vertical = false;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.inertia = true;
+            scrollRect.scrollSensitivity = 44f;
+
+            Button previousButton = CreateButton(
+                overlayObject.transform,
+                "ui_button_reward_opening_scroll_previous",
+                "<",
+                Anchored(new Vector2(0.5f, 0.5f), new Vector2(-972f, 6f), new Vector2(88f, 120f)),
+                FindSprite("UI_button_orange_standard"),
+                material);
+            ConfigureOpeningScrollButton(previousButton);
+
+            Button nextButton = CreateButton(
+                overlayObject.transform,
+                "ui_button_reward_opening_scroll_next",
+                ">",
+                Anchored(new Vector2(0.5f, 0.5f), new Vector2(972f, 6f), new Vector2(88f, 120f)),
+                FindSprite("UI_button_orange_standard"),
+                material);
+            ConfigureOpeningScrollButton(nextButton);
 
             Button restartButton = CreateButton(
                 overlayObject.transform,
@@ -1171,7 +1339,17 @@ namespace Vertigo.Wheel.EditorTools
             WheelRewardOpeningView opening = overlayObject.AddComponent<WheelRewardOpeningView>();
             WheelEditorWiring.SetReference(opening, "_root", overlayObject);
             WheelEditorWiring.SetReference(opening, "_titleText", title);
+            WheelEditorWiring.SetReference(opening, "_canvasGroup", overlayGroup);
+            WheelEditorWiring.SetReference(opening, "_contentRoot", viewportRect);
             WheelEditorWiring.SetReference(opening, "_cardPoolRoot", cardsRoot.transform);
+            WheelEditorWiring.SetReference(opening, "_viewportRect", viewportRect);
+            WheelEditorWiring.SetReference(opening, "_contentRect", cardsRect);
+            WheelEditorWiring.SetReference(opening, "_scrollRect", scrollRect);
+            WheelEditorWiring.SetReference(opening, "_previousButton", previousButton);
+            WheelEditorWiring.SetReference(opening, "_nextButton", nextButton);
+            WheelEditorWiring.SetReference(opening, "_rewardBurstCamera", rewardBurstRig.camera);
+            WheelEditorWiring.SetReference(opening, "_rewardBurstDisplay", rewardBurstDisplay);
+            WheelEditorWiring.SetReference(opening, "_rewardBurstParticle", rewardBurstRig.particle);
             WheelEditorWiring.CollectChildren(opening, "_rewardCards", cardsRoot.transform);
             WheelRewardCardView firstCard = cardsRoot.transform.GetChild(0).GetComponent<WheelRewardCardView>();
             WheelEditorWiring.SetReference(opening, "_cardFrameSource", firstCard.GetComponentInChildren<Image>());
@@ -1188,40 +1366,86 @@ namespace Vertigo.Wheel.EditorTools
         {
             int cardCount = settings.Layout.MaxRewardCards;
             WheelRewardCardView[] cardViews = new WheelRewardCardView[cardCount];
-            Vector2 cardSize = new Vector2(230f, 500f);
-            float spacing = 34f;
-            float rowWidth = (cardCount * cardSize.x) + ((cardCount - 1) * spacing);
-            float startX = (-rowWidth * 0.5f) + (cardSize.x * 0.5f);
+            Vector2 cardSize = new Vector2(370f, 560f);
+            float spacing = 48f;
+            float startX = cardSize.x * 0.5f;
+            Sprite frontCardSprite = FindSprite("ui_reward_card_front_premium");
+            if (frontCardSprite == null)
+            {
+                frontCardSprite = settings.Layout.RewardCardFrameSprite;
+            }
+
+            Sprite backCardSprite = FindSprite("ui_reward_card_back_premium");
+            if (backCardSprite == null)
+            {
+                backCardSprite = FindSprite("ui_card_frame_gardient");
+            }
 
             for (int i = 0; i < cardCount; i++)
             {
                 var cardObject = new GameObject("ui_reward_opening_card_" + i);
                 cardObject.transform.SetParent(parent, false);
                 var cardRect = cardObject.AddComponent<RectTransform>();
-                Apply(cardRect, Anchored(new Vector2(0.5f, 0.5f), new Vector2(startX + (i * (cardSize.x + spacing)), 0f), cardSize));
+                cardRect.anchorMin = new Vector2(0f, 0.5f);
+                cardRect.anchorMax = new Vector2(0f, 0.5f);
+                cardRect.pivot = new Vector2(0.5f, 0.5f);
+                Apply(cardRect, Anchored(new Vector2(0f, 0.5f), new Vector2(startX + (i * (cardSize.x + spacing)), 0f), cardSize));
+                CanvasGroup cardGroup = cardObject.AddComponent<CanvasGroup>();
+                Image shadow = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_depth_shadow", frontCardSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(18f, -24f), new Vector2(394f, 596f)), material);
+                shadow.preserveAspect = false;
+                shadow.color = new Color(0f, 0f, 0f, 0f);
+                CanvasGroup frontGroup = CreateCanvasGroup(cardObject.transform, "ui_reward_opening_card_" + i + "_front_root", FullStretch());
 
-                Image frame = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_frame", settings.Layout.RewardCardFrameSprite, FullStretch(), material);
-                frame.type = Image.Type.Sliced;
+                Image frame = CreateImage(frontGroup.transform, "ui_reward_opening_card_" + i + "_frame", frontCardSprite, FullStretch(), material);
                 frame.preserveAspect = false;
 
-                Image glow = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_glow", settings.Layout.StarGlowSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 10f), new Vector2(182f, 182f)), material);
-                glow.color = new Color(1f, 1f, 1f, 0.16f);
-                Image shine = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_shine", settings.Layout.ShineSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -152f), new Vector2(162f, 30f)), material);
+                Image glow = CreateImage(frontGroup.transform, "ui_reward_opening_card_" + i + "_glow", settings.Layout.StarGlowSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 28f), new Vector2(360f, 332f)), material);
+                glow.color = new Color(1f, 1f, 1f, 0.18f);
+                Image shine = CreateImage(frontGroup.transform, "ui_reward_opening_card_" + i + "_shine", settings.Layout.ShineSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, -158f), new Vector2(408f, 64f)), material);
                 shine.color = new Color(1f, 1f, 1f, 0.18f);
 
-                Image icon = CreateImage(cardObject.transform, "ui_reward_opening_card_" + i + "_icon", null, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 26f), new Vector2(166f, 166f)), material);
-                TextMeshProUGUI amount = CreateText(cardObject.transform, "ui_reward_opening_card_" + i + "_amount", string.Empty, Anchored(new Vector2(0.5f, 0f), new Vector2(0f, 44f), new Vector2(170f, 42f)), 24, TextAlignmentOptions.Center, Color.white);
+                Image icon = CreateImage(frontGroup.transform, "ui_reward_opening_card_" + i + "_icon", null, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 38f), new Vector2(246f, 226f)), material);
+                TextMeshProUGUI amount = CreateText(frontGroup.transform, "ui_reward_opening_card_" + i + "_amount", string.Empty, Anchored(new Vector2(0.5f, 0f), new Vector2(0f, 78f), new Vector2(272f, 54f)), 30, TextAlignmentOptions.Center, Color.white);
                 amount.fontStyle = FontStyles.Bold;
+                Image spark = CreateImage(frontGroup.transform, "ui_reward_opening_card_" + i + "_spark", settings.Layout.StarFlashSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(278f, 278f)), material);
+                spark.color = new Color(1f, 1f, 1f, 0f);
+
+                CanvasGroup backGroup = CreateCanvasGroup(cardObject.transform, "ui_reward_opening_card_" + i + "_back_root", FullStretch());
+                Image backFrame = CreateImage(backGroup.transform, "ui_reward_opening_card_" + i + "_back_frame", backCardSprite, FullStretch(), material);
+                backFrame.preserveAspect = false;
+                backFrame.color = Color.white;
+                Image backGlow = CreateImage(backGroup.transform, "ui_reward_opening_card_" + i + "_back_glow", settings.Layout.StarGlowSprite, Anchored(new Vector2(0.5f, 0.5f), new Vector2(0f, 24f), new Vector2(330f, 300f)), material);
+                backGlow.color = new Color(0.22f, 0.92f, 1f, 0f);
+                backGroup.alpha = 0f;
 
                 WheelRewardCardView cardView = cardObject.AddComponent<WheelRewardCardView>();
+                WheelEditorWiring.SetReference(cardView, "_shadowImage", shadow);
                 WheelEditorWiring.SetReference(cardView, "_frameImage", frame);
                 WheelEditorWiring.SetReference(cardView, "_iconImage", icon);
                 WheelEditorWiring.SetReference(cardView, "_amountText", amount);
+                WheelEditorWiring.SetReference(cardView, "_canvasGroup", cardGroup);
+                WheelEditorWiring.SetReference(cardView, "_frontGroup", frontGroup);
+                WheelEditorWiring.SetReference(cardView, "_backGroup", backGroup);
+                WheelEditorWiring.SetReference(cardView, "_backImage", backFrame);
+                WheelEditorWiring.SetReference(cardView, "_backGlowImage", backGlow);
+                WheelEditorWiring.SetReference(cardView, "_glowImage", glow);
+                WheelEditorWiring.SetReference(cardView, "_shineImage", shine);
+                WheelEditorWiring.SetReference(cardView, "_sparkImage", spark);
                 cardObject.SetActive(false);
                 cardViews[i] = cardView;
             }
 
             return cardViews;
+        }
+
+        private static void ConfigureOpeningScrollButton(Button button)
+        {
+            Color color = Color.white;
+            color.a = 0.72f;
+            button.image.color = color;
+            TextMeshProUGUI label = button.GetComponentInChildren<TextMeshProUGUI>();
+            label.fontSizeMax = 48f;
+            label.fontSizeMin = 28f;
         }
 
         private static WheelStatusTextView BuildFooter(Transform parent, WheelGameSettings settings)
@@ -1367,6 +1591,15 @@ namespace Vertigo.Wheel.EditorTools
             graphic.maskable = false;
             graphic.Configure(innerRadius);
             return graphic;
+        }
+
+        private static CanvasGroup CreateCanvasGroup(Transform parent, string name, RectSpec rectSpec)
+        {
+            var item = new GameObject(name);
+            item.transform.SetParent(parent, false);
+            var rect = item.AddComponent<RectTransform>();
+            Apply(rect, rectSpec);
+            return item.AddComponent<CanvasGroup>();
         }
 
         private static Button CreateButton(Transform parent, string name, string label, Vector2 anchoredPosition, Vector2 size, Sprite sprite, Material material)

@@ -155,6 +155,7 @@ namespace Vertigo.Wheel.Views
             string screenPath = string.Concat(prefix, "_game.png");
             string renderTexturePath = string.Concat(prefix, "_render_texture.png");
             string revealPath = string.Concat(prefix, "_reveal_hold_game.png");
+            string lingerPath = string.Concat(prefix, "_linger_game.png");
 
             UnityEngine.ScreenCapture.CaptureScreenshot(screenPath);
             CaptureRenderTexture(binding.RewardBurstCamera, renderTexturePath);
@@ -180,6 +181,10 @@ namespace Vertigo.Wheel.Views
             yield return new WaitForSecondsRealtime(0.96f);
             yield return new WaitForEndOfFrame();
             UnityEngine.ScreenCapture.CaptureScreenshot(revealPath);
+
+            yield return new WaitForSecondsRealtime(1.08f);
+            yield return new WaitForEndOfFrame();
+            UnityEngine.ScreenCapture.CaptureScreenshot(lingerPath);
             _rewardBurstCaptureRoutine = null;
         }
 
@@ -385,7 +390,6 @@ namespace Vertigo.Wheel.Views
                 }
 
                 Kill(ref sequence);
-                binding.Root.transform.SetAsLastSibling();
                 binding.Root.SetActive(true);
 
                 if (binding.CanvasGroup == null || binding.ContentRoot == null)
@@ -393,10 +397,10 @@ namespace Vertigo.Wheel.Views
                     return;
                 }
 
-                const float burstStageDuration = 0.36f;
+                const float burstStageDuration = 0.32f;
                 const float revealStageStart = burstStageDuration;
-                const float burstVisibleDuration = 2.4f;
-                const float rewardHoldDuration = 1.42f;
+                const float burstVisibleDuration = 3.6f;
+                const float rewardHoldDuration = 1.86f;
                 const float flightStageStart = revealStageStart + rewardHoldDuration;
 
                 binding.CanvasGroup.alpha = 0f;
@@ -417,22 +421,28 @@ namespace Vertigo.Wheel.Views
                 SetTextAlpha(binding.ResultText, 0f);
                 SetTextAlpha(binding.SummaryText, 0f);
                 PrepareVfx(binding);
-                PlayRewardBurst(binding, snapshot, revealIconPosition);
 
                 sequence = DOTween.Sequence()
                     .SetTarget(tweenTarget)
                     .SetUpdate(true)
-                    .Append(binding.CanvasGroup.DOFade(1f, motion.FadeDuration))
+                    .Append(binding.CanvasGroup.DOFade(1f, 0.09f))
                     .Join(binding.ContentRoot.DOScale(Vector3.one, motion.ScaleDuration).SetEase(motion.ScaleEase))
-                    .InsertCallback(revealStageStart, () => PrepareRewardReveal(binding, snapshot, icon, revealIconPosition))
-                    .Insert(revealStageStart, PlayChromeReveal(binding))
-                    .Insert(revealStageStart, binding.IconImage.DOFade(1f, 0.12f))
-                    .Insert(revealStageStart, iconRect.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.28f).SetEase(Ease.OutBack))
-                    .Insert(revealStageStart + 0.28f, iconRect.DOScale(new Vector3(0.86f, 0.86f, 1f), 0.16f).SetEase(Ease.OutQuad))
+                    .Join(binding.IconImage.DOFade(icon == null ? 0f : 0.92f, 0.08f))
+                    .Join(iconRect.DOAnchorPos(revealIconPosition, revealStageStart).SetEase(Ease.OutCubic))
+                    .Join(iconRect.DOScale(new Vector3(0.62f, 0.62f, 1f), revealStageStart).SetEase(Ease.OutBack))
+                    .Insert(0.04f, PlayChromeReveal(binding))
+                    .InsertCallback(revealStageStart, () =>
+                    {
+                        PrepareRewardReveal(binding, snapshot, icon, revealIconPosition);
+                        PlayRewardBurst(binding, snapshot, revealIconPosition);
+                    })
+                    .Insert(revealStageStart, binding.IconImage.DOFade(1f, 0.08f))
+                    .Insert(revealStageStart, iconRect.DOScale(new Vector3(1.1f, 1.1f, 1f), 0.30f).SetEase(Ease.OutBack))
+                    .Insert(revealStageStart + 0.30f, iconRect.DOScale(new Vector3(0.96f, 0.96f, 1f), 0.18f).SetEase(Ease.OutQuad))
                     .Insert(revealStageStart + 0.04f, PlayFlash(binding))
                     .Insert(revealStageStart + 0.10f, binding.TitleText.DOFade(1f, 0.16f))
-                    .Insert(revealStageStart + 0.20f, binding.ResultText.DOFade(1f, 0.18f))
-                    .Insert(revealStageStart + 0.52f, PlayShine(binding))
+                    .Insert(revealStageStart + 0.18f, binding.ResultText.DOFade(1f, 0.18f))
+                    .Insert(revealStageStart + 0.38f, PlayShine(binding))
                     .InsertCallback(burstVisibleDuration, () => StopRewardBurst(binding))
                     .Insert(flightStageStart - 0.18f, binding.SummaryText.DOFade(1f, 0.18f))
                     .InsertCallback(flightStageStart, () => PlayRewardFlight(binding, tweenTarget, hasOutcome));
@@ -503,7 +513,7 @@ namespace Vertigo.Wheel.Views
             {
                 RectTransform iconRect = binding.IconImage.rectTransform;
                 iconRect.anchoredPosition = revealIconPosition;
-                iconRect.localScale = new Vector3(0.48f, 0.48f, 1f);
+                iconRect.localScale = new Vector3(0.62f, 0.62f, 1f);
                 iconRect.localRotation = Quaternion.identity;
                 binding.IconImage.sprite = icon;
                 binding.IconImage.enabled = icon != null;
@@ -519,9 +529,9 @@ namespace Vertigo.Wheel.Views
 
             private static void ApplyRewardRevealLayout(Binding binding, Vector2 revealIconPosition)
             {
-                SetAnchoredY(binding.TitleText.rectTransform, revealIconPosition.y + 136f);
-                SetAnchoredY(binding.ResultText.rectTransform, revealIconPosition.y - 180f);
-                SetAnchoredY(binding.SummaryText.rectTransform, revealIconPosition.y - 226f);
+                SetAnchoredY(binding.TitleText.rectTransform, revealIconPosition.y + 124f);
+                SetAnchoredY(binding.ResultText.rectTransform, revealIconPosition.y - 150f);
+                SetAnchoredY(binding.SummaryText.rectTransform, revealIconPosition.y - 190f);
             }
 
             private static void SetAnchoredY(RectTransform rect, float y)
@@ -554,10 +564,10 @@ namespace Vertigo.Wheel.Views
                 RectTransform rect = binding.FlashImage.rectTransform;
                 return DOTween.Sequence()
                     .SetUpdate(true)
-                    .Append(binding.FlashImage.DOFade(0.9f, 0.10f))
-                    .Join(rect.DOScale(new Vector3(1.36f, 1.36f, 1f), 0.30f).SetEase(Ease.OutCubic))
+                    .Append(binding.FlashImage.DOFade(0.42f, 0.14f))
+                    .Join(rect.DOScale(new Vector3(1.24f, 1.24f, 1f), 0.38f).SetEase(Ease.OutCubic))
                     .Join(rect.DORotate(new Vector3(0f, 0f, 32f), 0.30f, RotateMode.Fast))
-                    .Append(binding.FlashImage.DOFade(0.16f, 0.26f));
+                    .Append(binding.FlashImage.DOFade(0.12f, 0.36f));
             }
 
             private static Tween PlayShine(Binding binding)
@@ -569,12 +579,12 @@ namespace Vertigo.Wheel.Views
 
                 RectTransform rect = binding.ShineImage.rectTransform;
                 Vector2 home = rect.anchoredPosition;
-                rect.anchoredPosition = home + new Vector2(-180f, 0f);
+                rect.anchoredPosition = home + new Vector2(-150f, 6f);
                 return DOTween.Sequence()
                     .SetUpdate(true)
-                    .Append(binding.ShineImage.DOFade(0.58f, 0.10f))
-                    .Join(rect.DOAnchorPos(home + new Vector2(220f, 0f), 0.48f).SetEase(Ease.InOutSine))
-                    .Append(binding.ShineImage.DOFade(0f, 0.16f))
+                    .Append(binding.ShineImage.DOFade(0.64f, 0.12f))
+                    .Join(rect.DOAnchorPos(home + new Vector2(170f, 6f), 0.58f).SetEase(Ease.InOutSine))
+                    .Append(binding.ShineImage.DOFade(0f, 0.18f))
                     .OnComplete(() => rect.anchoredPosition = home);
             }
 
@@ -610,15 +620,8 @@ namespace Vertigo.Wheel.Views
 
                 const float delay = 0.07f;
                 const float duration = 0.72f;
-                float latestLanding = delay + duration;
-                PlayPopupIconFlight(binding, snapshot, icon, delay, duration);
-                binding.RewardPanelView.CommitPendingRewards(latestLanding + 0.03f);
-                DOTween.Sequence()
-                    .SetTarget(tweenTarget)
-                    .SetUpdate(true)
-                    .AppendInterval(latestLanding + 0.16f)
-                    .Append(binding.CanvasGroup.DOFade(0f, 0.12f))
-                    .AppendCallback(() => CompletePresentation(binding));
+                binding.RewardPanelView.HoldPendingRewardsForArrival();
+                PlayPopupIconFlight(binding, snapshot, icon, tweenTarget, delay, duration);
             }
 
             private static void CompletePresentation(Binding binding)
@@ -650,8 +653,7 @@ namespace Vertigo.Wheel.Views
                 if (binding.RewardBurstDisplay != null)
                 {
                     binding.RewardBurstDisplay.enabled = true;
-                    binding.RewardBurstDisplay.color = Color.white;
-                    binding.RewardBurstDisplay.transform.SetAsLastSibling();
+                    binding.RewardBurstDisplay.color = new Color(1f, 1f, 1f, 0.82f);
                     RectTransform displayRect = binding.RewardBurstDisplay.rectTransform;
                     RectTransform iconRect = binding.IconImage.rectTransform;
                     displayRect.anchoredPosition = burstCenter;
@@ -660,16 +662,8 @@ namespace Vertigo.Wheel.Views
                     displayRect.localScale = Vector3.one;
                 }
 
-                if (binding.RewardBurstRenderer != null && binding.RewardBurstRenderer.sharedMaterial != null)
-                {
-                    binding.RewardBurstRenderer.sharedMaterial.mainTexture = snapshot.Icon.texture;
-                }
-
                 ParticleSystem.TextureSheetAnimationModule textureSheet = binding.RewardBurstParticle.textureSheetAnimation;
-                if (textureSheet.enabled && textureSheet.spriteCount > 0)
-                {
-                    textureSheet.SetSprite(0, snapshot.Icon);
-                }
+                textureSheet.enabled = false;
 
                 Transform particleTransform = binding.RewardBurstParticle.transform;
                 particleTransform.localPosition = Vector3.zero;
@@ -688,7 +682,7 @@ namespace Vertigo.Wheel.Views
             private static Vector2 ResolveBurstDisplaySize(RectTransform iconRect)
             {
                 float baseSize = Mathf.Max(iconRect.rect.width, iconRect.rect.height);
-                float size = Mathf.Clamp(baseSize * 11.4f, 1680f, 1824f);
+                float size = Mathf.Clamp(baseSize * 5.25f, 760f, 900f);
                 return new Vector2(size, size);
             }
 
@@ -714,6 +708,7 @@ namespace Vertigo.Wheel.Views
                 Binding binding,
                 WheelOutcomeSnapshot snapshot,
                 Sprite icon,
+                Object tweenTarget,
                 float delay,
                 float duration)
             {
@@ -724,20 +719,22 @@ namespace Vertigo.Wheel.Views
                 binding.IconImage.enabled = true;
                 binding.IconImage.color = ResolvePresentationIconColor(snapshot);
                 binding.IconImage.preserveAspect = true;
-                binding.IconImage.transform.SetAsLastSibling();
 
                 Vector3 target = binding.RewardPanelView.ResolveLandingWorldPosition(snapshot.RewardId, 0, 1);
                 Vector3 start = rect.position;
                 Vector3 control = Vector3.Lerp(start, target, 0.54f) + ResolveFlightArcOffset(start, target);
                 DOTween.Sequence()
-                    .SetTarget(binding.IconImage)
+                    .SetTarget(tweenTarget)
                     .SetUpdate(true)
                     .AppendInterval(delay)
                     .Append(DOVirtual.Float(0f, 1f, duration, t => rect.position = EvaluateQuadraticBezier(start, control, target, t)).SetEase(Ease.InOutSine))
                     .Join(rect.DOScale(new Vector3(0.42f, 0.42f, 1f), duration).SetEase(Ease.InOutQuad))
                     .Join(rect.DOLocalRotate(new Vector3(0f, 0f, 10f), duration * 0.48f, RotateMode.Fast).SetEase(Ease.OutSine))
                     .Join(binding.IconImage.DOFade(1f, duration * 0.68f))
-                    .Append(binding.IconImage.DOFade(0f, 0.08f));
+                    .AppendCallback(() => binding.RewardPanelView.CommitPendingRewardsNow())
+                    .Append(binding.IconImage.DOFade(0f, 0.08f))
+                    .Append(binding.CanvasGroup.DOFade(0f, 0.12f))
+                    .AppendCallback(() => CompletePresentation(binding));
             }
 
             private static Vector3 ResolveFlightArcOffset(Vector3 start, Vector3 target)
@@ -809,7 +806,7 @@ namespace Vertigo.Wheel.Views
                 WheelView wheelView = WheelRuntimeLocator.WheelView;
                 if (wheelView != null)
                 {
-                    wheelView.SuppressSliceRewardVisual(snapshot.SourceSliceIndex);
+                    wheelView.SuppressAllRewardVisuals();
                 }
             }
 
@@ -818,57 +815,9 @@ namespace Vertigo.Wheel.Views
                 WheelView wheelView = WheelRuntimeLocator.WheelView;
                 if (wheelView != null)
                 {
+                    wheelView.RestoreAllRewardVisuals();
                     wheelView.RestoreSuppressedSliceRewardVisual();
                 }
-            }
-
-            private static Image ResolveFlightIcon(Binding binding)
-            {
-                if (binding.FlightIconPool == null || binding.FlightIconPool.Length == 0)
-                {
-                    return null;
-                }
-
-                for (int i = 0; i < binding.FlightIconPool.Length; i++)
-                {
-                    Image image = binding.FlightIconPool[i];
-                    if (image != null)
-                    {
-                        return image;
-                    }
-                }
-
-                return null;
-            }
-
-            private static void PlaySingleFlightIcon(
-                Binding binding,
-                WheelOutcomeSnapshot snapshot,
-                Image image,
-                float delay,
-                float duration)
-            {
-                HideFlightIconPool(binding);
-                image.gameObject.SetActive(true);
-                image.transform.SetAsLastSibling();
-                var rect = image.rectTransform;
-                rect.position = binding.IconImage.rectTransform.position;
-                rect.sizeDelta = binding.IconImage.rectTransform.sizeDelta * 0.46f;
-                rect.localScale = Vector3.one;
-                image.sprite = snapshot.Icon;
-                image.color = Color.white;
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-
-                Vector3 target = binding.RewardPanelView.ResolveLandingWorldPosition(snapshot.RewardId, 0, 1);
-                DOTween.Sequence()
-                    .SetTarget(image)
-                    .SetUpdate(true)
-                    .AppendInterval(delay)
-                    .Append(rect.DOMove(target, duration).SetEase(Ease.InOutCubic))
-                    .Join(rect.DOScale(new Vector3(0.52f, 0.52f, 1f), duration).SetEase(Ease.InQuad))
-                    .Join(image.DOFade(0.86f, duration))
-                    .AppendCallback(() => image.gameObject.SetActive(false));
             }
 
             private static void HideFlightIconPool(Binding binding)

@@ -15,6 +15,7 @@ namespace Vertigo.Wheel.Views
 
         private WheelEventBus _eventBus;
         private int _suppressedRewardVisualSliceIndex = -1;
+        private bool _areAllRewardVisualsSuppressed;
 
         public void Bind(WheelEventBus eventBus)
         {
@@ -123,6 +124,18 @@ namespace Vertigo.Wheel.Views
             sliceView.SetRewardVisualVisible(false);
         }
 
+        public void SuppressAllRewardVisuals()
+        {
+            _areAllRewardVisualsSuppressed = true;
+            SetAllRewardVisualsVisible(false);
+        }
+
+        public void RestoreAllRewardVisuals()
+        {
+            _areAllRewardVisualsSuppressed = false;
+            SetAllRewardVisualsVisible(true);
+        }
+
         public void RestoreSuppressedSliceRewardVisual()
         {
             if (_suppressedRewardVisualSliceIndex < 0 || _suppressedRewardVisualSliceIndex >= _sliceViews.Length)
@@ -153,6 +166,12 @@ namespace Vertigo.Wheel.Views
 
         private void ApplySuppressedSliceRewardVisual()
         {
+            if (_areAllRewardVisualsSuppressed)
+            {
+                SetAllRewardVisualsVisible(false);
+                return;
+            }
+
             if (_suppressedRewardVisualSliceIndex < 0 || _suppressedRewardVisualSliceIndex >= _sliceViews.Length)
             {
                 return;
@@ -162,6 +181,25 @@ namespace Vertigo.Wheel.Views
             if (sliceView != null && sliceView.gameObject.activeInHierarchy)
             {
                 sliceView.SetRewardVisualVisible(false);
+            }
+        }
+
+        private void SetAllRewardVisualsVisible(bool isVisible)
+        {
+            if (_sliceViews == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _sliceViews.Length; i++)
+            {
+                WheelSliceView sliceView = _sliceViews[i];
+                if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                sliceView.SetRewardVisualVisible(isVisible);
             }
         }
 

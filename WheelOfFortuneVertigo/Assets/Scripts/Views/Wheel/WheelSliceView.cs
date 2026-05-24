@@ -33,7 +33,6 @@ namespace Vertigo.Wheel.Views
             _icon.enabled = presentation.Icon != null;
             ApplyMedallionColors(presentation);
             AmountTable.Apply(_amount, presentation);
-            _amountBadge.transform.SetAsLastSibling();
             _showsAmountBadge = presentation.ShowAmountLabel;
             _amountBadge.SetActive(_showsAmountBadge);
             gameObject.SetActive(true);

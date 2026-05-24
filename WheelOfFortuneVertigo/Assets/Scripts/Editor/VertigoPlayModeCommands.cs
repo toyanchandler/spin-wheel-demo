@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -10,10 +11,13 @@ namespace Vertigo.Wheel.EditorTools
 {
     public static class VertigoPlayModeCommands
     {
+        private static Coroutine _endWithRewardsRoutine;
+
         [MenuItem("Vertigo Case/Play Commands/Spin", true)]
         [MenuItem("Vertigo Case/Play Commands/Retry", true)]
         [MenuItem("Vertigo Case/Play Commands/Exit", true)]
         [MenuItem("Vertigo Case/Play Commands/Add 15 Rewards", true)]
+        [MenuItem("Vertigo Case/Play Commands/End With 15 Rewards", true)]
         private static bool ValidatePlayCommand()
         {
             return Application.isPlaying;
@@ -40,6 +44,47 @@ namespace Vertigo.Wheel.EditorTools
         [MenuItem("Vertigo Case/Play Commands/Add 15 Rewards")]
         private static void AddFifteenRewards()
         {
+            BuildFifteenRewardEndState(false);
+        }
+
+        [MenuItem("Vertigo Case/Play Commands/End With 15 Rewards")]
+        private static void EndWithFifteenRewards()
+        {
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            if (publisher == null)
+            {
+                return;
+            }
+
+            if (_endWithRewardsRoutine != null)
+            {
+                publisher.StopCoroutine(_endWithRewardsRoutine);
+            }
+
+            _endWithRewardsRoutine = publisher.StartCoroutine(BuildFifteenRewardEndStateAfterReset());
+        }
+
+        private static IEnumerator BuildFifteenRewardEndStateAfterReset()
+        {
+            WheelGameState state = WheelRuntimeLocator.State;
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            if (state == null || publisher == null)
+            {
+                _endWithRewardsRoutine = null;
+                yield break;
+            }
+
+            state.Restart();
+            publisher.PublishAll();
+            yield return null;
+            yield return new WaitForEndOfFrame();
+
+            BuildFifteenRewardEndState(true);
+            _endWithRewardsRoutine = null;
+        }
+
+        private static void BuildFifteenRewardEndState(bool cashOut)
+        {
             WheelGameState state = WheelRuntimeLocator.State;
             WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
             WheelGameSettings settings = WheelRuntimeLocator.Settings;
@@ -50,38 +95,79 @@ namespace Vertigo.Wheel.EditorTools
 
             const int targetCount = 15;
             state.Inventory.Clear();
-            int added = 0;
-            var usedRewardIds = new HashSet<string>();
-            added = AddRewardsFromPool(state, settings.StandardRewards, usedRewardIds, added, targetCount);
-            added = AddRewardsFromPool(state, settings.SafeRewards, usedRewardIds, added, targetCount);
-            added = AddRewardsFromPool(state, settings.SuperRewards, usedRewardIds, added, targetCount);
-            publisher.PublishHud();
-            Directory.CreateDirectory("Temp/DebugScreenshots");
-            ScreenCapture.CaptureScreenshot("Temp/DebugScreenshots/reward_panel_15_runtime.png");
-            Debug.Log("Added " + added + " debug rewards to the reward panel.");
-        }
-
-        private static int AddRewardsFromPool(
-            WheelGameState state,
-            List<RewardDefinition> rewards,
-            HashSet<string> usedRewardIds,
-            int added,
-            int targetCount)
-        {
-            if (rewards == null)
+            int added = AddDebugRewards(state, settings, targetCount);
+            if (cashOut)
             {
-                return added;
+                state.CashOut();
+                publisher.PublishOutcome(default(WheelSpinResult), false);
             }
 
-            for (int i = 0; i < rewards.Count && added < targetCount; i++)
+            publisher.PublishHud();
+            Directory.CreateDirectory("Temp/DebugScreenshots");
+            string screenshotPath = cashOut
+                ? "Temp/DebugScreenshots/reward_opening_15_runtime.png"
+                : "Temp/DebugScreenshots/reward_panel_15_runtime.png";
+            publisher.StartCoroutine(CaptureScreenshotAfterLayout(screenshotPath, cashOut));
+            Debug.Log("Built " + added + " debug rewards for " + (cashOut ? "the cashed-out reward opening." : "the reward panel."));
+        }
+
+        private static IEnumerator CaptureScreenshotAfterLayout(string screenshotPath, bool captureRevealStep)
+        {
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForSecondsRealtime(0.55f);
+            yield return new WaitForEndOfFrame();
+            if (captureRevealStep)
             {
-                RewardDefinition reward = rewards[i];
-                if (reward == null || string.IsNullOrEmpty(reward.Id) || usedRewardIds.Contains(reward.Id))
+                string revealPath = Path.Combine(
+                    Path.GetDirectoryName(screenshotPath),
+                    Path.GetFileNameWithoutExtension(screenshotPath) + "_reveal.png");
+                WriteScreenPng(revealPath);
+                yield return new WaitForSecondsRealtime(2.45f);
+                yield return new WaitForEndOfFrame();
+            }
+
+            WriteScreenPng(screenshotPath);
+        }
+
+        private static void WriteScreenPng(string screenshotPath)
+        {
+            var texture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            texture.ReadPixels(new Rect(0f, 0f, Screen.width, Screen.height), 0, 0);
+            texture.Apply();
+            File.WriteAllBytes(screenshotPath, texture.EncodeToPNG());
+            Object.Destroy(texture);
+            Debug.Log("Wrote debug screenshot: " + screenshotPath);
+        }
+
+        private static int AddDebugRewards(WheelGameState state, WheelGameSettings settings, int targetCount)
+        {
+            var rewardPool = new List<RewardDefinition>();
+            AddRewardsToPool(rewardPool, settings.StandardRewards);
+            AddRewardsToPool(rewardPool, settings.SafeRewards);
+            AddRewardsToPool(rewardPool, settings.SuperRewards);
+            if (rewardPool.Count == 0)
+            {
+                return 0;
+            }
+
+            int added = 0;
+            for (int i = 0; i < targetCount; i++)
+            {
+                RewardDefinition source = rewardPool[i % rewardPool.Count];
+                if (source == null || string.IsNullOrEmpty(source.Id))
                 {
                     continue;
                 }
 
-                usedRewardIds.Add(reward.Id);
+                RewardDefinition reward = RewardDefinition.Create(
+                    source.Id + "_debug_" + i,
+                    source.DisplayName,
+                    source.Icon,
+                    source.Amount,
+                    source.Tier,
+                    source.AccentColor,
+                    source.WheelIcon);
+                reward.CacheRuntimeText(settings.UiCopy.WinLabelFormat);
                 var slice = new WheelSliceDefinition();
                 slice.ApplySlot(
                     false,
@@ -96,6 +182,22 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             return added;
+        }
+
+        private static void AddRewardsToPool(List<RewardDefinition> target, List<RewardDefinition> source)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < source.Count; i++)
+            {
+                if (source[i] != null)
+                {
+                    target.Add(source[i]);
+                }
+            }
         }
 
         private static WheelRuntimeCompositionRoot Runtime()

@@ -104,9 +104,9 @@ MonoBehaviour:
       _useWinLabelForStatus: 0
   _outcomes:
   - _phase: 2
-    _title: REWARD
-    _resultFallback: Won
-    _summary: Added to your run rewards
+    _title: YOU GOT
+    _resultFallback: Reward
+    _summary: Added to your stash
     _resultColorKey: 0
     _showIcon: 1
     _resultSource: 0

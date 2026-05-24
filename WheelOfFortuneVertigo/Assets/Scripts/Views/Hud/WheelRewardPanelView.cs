@@ -75,12 +75,17 @@ namespace Vertigo.Wheel.Views
             ApplySnapshotImmediately(snapshot);
         }
 
-        public void CommitPendingRewards(float delay)
+        public void HoldPendingRewardsForArrival()
         {
             _pendingFallbackTween?.Kill();
-            _pendingFallbackTween = DOVirtual.DelayedCall(delay, CommitPendingNow, false)
-                .SetTarget(this)
-                .SetUpdate(true);
+            _pendingFallbackTween = null;
+        }
+
+        public void CommitPendingRewardsNow()
+        {
+            _pendingFallbackTween?.Kill();
+            _pendingFallbackTween = null;
+            CommitPendingNow();
         }
 
         public Vector3 ResolveLandingWorldPosition(string rewardId, int burstIndex, int burstCount)
@@ -158,7 +163,7 @@ namespace Vertigo.Wheel.Views
             CopyCards(_pendingCards, _pendingCount, _renderedCards);
             _renderedCount = _pendingCount;
             _hasPendingCards = false;
-            RenderStoredCards(_renderedCards, _renderedCount);
+            RenderStoredCards(_renderedCards, _renderedCount, false, -1);
             PlayPanelPulse();
             FocusCardIndex(_pendingChangedIndex >= 0 ? _pendingChangedIndex : _renderedCount - 1, true);
             PulseChangedCards(oldCount, _pendingChangedIndex);
@@ -171,16 +176,22 @@ namespace Vertigo.Wheel.Views
             _pendingFallbackTween = null;
             _hasPendingCards = false;
             _renderedCount = CopyCards(snapshot, _renderedCards);
-            RenderStoredCards(_renderedCards, _renderedCount);
+            RenderStoredCards(_renderedCards, _renderedCount, false, -1);
         }
 
         private void RenderStoredCards(RewardInventoryEntry[] cards, int count)
+        {
+            RenderStoredCards(cards, count, false, -1);
+        }
+
+        private void RenderStoredCards(RewardInventoryEntry[] cards, int count, bool animateChangedCard, int changedIndex)
         {
             ArrangeCards(count);
             for (int i = 0; i < _cardViews.Length; i++)
             {
                 int visible = System.Convert.ToInt32(i < count);
-                CardSlotActions[visible](_cardViews[i], cards, _cardFrameSprite, i);
+                bool animated = animateChangedCard && i == changedIndex;
+                CardSlotActions[visible](_cardViews[i], cards, _cardFrameSprite, i, animated);
             }
 
             FocusCardIndex(count - 1, false);
@@ -426,13 +437,13 @@ namespace Vertigo.Wheel.Views
             }
         }
 
-        private static readonly System.Action<WheelRewardCardView, RewardInventoryEntry[], Sprite, int>[] CardSlotActions =
+        private static readonly System.Action<WheelRewardCardView, RewardInventoryEntry[], Sprite, int, bool>[] CardSlotActions =
         {
-            (view, cards, frameSprite, index) => view.Hide(),
-            (view, cards, frameSprite, index) =>
+            (view, cards, frameSprite, index, animated) => view.Hide(),
+            (view, cards, frameSprite, index, animated) =>
             {
                 view.ApplyFrames(frameSprite);
-                view.Apply(cards[index]);
+                view.Apply(cards[index], index, false, animated);
             }
         };
     }

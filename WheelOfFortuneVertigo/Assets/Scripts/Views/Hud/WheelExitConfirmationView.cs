@@ -52,7 +52,6 @@ namespace Vertigo.Wheel.Views
         private void Show()
         {
             KillSequence();
-            _root.transform.SetAsLastSibling();
             _root.SetActive(true);
             _canvasGroup.alpha = 0f;
             _canvasGroup.interactable = true;

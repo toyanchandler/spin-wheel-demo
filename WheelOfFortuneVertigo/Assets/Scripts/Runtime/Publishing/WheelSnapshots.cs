@@ -309,9 +309,9 @@ namespace Vertigo.Wheel.Runtime
             }
 
             string displayName = string.IsNullOrEmpty(result.DisplayName) ? resultText : result.DisplayName;
-            title = "REWARD WON";
+            title = "YOU GOT";
             resultText = result.Amount > 1 ? string.Format("{0} x{1}", displayName, result.Amount) : displayName;
-            summary = "Flying into your reward stash";
+            summary = "Added to your stash";
         }
 
         private static string ResolveOutcomeResultText(

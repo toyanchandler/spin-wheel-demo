@@ -7,6 +7,12 @@ namespace Vertigo.Wheel.EditorTools
 {
     public static class VertigoWheelBootstrapper
     {
+        [MenuItem("Vertigo Case/Rebuild Wheel Scene", true)]
+        private static bool ValidateRebuildScene()
+        {
+            return !EditorApplication.isPlayingOrWillChangePlaymode;
+        }
+
         [MenuItem("Vertigo Case/Rebuild Wheel Scene")]
         public static void RebuildScene()
         {
