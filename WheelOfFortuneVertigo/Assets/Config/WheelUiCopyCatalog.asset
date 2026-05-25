@@ -26,7 +26,7 @@ MonoBehaviour:
   _zones:
   - _zoneType: 0
     _label: STANDARD
-    _statusHint: Spin to risk your loot and advance toward safe zones.
+    _statusHint: Risk your loot. Reach the safe zone.
     _labelColorKey: 2
     _skinTier: 0
     _panelSpriteName: ui_card_panel_zone_current
@@ -59,7 +59,7 @@ MonoBehaviour:
     _gameplay:
       _allowSpin: 1
       _allowLeave: 1
-      _allowRestart: 1
+      _allowRestart: 0
       _publishAllAfterSpin: 1
       _useWinLabelForStatus: 0
   - _phase: 1
@@ -79,7 +79,7 @@ MonoBehaviour:
     _gameplay:
       _allowSpin: 1
       _allowLeave: 1
-      _allowRestart: 1
+      _allowRestart: 0
       _publishAllAfterSpin: 1
       _useWinLabelForStatus: 1
   - _phase: 3
@@ -111,9 +111,11 @@ MonoBehaviour:
     _showIcon: 1
     _resultSource: 0
   - _phase: 3
-    _title: BOMB
-    _resultFallback: Rewards lost
-    _summary: Try again
+    _title: RUN LOST
+    _resultFallback: 'You hit a bomb.
+
+      Your current loot is gone.'
+    _summary: Retry or leave the run.
     _resultColorKey: 5
     _showIcon: 1
     _resultSource: 0

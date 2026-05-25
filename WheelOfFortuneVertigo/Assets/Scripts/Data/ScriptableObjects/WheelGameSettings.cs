@@ -33,7 +33,6 @@ namespace Vertigo.Wheel.Data
         [Header("Presentation")]
         [SerializeField] private WheelUiCopyCatalog _uiCopy;
         [SerializeField] private WheelSkinCatalog _skinCatalog;
-        [SerializeField] private WheelSliceLayoutCatalog _sliceLayoutCatalog;
         [SerializeField] private WheelOutcomePopupMotionCatalog _outcomePopupMotionCatalog;
         [SerializeField] private WheelSpinResolveCatalog _spinResolveCatalog;
         [SerializeField] private WheelLayoutSettings _layout = WheelLayoutSettings.Default();
@@ -41,7 +40,6 @@ namespace Vertigo.Wheel.Data
 
         public WheelUiCopyCatalog UiCopy { get { return _uiCopy; } }
         public WheelSkinCatalog SkinCatalog { get { return _skinCatalog; } }
-        public WheelSliceLayoutCatalog SliceLayoutCatalog { get { return _sliceLayoutCatalog; } }
         public WheelOutcomePopupMotionCatalog OutcomePopupMotionCatalog { get { return _outcomePopupMotionCatalog; } }
         public WheelSpinResolveCatalog SpinResolveCatalog { get { return _spinResolveCatalog; } }
         public float SpinDuration { get { return _spinDuration; } }
@@ -83,11 +81,6 @@ namespace Vertigo.Wheel.Data
             _skinCatalog = skinCatalog;
         }
 
-        public void ConfigureSliceLayoutCatalog(WheelSliceLayoutCatalog sliceLayoutCatalog)
-        {
-            _sliceLayoutCatalog = sliceLayoutCatalog;
-        }
-
         public void ConfigureOutcomePopupMotionCatalog(WheelOutcomePopupMotionCatalog outcomePopupMotionCatalog)
         {
             _outcomePopupMotionCatalog = outcomePopupMotionCatalog;
@@ -105,7 +98,6 @@ namespace Vertigo.Wheel.Data
             _theme.SyncUiColorPalette();
             ValidateRuntimeConfig();
             RequireUiCopy();
-            RequireSliceLayoutCatalog();
             RequireOutcomePopupMotionCatalog();
             RequireSpinResolveCatalog();
             string winLabelFormat = _uiCopy.WinLabelFormat;
@@ -204,16 +196,6 @@ namespace Vertigo.Wheel.Data
             {
                 throw new InvalidOperationException("WheelGameSettings requires a WheelUiCopyCatalog asset.");
             }
-        }
-
-        private void RequireSliceLayoutCatalog()
-        {
-            if (_sliceLayoutCatalog == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings requires a WheelSliceLayoutCatalog asset.");
-            }
-
-            _sliceLayoutCatalog.ValidateRuntime();
         }
 
         private void RequireOutcomePopupMotionCatalog()

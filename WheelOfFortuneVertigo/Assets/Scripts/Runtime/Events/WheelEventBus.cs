@@ -11,6 +11,7 @@ namespace Vertigo.Wheel.Runtime
         public event Action RestartRequested;
         public event Action<WheelZoneSnapshot> ZoneChanged;
         public event Action<WheelHudSnapshot> HudStateChanged;
+        public event Action<WheelSpinResult> SpinLanded;
         public event Action<WheelOutcomeSnapshot> OutcomeResolved;
 
         public void RequestSpin()
@@ -43,6 +44,11 @@ namespace Vertigo.Wheel.Runtime
             HudStateChanged?.Invoke(snapshot);
         }
 
+        public void RaiseSpinLanded(WheelSpinResult result)
+        {
+            SpinLanded?.Invoke(result);
+        }
+
         public void RaiseOutcome(WheelOutcomeSnapshot snapshot)
         {
             OutcomeResolved?.Invoke(snapshot);
@@ -56,6 +62,7 @@ namespace Vertigo.Wheel.Runtime
             RestartRequested = null;
             ZoneChanged = null;
             HudStateChanged = null;
+            SpinLanded = null;
             OutcomeResolved = null;
         }
     }

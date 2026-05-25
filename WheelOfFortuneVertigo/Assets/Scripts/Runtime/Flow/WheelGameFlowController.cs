@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Data;
 
@@ -7,6 +8,8 @@ namespace Vertigo.Wheel.Runtime
     public sealed class WheelGameFlowController : MonoBehaviour
     {
         private WheelEventBus _eventBus;
+
+        private const float LandingResolveDelay = 0.42f;
 
         public void Bind(WheelEventBus eventBus)
         {
@@ -31,6 +34,7 @@ namespace Vertigo.Wheel.Runtime
                 WheelRuntimeLocator.Spinner.SpinCompleted -= OnSpinCompleted;
             }
 
+            DOTween.Kill(this);
             _eventBus = null;
         }
 
@@ -52,6 +56,14 @@ namespace Vertigo.Wheel.Runtime
         }
 
         private void OnSpinCompleted(WheelSpinResult result)
+        {
+            _eventBus.RaiseSpinLanded(result);
+            DOVirtual.DelayedCall(LandingResolveDelay, () => ResolveCompletedSpin(result), false)
+                .SetTarget(this)
+                .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+        }
+
+        private void ResolveCompletedSpin(WheelSpinResult result)
         {
             WheelGameState state = WheelRuntimeLocator.State;
             state.Resolve(result);

@@ -96,23 +96,17 @@ namespace Vertigo.Wheel.Runtime
     {
         public readonly WheelSliceDefinition[] Slices;
         public readonly int SliceCount;
-        public readonly Vector2[] SlicePositions;
-        public readonly Vector2 SliceIconSize;
         public readonly WheelSkinTier SkinTier;
         public readonly Color BackgroundColor;
 
         public WheelZoneSnapshot(
             WheelSliceDefinition[] slices,
             int sliceCount,
-            Vector2[] slicePositions,
-            Vector2 sliceIconSize,
             WheelSkinTier skinTier,
             Color backgroundColor)
         {
             Slices = slices;
             SliceCount = sliceCount;
-            SlicePositions = slicePositions;
-            SliceIconSize = sliceIconSize;
             SkinTier = skinTier;
             BackgroundColor = backgroundColor;
         }
@@ -224,18 +218,11 @@ namespace Vertigo.Wheel.Runtime
         public static WheelZoneSnapshot CreateZone(WheelGameState state)
         {
             WheelGameSettings settings = state.Settings;
-            WheelLayoutSettings layout = settings.Layout;
             WheelZoneUiCopy zoneCopy = settings.UiCopy.GetZoneCopy(state.ZoneType);
-            Vector2[] slicePositions = WheelSliceLayoutResolver.BuildPositions(
-                settings.SliceLayoutCatalog,
-                layout,
-                state.SliceCount);
 
             return new WheelZoneSnapshot(
                 state.Slices,
                 state.SliceCount,
-                slicePositions,
-                layout.SliceIconSize,
                 zoneCopy.SkinTier,
                 settings.Theme.BackgroundColor);
         }

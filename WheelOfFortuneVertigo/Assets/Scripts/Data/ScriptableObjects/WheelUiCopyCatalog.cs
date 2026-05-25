@@ -103,6 +103,11 @@ namespace Vertigo.Wheel.Data
             RebuildLookups();
         }
 
+        public void RefreshLookups()
+        {
+            RebuildLookups();
+        }
+
         private void RebuildLookups()
         {
             _zoneByType = WheelEnumLookup.Build(_zones, entry => (int)entry.ZoneType, ZoneTypeCount);
@@ -117,7 +122,7 @@ namespace Vertigo.Wheel.Data
                 WheelZoneUiCopy.Create(
                     ZoneType.Standard,
                     "STANDARD",
-                    "Spin to risk your loot and advance toward safe zones.",
+                    "Risk your loot. Reach the safe zone.",
                     WheelUiColorKey.StandardZone,
                     WheelSkinTier.Bronze,
                     "ui_card_panel_zone_current",
@@ -147,7 +152,7 @@ namespace Vertigo.Wheel.Data
             {
                 WheelPhaseUiCopy.Create(
                     WheelGamePhase.Ready,
-                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, allowRestart: true, publishAllAfterSpin: true),
+                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, publishAllAfterSpin: true),
                     hideOutcomePopup: true),
                 WheelPhaseUiCopy.Create(
                     WheelGamePhase.Spinning,
@@ -156,7 +161,7 @@ namespace Vertigo.Wheel.Data
                     hideOutcomePopup: true),
                 WheelPhaseUiCopy.Create(
                     WheelGamePhase.Won,
-                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, allowRestart: true, publishAllAfterSpin: true, useWinLabelForStatus: true),
+                    WheelPhaseGameplayProfile.Create(allowSpin: true, allowLeave: true, publishAllAfterSpin: true, useWinLabelForStatus: true),
                     hideStatusBar: true),
                 WheelPhaseUiCopy.Create(
                     WheelGamePhase.Bombed,
@@ -183,9 +188,9 @@ namespace Vertigo.Wheel.Data
                     WheelOutcomeResultSource.SpinResultLabel),
                 WheelOutcomeUiCopy.Create(
                     WheelGamePhase.Bombed,
-                    "BOMB",
-                    "Rewards lost",
-                    "Try again",
+                    "RUN LOST",
+                    "You hit a bomb.\nYour current loot is gone.",
+                    "Retry or leave the run.",
                     WheelUiColorKey.Danger,
                     true,
                     WheelOutcomeResultSource.SpinResultLabel),

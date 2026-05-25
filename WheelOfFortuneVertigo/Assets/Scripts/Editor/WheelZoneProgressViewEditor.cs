@@ -31,6 +31,7 @@ namespace Vertigo.Wheel.EditorTools
         {
             Transform root = view.transform;
             var bindings = new List<ZoneProgressCellBinding>();
+            var connectors = new List<Image>();
             var settings = new ChildCollectionSettings
             {
                 Root = root,
@@ -42,17 +43,34 @@ namespace Vertigo.Wheel.EditorTools
             {
                 if (!child.name.StartsWith("ui_zone_progress_cell_", StringComparison.Ordinal))
                 {
+                    if (child.name.StartsWith("ui_zone_progress_connector_", StringComparison.Ordinal))
+                    {
+                        Image connector = child.GetComponent<Image>();
+                        if (connector == null)
+                        {
+                            throw new InvalidOperationException("Zone connector " + child.name + " requires an Image component.");
+                        }
+
+                        connectors.Add(connector);
+                    }
+
                     return;
                 }
 
                 Image image = child.GetComponent<Image>();
                 Image glow = null;
+                Image frame = null;
                 Image[] childImages = child.GetComponentsInChildren<Image>(true);
                 for (int i = 0; i < childImages.Length; i++)
                 {
                     if (childImages[i].name.Contains("_glow"))
                     {
                         glow = childImages[i];
+                    }
+
+                    if (childImages[i].name.Contains("_frame"))
+                    {
+                        frame = childImages[i];
                     }
                 }
 
@@ -63,7 +81,7 @@ namespace Vertigo.Wheel.EditorTools
                         "Zone cell " + child.name + " requires Image on the cell and TextMeshProUGUI in descendants.");
                 }
 
-                bindings.Add(new ZoneProgressCellBinding { Root = (RectTransform)child, Image = image, Glow = glow, Label = label });
+                bindings.Add(new ZoneProgressCellBinding { Root = (RectTransform)child, Image = image, Glow = glow, Frame = frame, Label = label });
             });
 
             ChildCollectionUtility.ApplySerializedStructArray(
@@ -71,6 +89,10 @@ namespace Vertigo.Wheel.EditorTools
                 "_cells",
                 bindings.ToArray(),
                 WriteCellBinding);
+            ChildCollectionUtility.ApplySerializedArray(
+                view,
+                "_connectors",
+                connectors.ToArray());
             ChildCollectionEditorUtility.FinalizeCollect(view);
         }
 
@@ -79,6 +101,7 @@ namespace Vertigo.Wheel.EditorTools
             property.FindPropertyRelative("Root").objectReferenceValue = binding.Root;
             property.FindPropertyRelative("Image").objectReferenceValue = binding.Image;
             property.FindPropertyRelative("Glow").objectReferenceValue = binding.Glow;
+            property.FindPropertyRelative("Frame").objectReferenceValue = binding.Frame;
             property.FindPropertyRelative("Label").objectReferenceValue = binding.Label;
         }
 
@@ -87,6 +110,7 @@ namespace Vertigo.Wheel.EditorTools
             public RectTransform Root;
             public Image Image;
             public Image Glow;
+            public Image Frame;
             public TextMeshProUGUI Label;
         }
     }

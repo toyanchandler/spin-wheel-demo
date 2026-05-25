@@ -6,7 +6,6 @@ namespace Vertigo.Wheel.EditorTools
         public const string ScenePath = "Assets/Scenes/MainScene.unity";
         public const string UiCopyCatalogPath = "Assets/Config/WheelUiCopyCatalog.asset";
         public const string SkinCatalogPath = "Assets/Config/WheelSkinCatalog.asset";
-        public const string SliceLayoutCatalogPath = "Assets/Config/WheelSliceLayoutCatalog.asset";
         public const string OutcomePopupMotionCatalogPath = "Assets/Config/WheelOutcomePopupMotionCatalog.asset";
         public const string SpinResolveCatalogPath = "Assets/Config/WheelSpinResolveCatalog.asset";
         public const string GameSettingsPath = "Assets/Config/WheelGameSettings.asset";

@@ -1,4 +1,5 @@
 using Vertigo.Wheel.Runtime;
+using UnityEngine;
 
 namespace Vertigo.Wheel.Views
 {
@@ -6,8 +7,8 @@ namespace Vertigo.Wheel.Views
     {
         protected override void Apply(WheelHudSnapshot snapshot)
         {
-            Text.SetText("ZONE {0}", snapshot.Zone);
-            Text.color = snapshot.ZoneNumberColor;
+            Text.text = string.Empty;
+            Text.color = Color.clear;
         }
     }
 }

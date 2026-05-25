@@ -33,7 +33,7 @@ Particle sprite
 
 ## Reward Popup Usage
 
-The scene builder creates one scene-authored instance for the reward popup:
+MainScene contains one scene-authored instance for the reward popup:
 
 ```text
 ui_outcome_popup_controller

@@ -44,6 +44,7 @@ namespace Vertigo.Wheel.Runtime
         public void Add(WheelSpinResult result)
         {
             RewardStack stack = StackAcquireActions[Convert.ToInt32(_rewards.ContainsKey(result.RewardId))](this, result);
+            stack.RefreshPresentation(result);
             stack.Amount += result.Amount;
             _dirty = true;
         }
@@ -131,8 +132,14 @@ namespace Vertigo.Wheel.Runtime
                 name => "Reward"
             };
 
+            private static readonly Func<Sprite, Sprite, Sprite>[] IconRefreshActions =
+            {
+                (current, incoming) => current,
+                (current, incoming) => incoming
+            };
+
             public readonly string DisplayName;
-            public readonly Sprite Icon;
+            public Sprite Icon { get; private set; }
             public readonly Color AccentColor;
             public int Amount;
 
@@ -142,6 +149,11 @@ namespace Vertigo.Wheel.Runtime
                 Icon = result.Icon;
                 AccentColor = result.AccentColor;
                 Amount = 0;
+            }
+
+            public void RefreshPresentation(WheelSpinResult result)
+            {
+                Icon = IconRefreshActions[Convert.ToInt32(result.Icon != null)](Icon, result.Icon);
             }
 
             public RewardInventoryEntry ToEntry(string rewardId)

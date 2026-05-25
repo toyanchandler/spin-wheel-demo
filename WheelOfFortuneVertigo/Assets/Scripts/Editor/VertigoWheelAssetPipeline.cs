@@ -70,7 +70,6 @@ namespace Vertigo.Wheel.EditorTools
         {
             settings.ConfigureUiCopy(EnsureUiCopyCatalog());
             settings.ConfigureSkinCatalog(EnsureSkinCatalog());
-            settings.ConfigureSliceLayoutCatalog(EnsureSliceLayoutCatalog());
             settings.ConfigureOutcomePopupMotionCatalog(EnsureOutcomePopupMotionCatalog());
             settings.ConfigureSpinResolveCatalog(EnsureSpinResolveCatalog());
         }
@@ -106,6 +105,7 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+            catalog.RefreshLookups();
         }
 
         public static WheelSkinCatalog EnsureSkinCatalog()
@@ -137,21 +137,6 @@ namespace Vertigo.Wheel.EditorTools
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            return catalog;
-        }
-
-        public static WheelSliceLayoutCatalog EnsureSliceLayoutCatalog()
-        {
-            Directory.CreateDirectory("Assets/Config");
-            WheelSliceLayoutCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelSliceLayoutCatalog>(VertigoWheelPaths.SliceLayoutCatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<WheelSliceLayoutCatalog>();
-                catalog.ResetToDefaults();
-                AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.SliceLayoutCatalogPath);
-                AssetDatabase.SaveAssets();
-            }
-
             return catalog;
         }
 

@@ -32,6 +32,10 @@ namespace Vertigo.Wheel.Views
         [SerializeField, RequiredSceneReference]
         private WheelRestartButtonAction _restartButton;
         [SerializeField, RequiredSceneReference]
+        private WheelRestartButtonAction _outcomeRestartButton;
+        [SerializeField, RequiredSceneReference]
+        private WheelLeaveButtonAction _outcomeExitButton;
+        [SerializeField, RequiredSceneReference]
         private WheelRestartButtonAction _rewardOpeningRestartButton;
 
         protected override void BindChildren(WheelEventBus eventBus)
@@ -49,12 +53,16 @@ namespace Vertigo.Wheel.Views
             RequireAssigned(_leaveButton, nameof(_leaveButton)).Bind(eventBus);
             RequireAssigned(_spinButton, nameof(_spinButton)).Bind(eventBus);
             RequireAssigned(_restartButton, nameof(_restartButton)).Bind(eventBus);
+            RequireAssigned(_outcomeRestartButton, nameof(_outcomeRestartButton)).Bind(eventBus);
+            RequireAssigned(_outcomeExitButton, nameof(_outcomeExitButton)).Bind(eventBus);
             RequireAssigned(_rewardOpeningRestartButton, nameof(_rewardOpeningRestartButton)).Bind(eventBus);
         }
 
         protected override void UnbindChildren()
         {
             _rewardOpeningRestartButton.Unbind();
+            _outcomeExitButton.Unbind();
+            _outcomeRestartButton.Unbind();
             _restartButton.Unbind();
             _spinButton.Unbind();
             _leaveButton.Unbind();

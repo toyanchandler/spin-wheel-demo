@@ -313,10 +313,7 @@ namespace Vertigo.Wheel.Views
             public void HandleHud(bool isOutcomePopupAllowed)
             {
                 _state.PopupAllowed = isOutcomePopupAllowed;
-                if (isOutcomePopupAllowed)
-                {
-                    SyncVisibility();
-                }
+                SyncVisibility();
             }
 
             public void MarkPresentationComplete()
@@ -337,14 +334,55 @@ namespace Vertigo.Wheel.Views
             public static void Apply(Binding binding, WheelOutcomeSnapshot snapshot)
             {
                 Sprite icon = Animator.ResolvePresentationIcon(snapshot);
-                binding.TitleText.text = snapshot.Title;
-                binding.ResultText.text = snapshot.ResultText;
-                binding.ResultText.color = snapshot.ResultColor;
-                binding.SummaryText.text = snapshot.SummaryText;
+                ApplyOverlayTone(binding, snapshot);
+                ApplyStateCopy(binding, snapshot);
                 binding.IconImage.sprite = icon;
                 binding.IconImage.enabled = icon != null;
                 binding.IconImage.color = Animator.ResolvePresentationIconColor(snapshot);
                 binding.IconImage.preserveAspect = true;
+            }
+
+            private static void ApplyOverlayTone(Binding binding, WheelOutcomeSnapshot snapshot)
+            {
+                if (binding.Root == null)
+                {
+                    return;
+                }
+
+                Image overlay = binding.Root.GetComponent<Image>();
+                if (overlay == null)
+                {
+                    return;
+                }
+
+                Color color = overlay.color;
+                color.a = snapshot.Phase == WheelGamePhase.Bombed ? 0.56f : 0.02f;
+                overlay.color = color;
+            }
+
+            private static void ApplyStateCopy(Binding binding, WheelOutcomeSnapshot snapshot)
+            {
+                if (snapshot.Phase == WheelGamePhase.Bombed)
+                {
+                    binding.TitleText.text = "RUN LOST";
+                    binding.ResultText.text = "You hit a bomb.\nYour current loot is gone.";
+                    binding.ResultText.color = new Color(1f, 0.42f, 0.20f, 1f);
+                    SetSummaryActive(binding, false);
+                    return;
+                }
+
+                binding.TitleText.text = string.Empty;
+                binding.ResultText.text = snapshot.ResultText;
+                binding.ResultText.color = snapshot.ResultColor;
+                SetSummaryActive(binding, false);
+            }
+
+            private static void SetSummaryActive(Binding binding, bool isActive)
+            {
+                if (binding.SummaryText != null)
+                {
+                    binding.SummaryText.gameObject.SetActive(isActive);
+                }
             }
         }
 
@@ -408,7 +446,7 @@ namespace Vertigo.Wheel.Views
                 binding.ContentRoot.localScale = new Vector3(startScale, startScale, 1f);
                 RectTransform iconRect = binding.IconImage.rectTransform;
                 Vector2 revealIconPosition = ResolveRewardRevealPosition(binding);
-                ApplyRewardRevealLayout(binding, revealIconPosition);
+                ApplyRewardRevealLayout(binding, snapshot, revealIconPosition);
                 iconRect.anchoredPosition = ResolveIconStartPosition(binding, snapshot, iconRect);
                 Sprite icon = ResolvePresentationIcon(snapshot);
                 SuppressSourceSliceRewardVisual(snapshot);
@@ -419,7 +457,7 @@ namespace Vertigo.Wheel.Views
                 binding.IconImage.color = WheelOutcomePopupView.WithAlpha(ResolvePresentationIconColor(snapshot), 0f);
                 SetTextAlpha(binding.TitleText, 0f);
                 SetTextAlpha(binding.ResultText, 0f);
-                SetTextAlpha(binding.SummaryText, 0f);
+                SetOptionalTextAlpha(binding.SummaryText, 0f);
                 PrepareVfx(binding);
 
                 sequence = DOTween.Sequence()
@@ -429,23 +467,27 @@ namespace Vertigo.Wheel.Views
                     .Join(binding.ContentRoot.DOScale(Vector3.one, motion.ScaleDuration).SetEase(motion.ScaleEase))
                     .Join(binding.IconImage.DOFade(icon == null ? 0f : 0.92f, 0.08f))
                     .Join(iconRect.DOAnchorPos(revealIconPosition, revealStageStart).SetEase(Ease.OutCubic))
-                    .Join(iconRect.DOScale(new Vector3(0.62f, 0.62f, 1f), revealStageStart).SetEase(Ease.OutBack))
-                    .Insert(0.04f, PlayChromeReveal(binding))
+                    .Join(iconRect.DOScale(new Vector3(0.58f, 0.58f, 1f), revealStageStart).SetEase(Ease.OutBack))
+                    .Insert(0.04f, PlayChromeReveal(binding, snapshot))
                     .InsertCallback(revealStageStart, () =>
                     {
                         PrepareRewardReveal(binding, snapshot, icon, revealIconPosition);
                         PlayRewardBurst(binding, snapshot, revealIconPosition);
                     })
                     .Insert(revealStageStart, binding.IconImage.DOFade(1f, 0.08f))
-                    .Insert(revealStageStart, iconRect.DOScale(new Vector3(1.1f, 1.1f, 1f), 0.30f).SetEase(Ease.OutBack))
-                    .Insert(revealStageStart + 0.30f, iconRect.DOScale(new Vector3(0.96f, 0.96f, 1f), 0.18f).SetEase(Ease.OutQuad))
-                    .Insert(revealStageStart + 0.04f, PlayFlash(binding))
+                    .Insert(revealStageStart, iconRect.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.30f).SetEase(Ease.OutBack))
+                    .Insert(revealStageStart + 0.30f, iconRect.DOScale(new Vector3(0.92f, 0.92f, 1f), 0.18f).SetEase(Ease.OutQuad))
+                    .Insert(revealStageStart + 0.04f, PlayFlash(binding, snapshot))
                     .Insert(revealStageStart + 0.10f, binding.TitleText.DOFade(1f, 0.16f))
                     .Insert(revealStageStart + 0.18f, binding.ResultText.DOFade(1f, 0.18f))
                     .Insert(revealStageStart + 0.38f, PlayShine(binding))
                     .InsertCallback(burstVisibleDuration, () => StopRewardBurst(binding))
-                    .Insert(flightStageStart - 0.18f, binding.SummaryText.DOFade(1f, 0.18f))
                     .InsertCallback(flightStageStart, () => PlayRewardFlight(binding, tweenTarget, hasOutcome));
+
+                if (binding.SummaryText != null && binding.SummaryText.gameObject.activeInHierarchy)
+                {
+                    sequence.Insert(flightStageStart - 0.18f, binding.SummaryText.DOFade(1f, 0.18f));
+                }
             }
 
             private static void Kill(ref Sequence sequence)
@@ -491,18 +533,42 @@ namespace Vertigo.Wheel.Views
                 binding.RewardChromeGroup.transform.localScale = new Vector3(0.94f, 0.94f, 1f);
             }
 
-            private static Tween PlayChromeReveal(Binding binding)
+            private static Tween PlayChromeReveal(Binding binding, WheelOutcomeSnapshot snapshot)
             {
                 if (binding.RewardChromeGroup == null)
                 {
                     return DOVirtual.DelayedCall(0f, () => { }, false);
                 }
 
+                ConfigureChromeForPhase(binding, snapshot.Phase);
+
                 return DOTween.Sequence()
                     .SetUpdate(true)
                     .Append(binding.RewardChromeGroup.DOFade(1f, 0.14f))
                     .Join(binding.RewardChromeGroup.transform.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.22f).SetEase(Ease.OutCubic))
                     .Append(binding.RewardChromeGroup.transform.DOScale(Vector3.one, 0.14f).SetEase(Ease.OutQuad));
+            }
+
+            private static void ConfigureChromeForPhase(Binding binding, WheelGamePhase phase)
+            {
+                bool isBombed = phase == WheelGamePhase.Bombed;
+                SetChromeChildActive(binding, "ui_outcome_popup_bg", isBombed);
+                SetChromeChildActive(binding, "ui_outcome_reward_popup_bg", !isBombed);
+                SetChromeChildActive(binding, "ui_outcome_fail_card_shadow", isBombed);
+                SetChromeChildActive(binding, "ui_outcome_fail_outer_stroke", isBombed);
+                SetChromeChildActive(binding, "ui_outcome_fail_warm_top_glow", isBombed);
+                SetChromeChildActive(binding, "ui_outcome_halo", isBombed);
+                SetChromeChildActive(binding, "ui_button_outcome_retry", isBombed);
+                SetChromeChildActive(binding, "ui_button_outcome_exit", false);
+            }
+
+            private static void SetChromeChildActive(Binding binding, string childName, bool isActive)
+            {
+                Transform child = binding.RewardChromeGroup.transform.Find(childName);
+                if (child != null)
+                {
+                    child.gameObject.SetActive(isActive);
+                }
             }
 
             private static void PrepareRewardReveal(
@@ -513,7 +579,7 @@ namespace Vertigo.Wheel.Views
             {
                 RectTransform iconRect = binding.IconImage.rectTransform;
                 iconRect.anchoredPosition = revealIconPosition;
-                iconRect.localScale = new Vector3(0.62f, 0.62f, 1f);
+                iconRect.localScale = new Vector3(0.58f, 0.58f, 1f);
                 iconRect.localRotation = Quaternion.identity;
                 binding.IconImage.sprite = icon;
                 binding.IconImage.enabled = icon != null;
@@ -527,11 +593,15 @@ namespace Vertigo.Wheel.Views
                 return binding.IconHomeAnchoredPosition;
             }
 
-            private static void ApplyRewardRevealLayout(Binding binding, Vector2 revealIconPosition)
+            private static void ApplyRewardRevealLayout(Binding binding, WheelOutcomeSnapshot snapshot, Vector2 revealIconPosition)
             {
-                SetAnchoredY(binding.TitleText.rectTransform, revealIconPosition.y + 124f);
-                SetAnchoredY(binding.ResultText.rectTransform, revealIconPosition.y - 150f);
-                SetAnchoredY(binding.SummaryText.rectTransform, revealIconPosition.y - 190f);
+                bool isBombed = snapshot.Phase == WheelGamePhase.Bombed;
+                SetAnchoredY(binding.TitleText.rectTransform, revealIconPosition.y + (isBombed ? 102f : 150f));
+                SetAnchoredY(binding.ResultText.rectTransform, revealIconPosition.y - (isBombed ? 140f : 210f));
+                if (binding.SummaryText != null)
+                {
+                    SetAnchoredY(binding.SummaryText.rectTransform, revealIconPosition.y - (isBombed ? 202f : 242f));
+                }
             }
 
             private static void SetAnchoredY(RectTransform rect, float y)
@@ -554,7 +624,7 @@ namespace Vertigo.Wheel.Views
                 }
             }
 
-            private static Tween PlayFlash(Binding binding)
+            private static Tween PlayFlash(Binding binding, WheelOutcomeSnapshot snapshot)
             {
                 if (binding.FlashImage == null)
                 {
@@ -562,12 +632,26 @@ namespace Vertigo.Wheel.Views
                 }
 
                 RectTransform rect = binding.FlashImage.rectTransform;
+                binding.FlashImage.color = snapshot.Phase == WheelGamePhase.Bombed
+                    ? WheelOutcomePopupView.WithAlpha(new Color(1f, 0.22f, 0.04f, 1f), 0f)
+                    : WheelOutcomePopupView.WithAlpha(new Color(1f, 0.8f, 0.28f, 1f), 0f);
+                bool isBombed = snapshot.Phase == WheelGamePhase.Bombed;
+                if (!isBombed)
+                {
+                    return DOTween.Sequence()
+                        .SetUpdate(true)
+                        .Append(binding.FlashImage.DOFade(0.34f, 0.16f))
+                        .Join(rect.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.34f).SetEase(Ease.OutCubic))
+                        .Join(rect.DORotate(new Vector3(0f, 0f, 168f), 1.18f, RotateMode.FastBeyond360).SetEase(Ease.OutCubic))
+                        .Append(binding.FlashImage.DOFade(0.10f, 0.74f));
+                }
+
                 return DOTween.Sequence()
                     .SetUpdate(true)
-                    .Append(binding.FlashImage.DOFade(0.42f, 0.14f))
-                    .Join(rect.DOScale(new Vector3(1.24f, 1.24f, 1f), 0.38f).SetEase(Ease.OutCubic))
+                    .Append(binding.FlashImage.DOFade(0.22f, 0.12f))
+                    .Join(rect.DOScale(new Vector3(1.06f, 1.06f, 1f), 0.34f).SetEase(Ease.OutCubic))
                     .Join(rect.DORotate(new Vector3(0f, 0f, 32f), 0.30f, RotateMode.Fast))
-                    .Append(binding.FlashImage.DOFade(0.12f, 0.36f));
+                    .Append(binding.FlashImage.DOFade(0.015f, 0.34f));
             }
 
             private static Tween PlayShine(Binding binding)
@@ -605,6 +689,11 @@ namespace Vertigo.Wheel.Views
                 }
 
                 snapshot = view._presenter.CurrentSnapshot;
+                if (snapshot.Phase == WheelGamePhase.Bombed)
+                {
+                    return;
+                }
+
                 if (snapshot.Phase != WheelGamePhase.Won || snapshot.RewardAmount <= 0)
                 {
                     CompletePresentation(binding);
@@ -653,7 +742,7 @@ namespace Vertigo.Wheel.Views
                 if (binding.RewardBurstDisplay != null)
                 {
                     binding.RewardBurstDisplay.enabled = true;
-                    binding.RewardBurstDisplay.color = new Color(1f, 1f, 1f, 0.82f);
+                    binding.RewardBurstDisplay.color = new Color(1f, 0.78f, 0.32f, 0.58f);
                     RectTransform displayRect = binding.RewardBurstDisplay.rectTransform;
                     RectTransform iconRect = binding.IconImage.rectTransform;
                     displayRect.anchoredPosition = burstCenter;
@@ -672,17 +761,18 @@ namespace Vertigo.Wheel.Views
                 binding.RewardBurstParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 binding.RewardBurstParticle.Play(true);
 #if UNITY_EDITOR
-                if (binding.Owner != null)
-                {
-                    binding.Owner.CaptureRewardBurstDebug(binding, snapshot);
-                }
+                // Debug capture is intentionally disabled; enable only while tuning UI particle placement.
+                // if (binding.Owner != null)
+                // {
+                //     binding.Owner.CaptureRewardBurstDebug(binding, snapshot);
+                // }
 #endif
             }
 
             private static Vector2 ResolveBurstDisplaySize(RectTransform iconRect)
             {
                 float baseSize = Mathf.Max(iconRect.rect.width, iconRect.rect.height);
-                float size = Mathf.Clamp(baseSize * 5.25f, 760f, 900f);
+                float size = Mathf.Clamp(baseSize * 2.35f, 520f, 620f);
                 return new Vector2(size, size);
             }
 
@@ -866,6 +956,14 @@ namespace Vertigo.Wheel.Views
                 Color color = text.color;
                 color.a = alpha;
                 text.color = color;
+            }
+
+            private static void SetOptionalTextAlpha(TextMeshProUGUI text, float alpha)
+            {
+                if (text != null)
+                {
+                    SetTextAlpha(text, alpha);
+                }
             }
 
         }

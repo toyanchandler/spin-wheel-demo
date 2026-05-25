@@ -308,26 +308,14 @@ MonoBehaviour:
     _allowLeave: 1
   _spinDuration: 3.4
   _minimumSpinRounds: 5
-  _spinEase: 12
+  _spinEase: 13
   _uiCopy: {fileID: 11400000, guid: c998528a1f2544de6af22af46d7995c7, type: 2}
   _skinCatalog: {fileID: 11400000, guid: 4b8da56f1929d4fd28442aa747c0ed74, type: 2}
-  _sliceLayoutCatalog: {fileID: 11400000, guid: 9b8a4c1cff9e848d788fefe41355332a, type: 2}
   _outcomePopupMotionCatalog: {fileID: 11400000, guid: 19c1d868273b04741810067c993b3d30, type: 2}
   _spinResolveCatalog: {fileID: 11400000, guid: dc3247dd498c3499fafb2277fdcd0fa3, type: 2}
   _layout:
-    _referenceResolution: {x: 1920, y: 1080}
-    _wheelPosition: {x: 0, y: 10}
-    _wheelSize: {x: 760, y: 760}
-    _indicatorPosition: {x: 0, y: 96}
-    _indicatorSize: {x: 88, y: 120}
-    _zonePanelPosition: {x: 0, y: -86}
-    _zonePanelSize: {x: 780, y: 86}
-    _rewardPanelPosition: {x: -720, y: -10}
-    _rewardPanelSize: {x: 320, y: 760}
-    _rewardCardSize: {x: 248, y: 72}
-    _maxRewardCards: 8
     _rewardPanelFrameSpriteName: ui_card_frame_gardient
-    _rewardCardFrameSpriteName: ui_card_frame_12px_neutral
+    _rewardCardFrameSpriteName: ui_loot_row_frame_blue
     _zoneStandardPanelSpriteName: ui_card_panel_zone_bg
     _zoneUpcomingPanelSpriteName: ui_card_panel_zone_coming
     _zoneSmallFrameSpriteName: ui_card_frame_4px_zone
@@ -335,20 +323,13 @@ MonoBehaviour:
     _starGlowSpriteName: star_glow_alpha
     _shineSpriteName: ui_vfx_offer_shine
     _rewardPanelFrameSprite: {fileID: 21300000, guid: 4aa0ec944a1174843a3f901a51e99109, type: 3}
-    _rewardCardFrameSprite: {fileID: 21300000, guid: 933f916e969d042d1834a643aad019c2, type: 3}
+    _rewardCardFrameSprite: {fileID: 21300000, guid: 18a8ecbe3ae54728b511601061e3b043, type: 3}
     _zoneStandardPanelSprite: {fileID: 21300000, guid: 52b5447199e70411f907e892b43a5190, type: 3}
     _zoneUpcomingPanelSprite: {fileID: 21300000, guid: 63084c08c2c9843b69ca7f881e07534e, type: 3}
     _zoneSmallFrameSprite: {fileID: 21300000, guid: 35a173753226a4a958b6a871b3f8070d, type: 3}
     _starFlashSprite: {fileID: 21300000, guid: b21cc1da1a1294cd39b760e9a6f96712, type: 3}
     _starGlowSprite: {fileID: 21300000, guid: 9ce31117abe734e12865e83990d22810, type: 3}
     _shineSprite: {fileID: 21300000, guid: 08fa12457ef344b0f8f20b4aaee2427c, type: 3}
-    _statusPosition: {x: 0, y: 100}
-    _statusSize: {x: 900, y: 48}
-    _buttonRowPosition: {x: 0, y: 32}
-    _buttonSize: {x: 252, y: 76}
-    _buttonSpacing: 264
-    _sliceIconRadius: 0.335
-    _sliceIconSize: {x: 92, y: 92}
   _theme:
     _backgroundColor: {r: 0.045, g: 0.05, b: 0.065, a: 1}
     _primaryTextColor: {r: 1, g: 1, b: 1, a: 1}

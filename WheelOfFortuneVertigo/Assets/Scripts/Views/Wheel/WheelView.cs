@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using Vertigo.Collections;
 using Vertigo.Wheel.Data;
@@ -15,6 +16,7 @@ namespace Vertigo.Wheel.Views
 
         private WheelEventBus _eventBus;
         private int _suppressedRewardVisualSliceIndex = -1;
+        private int _highlightedSliceIndex = -1;
         private bool _areAllRewardVisualsSuppressed;
 
         public void Bind(WheelEventBus eventBus)
@@ -23,6 +25,8 @@ namespace Vertigo.Wheel.Views
             WheelRuntimeLocator.RegisterWheelView(this);
             _eventBus = eventBus;
             _eventBus.ZoneChanged += OnZoneChanged;
+            _eventBus.SpinLanded += OnSpinLanded;
+            _eventBus.OutcomeResolved += OnOutcomeResolved;
         }
 
         public void Unbind()
@@ -33,6 +37,8 @@ namespace Vertigo.Wheel.Views
             }
 
             _eventBus.ZoneChanged -= OnZoneChanged;
+            _eventBus.SpinLanded -= OnSpinLanded;
+            _eventBus.OutcomeResolved -= OnOutcomeResolved;
             _eventBus = null;
         }
 
@@ -59,6 +65,27 @@ namespace Vertigo.Wheel.Views
         {
             anchoredPosition = default(Vector2);
             return TryResolveSliceIconPresentation(sliceIndex, targetParent, out anchoredPosition, out Sprite _, out Color _);
+        }
+
+        public bool TryCopySlicePointerAngles(int sliceCount, float[] pointerAngles)
+        {
+            if (sliceCount <= 0 || pointerAngles == null || pointerAngles.Length < sliceCount || _sliceViews == null || _sliceViews.Length < sliceCount)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < sliceCount; i++)
+            {
+                WheelSliceView sliceView = _sliceViews[i];
+                if (sliceView == null)
+                {
+                    return false;
+                }
+
+                pointerAngles[i] = NormalizeAngle(sliceView.PointerAngle);
+            }
+
+            return true;
         }
 
         public bool TryResolveSliceIconPresentation(
@@ -155,13 +182,94 @@ namespace Vertigo.Wheel.Views
 
         private void OnZoneChanged(WheelZoneSnapshot snapshot)
         {
+            ClearBombHitHighlight();
             SlicePoolRenderer.Render(
                 _sliceViews,
                 snapshot.Slices,
-                snapshot.SliceCount,
-                snapshot.SlicePositions,
-                snapshot.SliceIconSize);
+                snapshot.SliceCount);
             ApplySuppressedSliceRewardVisual();
+        }
+
+        private void OnOutcomeResolved(WheelOutcomeSnapshot snapshot)
+        {
+            if (snapshot.Phase == WheelGamePhase.Bombed)
+            {
+                EnsureBombSliceHighlight(snapshot.SourceSliceIndex);
+                return;
+            }
+        }
+
+        private void OnSpinLanded(WheelSpinResult result)
+        {
+            HighlightLandedSlice(result.SliceIndex, result.IsBomb, result.AccentColor);
+        }
+
+        private void HighlightLandedSlice(int sliceIndex, bool isBomb, Color accentColor)
+        {
+            ClearBombHitHighlight();
+            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Length)
+            {
+                return;
+            }
+
+            WheelSliceView sliceView = _sliceViews[sliceIndex];
+            if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            _highlightedSliceIndex = sliceIndex;
+            if (isBomb)
+            {
+                sliceView.PlayBombHitPulse();
+                PlayWheelBombShake();
+                return;
+            }
+
+            sliceView.PlayRewardHitPulse(accentColor);
+        }
+
+        private void EnsureBombSliceHighlight(int sliceIndex)
+        {
+            if (_highlightedSliceIndex == sliceIndex)
+            {
+                return;
+            }
+
+            HighlightLandedSlice(sliceIndex, true, Color.white);
+        }
+
+        private void ClearBombHitHighlight()
+        {
+            if (_highlightedSliceIndex < 0 || _highlightedSliceIndex >= _sliceViews.Length)
+            {
+                _highlightedSliceIndex = -1;
+                return;
+            }
+
+            WheelSliceView sliceView = _sliceViews[_highlightedSliceIndex];
+            if (sliceView != null)
+            {
+                sliceView.ClearImpactVisual();
+            }
+
+            _highlightedSliceIndex = -1;
+        }
+
+        private void PlayWheelBombShake()
+        {
+            WheelSpinner spinner = WheelRuntimeLocator.Spinner;
+            if (spinner == null || spinner.WheelTransform == null)
+            {
+                return;
+            }
+
+            spinner.WheelTransform.DOKill();
+            spinner.WheelTransform
+                .DOPunchRotation(new Vector3(0f, 0f, 5f), 0.20f, 8, 0.45f)
+                .SetTarget(spinner.WheelTransform)
+                .SetUpdate(true)
+                .SetLink(spinner.gameObject, LinkBehaviour.KillOnDisable);
         }
 
         private void ApplySuppressedSliceRewardVisual()
@@ -212,23 +320,22 @@ namespace Vertigo.Wheel.Views
             }
         }
 
+        private static float NormalizeAngle(float angle)
+        {
+            angle %= 360f;
+            return angle < 0f ? angle + 360f : angle;
+        }
+
         private static class SlicePoolRenderer
         {
             public static void Render(
                 WheelSliceView[] pool,
                 WheelSliceDefinition[] slices,
-                int sliceCount,
-                Vector2[] slicePositions,
-                Vector2 iconSize)
+                int sliceCount)
             {
                 if (sliceCount > pool.Length)
                 {
                     throw new InvalidOperationException("Wheel slice pool is smaller than configured slice count. Rebuild the scene hierarchy.");
-                }
-
-                if (slicePositions == null || slicePositions.Length < sliceCount)
-                {
-                    throw new InvalidOperationException("Wheel zone snapshot is missing precomputed slice positions.");
                 }
 
                 int visibleCount = Mathf.Min(sliceCount, pool.Length);
@@ -238,10 +345,9 @@ namespace Vertigo.Wheel.Views
                         slices[i].DisplayIcon,
                         slices[i].DisplayAmount,
                         slices[i].DisplayColor,
-                        slicePositions[i],
                         slices[i].ShowAmountLabel,
                         slices[i].DisplayLabel);
-                    pool[i].Apply(presentation, iconSize);
+                    pool[i].Apply(presentation);
                 }
 
                 for (int i = visibleCount; i < pool.Length; i++)

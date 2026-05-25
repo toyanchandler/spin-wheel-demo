@@ -13,7 +13,7 @@
 
 ## `Editor/`
 
-Sadece Unity Editor: menüler, sahne kurulumu, smoke test, asset pipeline. **Play modda çalışmaz.**
+Sadece Unity Editor: menüler ve asset pipeline. **Play modda çalışmaz.**
 
 ## `Runtime/`
 

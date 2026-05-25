@@ -1,3 +1,4 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,11 +23,18 @@ namespace Vertigo.Wheel.Views
         public RectTransform IconRect { get { return _icon.rectTransform; } }
         public Sprite IconSprite { get { return _icon != null ? _icon.sprite : null; } }
         public Color IconColor { get { return _icon != null ? _icon.color : Color.white; } }
-
-        public void Apply(WheelSlicePresentation presentation, Vector2 maxIconSize)
+        public float PointerAngle
         {
-            _root.anchoredPosition = presentation.AnchoredPosition;
-            _root.sizeDelta = maxIconSize;
+            get
+            {
+                Vector2 position = _root != null ? _root.anchoredPosition : Vector2.zero;
+                return Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
+            }
+        }
+
+        public void Apply(WheelSlicePresentation presentation)
+        {
+            Vector2 maxIconSize = _root != null ? _root.sizeDelta : Vector2.zero;
             _iconRoot.sizeDelta = IconFitter.FitWithinBounds(maxIconSize * 0.86f, presentation.Icon);
             _icon.sprite = presentation.Icon;
             _icon.color = Color.white;
@@ -51,12 +59,97 @@ namespace Vertigo.Wheel.Views
             }
         }
 
+        public void PlayBombHitPulse()
+        {
+            DOTween.Kill(this);
+            _root.DOKill();
+            _root.localScale = Vector3.one;
+            ConfigureImpactCircle(_background, new Color(1f, 0.12f, 0.02f, 0.66f), new Vector3(1.02f, 1.02f, 1f));
+            ConfigureImpactCircle(_rim, new Color(1f, 0.54f, 0.10f, 1f), new Vector3(1.18f, 1.18f, 1f));
+
+            DOTween.Sequence()
+                .SetTarget(this)
+                .SetUpdate(true)
+                .Append(_root.DOScale(new Vector3(1.18f, 1.18f, 1f), 0.11f).SetEase(Ease.OutQuad))
+                .Join(FadeCircle(_rim, 1f, 0.08f))
+                .Join(FadeCircle(_background, 0.70f, 0.08f))
+                .Append(_root.DOScale(new Vector3(0.98f, 0.98f, 1f), 0.10f).SetEase(Ease.InOutSine))
+                .Append(_root.DOScale(new Vector3(1.12f, 1.12f, 1f), 0.10f).SetEase(Ease.OutQuad))
+                .Join(ScaleCircle(_rim, new Vector3(1.60f, 1.60f, 1f), 0.16f))
+                .Append(_root.DOScale(Vector3.one, 0.16f).SetEase(Ease.OutBack))
+                .Join(FadeCircle(_rim, 1f, 0.20f))
+                .Join(FadeCircle(_background, 0.58f, 0.20f));
+        }
+
+        public void PlayRewardHitPulse(Color accentColor)
+        {
+            DOTween.Kill(this);
+            _root.DOKill();
+            _root.localScale = Vector3.one;
+
+            Color glowColor = accentColor.maxColorComponent > 0.03f ? accentColor : new Color(0.22f, 0.92f, 1f, 1f);
+            glowColor.a = 0.76f;
+            Color rimColor = Color.Lerp(glowColor, new Color(1f, 0.78f, 0.22f, 1f), 0.48f);
+            rimColor.a = 1f;
+
+            ConfigureImpactCircle(_background, glowColor, new Vector3(1.02f, 1.02f, 1f));
+            ConfigureImpactCircle(_rim, rimColor, new Vector3(1.20f, 1.20f, 1f));
+
+            DOTween.Sequence()
+                .SetTarget(this)
+                .SetUpdate(true)
+                .Append(_root.DOScale(new Vector3(1.18f, 1.18f, 1f), 0.12f).SetEase(Ease.OutQuad))
+                .Join(FadeCircle(_rim, 1f, 0.10f))
+                .Join(FadeCircle(_background, 0.78f, 0.10f))
+                .Append(_root.DOScale(new Vector3(0.96f, 0.96f, 1f), 0.09f).SetEase(Ease.InOutSine))
+                .Append(_root.DOScale(new Vector3(1.12f, 1.12f, 1f), 0.11f).SetEase(Ease.OutQuad))
+                .Join(ScaleCircle(_rim, new Vector3(1.62f, 1.62f, 1f), 0.20f))
+                .Append(_root.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutBack))
+                .Join(FadeCircle(_background, 0.30f, 0.22f))
+                .Join(FadeCircle(_rim, 0.46f, 0.22f));
+        }
+
+        public void ClearImpactVisual()
+        {
+            DOTween.Kill(this);
+            _root.DOKill();
+            _root.localScale = Vector3.one;
+            SetCircleVisible(_background, false);
+            SetCircleVisible(_rim, false);
+        }
+
         public void Hide()
         {
             if (gameObject.activeSelf)
             {
                 gameObject.SetActive(false);
             }
+        }
+
+        private static void ConfigureImpactCircle(WheelCircleGraphic graphic, Color color, Vector3 scale)
+        {
+            if (graphic == null)
+            {
+                return;
+            }
+
+            graphic.gameObject.SetActive(true);
+            graphic.color = color;
+            graphic.rectTransform.localScale = scale;
+        }
+
+        private static Tween FadeCircle(WheelCircleGraphic graphic, float alpha, float duration)
+        {
+            return graphic == null
+                ? DOVirtual.DelayedCall(duration, () => { }, false)
+                : graphic.DOFade(alpha, duration);
+        }
+
+        private static Tween ScaleCircle(WheelCircleGraphic graphic, Vector3 scale, float duration)
+        {
+            return graphic == null
+                ? DOVirtual.DelayedCall(duration, () => { }, false)
+                : graphic.rectTransform.DOScale(scale, duration).SetEase(Ease.OutQuad);
         }
 
         public void ApplyUprightPresentation()

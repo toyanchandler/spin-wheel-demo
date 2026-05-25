@@ -1,35 +1,11 @@
 #if UNITY_EDITOR
 using System.IO;
 using UnityEditor;
-using UnityEngine;
 
 namespace Vertigo.Wheel.EditorTools
 {
     public static class VertigoWheelBootstrapper
     {
-        [MenuItem("Vertigo Case/Rebuild Wheel Scene", true)]
-        private static bool ValidateRebuildScene()
-        {
-            return !EditorApplication.isPlayingOrWillChangePlaymode;
-        }
-
-        [MenuItem("Vertigo Case/Rebuild Wheel Scene")]
-        public static void RebuildScene()
-        {
-            VertigoWheelAssetPipeline.ConfigureImportedSprites();
-            Material material = VertigoWheelAssetPipeline.EnsureUiMaterial();
-            VertigoWheelAssetPipeline.EnsureGameSettings();
-            VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
-            VertigoWheelAssetPipeline.EnsureSkinCatalog();
-            VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
-            VertigoWheelAssetPipeline.EnsureOutcomePopupMotionCatalog();
-            VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
-            VertigoWheelAssetPipeline.EnsureAtlas();
-            VertigoWheelProjectSetup.EnsureGameViewSizes();
-            VertigoWheelProjectSetup.ConfigureAndroidProject();
-            VertigoWheelSceneBuilder.CreateScene(material);
-        }
-
         [MenuItem("Vertigo Case/Apply Android Case Setup")]
         public static void ApplyAndroidCaseSetup()
         {
@@ -49,20 +25,15 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             VertigoWheelAssetPipeline.ConfigureImportedSprites();
-            Material material = VertigoWheelAssetPipeline.EnsureUiMaterial();
+            VertigoWheelAssetPipeline.EnsureUiMaterial();
             VertigoWheelAssetPipeline.EnsureGameSettings();
             VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
             VertigoWheelAssetPipeline.EnsureSkinCatalog();
-            VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
             VertigoWheelAssetPipeline.EnsureOutcomePopupMotionCatalog();
             VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
             VertigoWheelAssetPipeline.EnsureAtlas();
             VertigoWheelProjectSetup.EnsureGameViewSizes();
             VertigoWheelProjectSetup.ConfigureAndroidProject();
-            if (!File.Exists(VertigoWheelPaths.ScenePath))
-            {
-                VertigoWheelSceneBuilder.CreateScene(material);
-            }
         }
     }
 }

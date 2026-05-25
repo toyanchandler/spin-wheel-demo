@@ -24,18 +24,15 @@ Implemented:
 - DOTween initialized with recyclable tween policy and fixed capacity
 
 Editor tools:
-- `Vertigo Case/Rebuild Wheel Scene`
 - `Vertigo Case/Apply Android Case Setup`
 - `Vertigo Case/Ensure Project Assets`
 - `Vertigo Case/Wheel Designer`
-- `Vertigo Case/Run Smoke Checks`
 - `Vertigo Case/Play Commands/Spin`
 - `Vertigo Case/Play Commands/Retry`
 - `Vertigo Case/Play Commands/Exit`
 
 Validation:
-- Run `Vertigo Case/Run Smoke Checks` after rebuilding the scene.
-- The smoke check verifies Android settings, scene references, component counts, runtime start/stop, event commands, no runtime `Update`, and forbidden runtime APIs.
+- MainScene is the source of truth for scene-authored UI layout.
 
 Android note:
 - Google Play submission currently requires Android 15 / API 35 or higher for new apps and updates.

@@ -32,14 +32,12 @@ namespace Vertigo.Wheel.EditorTools
         private WheelGameSettings _settings;
         private WheelUiCopyCatalog _uiCopy;
         private WheelSkinCatalog _skinCatalog;
-        private WheelSliceLayoutCatalog _sliceLayoutCatalog;
         private WheelOutcomePopupMotionCatalog _popupMotionCatalog;
         private WheelSpinResolveCatalog _spinResolveCatalog;
 
         private SerializedObject _settingsObject;
         private SerializedObject _uiCopyObject;
         private SerializedObject _skinObject;
-        private SerializedObject _sliceLayoutObject;
         private SerializedObject _popupMotionObject;
         private SerializedObject _spinResolveObject;
 
@@ -48,7 +46,6 @@ namespace Vertigo.Wheel.EditorTools
         private bool _showAdvancedSettings;
         private bool _showAdvancedUiCopy;
         private bool _showAdvancedSkins;
-        private bool _showAdvancedSliceLayout;
         private bool _showAdvancedPopupMotion;
         private bool _showAdvancedResolveRules;
 
@@ -167,20 +164,17 @@ namespace Vertigo.Wheel.EditorTools
         {
             DrawMetricGrid();
 
-            DrawCard("Quick Actions", "Stored in: editor tools", "Use these after changing content or layout.", () =>
+            DrawCard("Quick Actions", "Stored in: editor tools", "Use these after changing project assets.", () =>
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("Apply Android Setup", _secondaryButtonStyle, GUILayout.Height(34f)))
                     {
-                        VertigoWheelBootstrapper.ApplyAndroidCaseSetup();
-                        ResolveAssets(true);
-                    }
-
-                    if (GUILayout.Button("Rebuild Scene", _primaryButtonStyle, GUILayout.Height(34f)))
-                    {
-                        VertigoWheelBootstrapper.RebuildScene();
-                        ResolveAssets(true);
+                        RunAfterGui(() =>
+                        {
+                            VertigoWheelBootstrapper.ApplyAndroidCaseSetup();
+                            ResolveAssets(true);
+                        });
                     }
                 }
 
@@ -188,8 +182,11 @@ namespace Vertigo.Wheel.EditorTools
                 {
                     if (GUILayout.Button("Repair Linked Assets", _secondaryButtonStyle, GUILayout.Height(28f)))
                     {
-                        VertigoWheelBootstrapper.EnsureProjectAssets();
-                        ResolveAssets(true);
+                        RunAfterGui(() =>
+                        {
+                            VertigoWheelBootstrapper.EnsureProjectAssets();
+                            ResolveAssets(true);
+                        });
                     }
 
                     if (GUILayout.Button("Select Main Settings", _secondaryButtonStyle, GUILayout.Height(28f)))
@@ -204,7 +201,6 @@ namespace Vertigo.Wheel.EditorTools
                 DrawAssetStatusRow("Main Settings", _settings, "Zone progression, rewards, colors and layout.");
                 DrawAssetStatusRow("Zone Texts", _uiCopy, "Zone labels, status hints and outcome popup text.");
                 DrawAssetStatusRow("Wheel Skins", _skinCatalog, "Bronze, silver and golden wheel/indicator sprites.");
-                DrawAssetStatusRow("Slice Positions", _sliceLayoutCatalog, "Preset wheel slot centers.");
                 DrawAssetStatusRow("Popup Motion", _popupMotionCatalog, "Outcome popup fade, scale and ease.");
                 DrawAssetStatusRow("Resolve Rules", _spinResolveCatalog, "What a reward or bomb hit does to state.");
             });
@@ -289,38 +285,6 @@ namespace Vertigo.Wheel.EditorTools
                 DrawRelative(theme, "_successColor", "Success");
             });
 
-            DrawCard("Screen Layout", "Stored in: WheelGameSettings.asset", "Controls major canvas positions and sizes used when the scene is rebuilt.", () =>
-            {
-                SerializedProperty layout = FindProperty(_settingsObject, "_layout");
-                DrawRelative(layout, "_referenceResolution", "Reference Resolution");
-                DrawRelative(layout, "_wheelPosition", "Wheel Position");
-                DrawRelative(layout, "_wheelSize", "Wheel Size");
-                DrawRelative(layout, "_indicatorPosition", "Indicator Position");
-                DrawRelative(layout, "_indicatorSize", "Indicator Size");
-                DrawRelative(layout, "_zonePanelPosition", "Zone Panel Position");
-                DrawRelative(layout, "_zonePanelSize", "Zone Panel Size");
-                DrawRelative(layout, "_rewardPanelPosition", "Reward Panel Position");
-                DrawRelative(layout, "_rewardPanelSize", "Reward Panel Size");
-                DrawRelative(layout, "_rewardCardSize", "Reward Card Size");
-                DrawRelative(layout, "_maxRewardCards", "Max Reward Cards");
-                DrawRelative(layout, "_statusPosition", "Status Position");
-                DrawRelative(layout, "_statusSize", "Status Size");
-                DrawRelative(layout, "_buttonRowPosition", "Button Row Position");
-                DrawRelative(layout, "_buttonSize", "Button Size");
-                DrawRelative(layout, "_buttonSpacing", "Button Spacing");
-                DrawRelative(layout, "_sliceIconRadius", "Slice Icon Radius");
-                DrawRelative(layout, "_sliceIconSize", "Slice Icon Size");
-
-                EditorGUILayout.Space(6f);
-                if (GUILayout.Button("Apply Centered Composition", _secondaryButtonStyle, GUILayout.Height(28f)))
-                {
-                    Undo.RecordObject(_settings, "Apply Centered Composition");
-                    _settings.Layout.ApplyCenteredComposition();
-                    EditorUtility.SetDirty(_settings);
-                    _settingsObject.Update();
-                }
-            });
-
             DrawCard("Zone Texts", "Stored in: WheelUiCopyCatalog.asset", "Controls labels, status hints, zone colors and which wheel skin tier each zone uses.", () =>
             {
                 DrawProperty(_uiCopyObject, "_winLabelFormat", "Win Label Format");
@@ -344,11 +308,6 @@ namespace Vertigo.Wheel.EditorTools
                 DrawProperty(_popupMotionObject, "_motion", "Outcome Popup Motion", true);
             });
 
-            DrawCard("Slice Positions", "Stored in: WheelSliceLayoutCatalog.asset", "Preset wheel slot centers for the current wheel art.", () =>
-            {
-                DrawProperty(_sliceLayoutObject, "_presetSliceCount", "Preset Slice Count");
-                DrawProperty(_sliceLayoutObject, "_normalizedPresetCenters", "Normalized Centers", true);
-            });
         }
 
         private void DrawAdvancedAssetsTab()
@@ -358,7 +317,6 @@ namespace Vertigo.Wheel.EditorTools
                 DrawLinkedAssetControls("Main Settings", _settings, ref _showAdvancedSettings, _settingsObject);
                 DrawLinkedAssetControls("Zone Texts", _uiCopy, ref _showAdvancedUiCopy, _uiCopyObject);
                 DrawLinkedAssetControls("Wheel Skins", _skinCatalog, ref _showAdvancedSkins, _skinObject);
-                DrawLinkedAssetControls("Slice Positions", _sliceLayoutCatalog, ref _showAdvancedSliceLayout, _sliceLayoutObject);
                 DrawLinkedAssetControls("Popup Motion", _popupMotionCatalog, ref _showAdvancedPopupMotion, _popupMotionObject);
                 DrawLinkedAssetControls("Resolve Rules", _spinResolveCatalog, ref _showAdvancedResolveRules, _spinResolveObject);
             });
@@ -516,21 +474,36 @@ namespace Vertigo.Wheel.EditorTools
         {
             EditorGUILayout.Space(CardSpacing);
             EditorGUILayout.BeginVertical(_cardStyle, GUILayout.MaxWidth(ContentWidth));
-            using (new EditorGUILayout.HorizontalScope())
+            try
             {
-                EditorGUILayout.LabelField(title, _cardTitleStyle);
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(storage, _pillStyle, GUILayout.MaxWidth(Mathf.Min(260f, ContentWidth * 0.45f)));
-            }
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(title, _cardTitleStyle);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label(storage, _pillStyle, GUILayout.MaxWidth(Mathf.Min(260f, ContentWidth * 0.45f)));
+                }
 
-            if (!string.IsNullOrEmpty(hint))
+                if (!string.IsNullOrEmpty(hint))
+                {
+                    EditorGUILayout.LabelField(hint, _sectionHintStyle);
+                }
+
+                EditorGUILayout.Space(7f);
+                content();
+            }
+            finally
             {
-                EditorGUILayout.LabelField(hint, _sectionHintStyle);
+                EditorGUILayout.EndVertical();
             }
+        }
 
-            EditorGUILayout.Space(7f);
-            content();
-            EditorGUILayout.EndVertical();
+        private void RunAfterGui(Action action)
+        {
+            EditorApplication.delayCall += () =>
+            {
+                action();
+                Repaint();
+            };
         }
 
         private void DrawMetric(string label, string value, Color accent)
@@ -632,7 +605,6 @@ namespace Vertigo.Wheel.EditorTools
             {
                 _uiCopy = _settings.UiCopy != null ? _settings.UiCopy : VertigoWheelAssetPipeline.EnsureUiCopyCatalog();
                 _skinCatalog = _settings.SkinCatalog != null ? _settings.SkinCatalog : VertigoWheelAssetPipeline.EnsureSkinCatalog();
-                _sliceLayoutCatalog = _settings.SliceLayoutCatalog != null ? _settings.SliceLayoutCatalog : VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
                 _popupMotionCatalog = _settings.OutcomePopupMotionCatalog != null ? _settings.OutcomePopupMotionCatalog : VertigoWheelAssetPipeline.EnsureOutcomePopupMotionCatalog();
                 _spinResolveCatalog = _settings.SpinResolveCatalog != null ? _settings.SpinResolveCatalog : VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
                 WireMissingCatalogReferences();
@@ -654,12 +626,6 @@ namespace Vertigo.Wheel.EditorTools
             if (_settings.SkinCatalog == null)
             {
                 _settings.ConfigureSkinCatalog(_skinCatalog);
-                dirty = true;
-            }
-
-            if (_settings.SliceLayoutCatalog == null)
-            {
-                _settings.ConfigureSliceLayoutCatalog(_sliceLayoutCatalog);
                 dirty = true;
             }
 
@@ -687,7 +653,6 @@ namespace Vertigo.Wheel.EditorTools
             _settingsObject = _settings == null ? null : new SerializedObject(_settings);
             _uiCopyObject = _uiCopy == null ? null : new SerializedObject(_uiCopy);
             _skinObject = _skinCatalog == null ? null : new SerializedObject(_skinCatalog);
-            _sliceLayoutObject = _sliceLayoutCatalog == null ? null : new SerializedObject(_sliceLayoutCatalog);
             _popupMotionObject = _popupMotionCatalog == null ? null : new SerializedObject(_popupMotionCatalog);
             _spinResolveObject = _spinResolveCatalog == null ? null : new SerializedObject(_spinResolveCatalog);
         }
@@ -697,7 +662,6 @@ namespace Vertigo.Wheel.EditorTools
             UpdateSerializedObject(_settingsObject);
             UpdateSerializedObject(_uiCopyObject);
             UpdateSerializedObject(_skinObject);
-            UpdateSerializedObject(_sliceLayoutObject);
             UpdateSerializedObject(_popupMotionObject);
             UpdateSerializedObject(_spinResolveObject);
         }
@@ -715,7 +679,6 @@ namespace Vertigo.Wheel.EditorTools
             ApplySerializedObject(_settingsObject);
             ApplySerializedObject(_uiCopyObject);
             ApplySerializedObject(_skinObject);
-            ApplySerializedObject(_sliceLayoutObject);
             ApplySerializedObject(_popupMotionObject);
             ApplySerializedObject(_spinResolveObject);
         }

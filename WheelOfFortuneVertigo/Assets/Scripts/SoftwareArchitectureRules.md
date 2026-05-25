@@ -21,7 +21,7 @@ Related deep dives:
 4. **Encapsulation everywhere** — no public mutable fields on config DTOs; SO roots expose get-only APIs.
 5. **Explicit boundaries** — cross-subtree communication uses locator, event bus, or shared SOs only.
 6. **One composition root** — `game_wheel_runtime` bootstraps session; no scattered `FindObjectOfType` gameplay graphs.
-7. **Fail loud** — missing wiring throws `InvalidOperationException` with a clear message (smoke checks enforce the rest).
+7. **Fail loud** — missing wiring throws `InvalidOperationException` with a clear message.
 
 ---
 
@@ -32,7 +32,7 @@ Assets/Config/          → ScriptableObject assets (designer data)
 Assets/Scripts/Data/    → SO classes, Definitions, Rules (no .asset files here)
 Assets/Scripts/Runtime/ → Play mode gameplay + bootstrap + publishing
 Assets/Scripts/Views/   → Scene UI MonoBehaviours (render snapshots, raise intents)
-Assets/Scripts/Editor/  → Menus, scene builder, smoke tests (never referenced at runtime)
+Assets/Scripts/Editor/  → Menus, inspectors, asset tools (never referenced at runtime)
 Assets/Scripts/Collections/ → [CollectChildren] attribute (runtime) + editor collectors
 ```
 
@@ -175,7 +175,7 @@ When pool lives under a child transform (e.g. opening overlay cards row):
 [SerializeField] private WheelRewardCardView[] _rewardCards;
 ```
 
-Scene builder sets `_cardPoolRoot` then calls `WheelEditorWiring.CollectChildren(...)`.
+Editor tooling sets `_cardPoolRoot` then calls `WheelEditorWiring.CollectChildren(...)`.
 
 ### 5.5 Custom bindings (zone progress)
 
@@ -298,12 +298,10 @@ Gameplay rules stay out of Views and Editor.
 
 | Editor | Runtime |
 |--------|---------|
-| `VertigoWheelSceneBuilder` | Never referenced |
-| `VertigoCaseSmokeChecks` | Never referenced |
 | `WheelEditorWiring`, `CollectChildren` | Never referenced |
 | `#if UNITY_EDITOR` custom editors | Stripped or inactive in player |
 
-Menus (Vertigo Case): **Rebuild Wheel Scene**, **Run Smoke Checks**, designer windows.
+Menus (Vertigo Case): Android setup, project asset repair, play commands, designer windows.
 
 Editor assembly must not become a second runtime.
 
@@ -317,7 +315,7 @@ Editor assembly must not become a second runtime.
 - String-based child matching (`ui_slice_0_value`) in collectors
 - Cross-canvas `[SerializeField]` refs
 - Views reading `WheelGameSettings` or formatting milestone/badge strings
-- Gameplay logic in `Editor` scripts or scene builder calling runtime flow directly
+- Gameplay logic in `Editor` scripts calling runtime flow directly
 - Duplicate event systems (UnityEvents + bus for same intent)
 - Mega inspector lists on runtime root
 - Silent nulls in UI when wiring is missing (prefer throw on bind)
@@ -329,12 +327,8 @@ Editor assembly must not become a second runtime.
 
 Before considering a feature done:
 
-1. **Rebuild Wheel Scene** (or confirm smoke scene matches rules)
-2. **Vertigo Case → Run Smoke Checks**
-3. Play mode: spin, bomb, cash out, restart — HUD/wheel/popup update
-4. Inspector: `[CollectChildren]` arrays populated, no missing refs on hosts
-
-`WheelHierarchyWiringValidator` enforces SO paths under `Assets/Config/`.
+1. Play mode: spin, bomb, cash out, restart — HUD/wheel/popup update
+2. Inspector: `[CollectChildren]` arrays populated, no missing refs on hosts
 
 ---
 
@@ -345,8 +339,7 @@ Before considering a feature done:
 3. Bind view from canvas host (or same-subtree ref) — **not** from other canvas.
 4. Extend `WheelSnapshotFactory` / catalog if new text or colors needed.
 5. Subscribe in view `Bind`; apply only snapshot fields in handler.
-6. Scene builder: wire root, `CollectChildren`, `FinalizeCollect` / mark dirty.
-7. Extend smoke check for array length / refs if critical.
+6. Editor wiring: wire root, `CollectChildren`, `FinalizeCollect` / mark dirty.
 
 ---
 

@@ -16,8 +16,11 @@ namespace Vertigo.Wheel.EditorTools
         [MenuItem("Vertigo Case/Play Commands/Spin", true)]
         [MenuItem("Vertigo Case/Play Commands/Retry", true)]
         [MenuItem("Vertigo Case/Play Commands/Exit", true)]
+        [MenuItem("Vertigo Case/Play Commands/Force Reward Popup", true)]
+        [MenuItem("Vertigo Case/Play Commands/Force Bomb Fail", true)]
         [MenuItem("Vertigo Case/Play Commands/Add 15 Rewards", true)]
         [MenuItem("Vertigo Case/Play Commands/End With 15 Rewards", true)]
+        [MenuItem("Vertigo Case/Play Commands/Capture Start Frame", true)]
         private static bool ValidatePlayCommand()
         {
             return Application.isPlaying;
@@ -41,6 +44,76 @@ namespace Vertigo.Wheel.EditorTools
             Runtime().RequestLeave();
         }
 
+        [MenuItem("Vertigo Case/Play Commands/Force Reward Popup")]
+        private static void ForceRewardPopup()
+        {
+            WheelGameState state = WheelRuntimeLocator.State;
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            WheelGameSettings settings = WheelRuntimeLocator.Settings;
+            WheelSpinner spinner = WheelRuntimeLocator.Spinner;
+            if (state == null || publisher == null || settings == null || spinner == null)
+            {
+                return;
+            }
+
+            state.Restart();
+            state.PrepareCurrentZone();
+            publisher.PublishAll();
+
+            int rewardIndex = FindRewardSliceIndex(state);
+            if (rewardIndex < 0)
+            {
+                return;
+            }
+
+            spinner.SetSlices(state.Slices, state.SliceCount);
+            spinner.SnapToSelectionForDebug(rewardIndex);
+            var result = new WheelSpinResult(rewardIndex, state.Slices[rewardIndex]);
+            state.Resolve(result);
+            publisher.PublishZone();
+            publisher.PublishOutcome(result, true);
+            publisher.PublishHud();
+            Directory.CreateDirectory("Temp/DebugScreenshots");
+            publisher.StartCoroutine(CaptureScreenshotAfterLayout(
+                "Temp/DebugScreenshots/reward_popup_runtime.png",
+                true));
+        }
+
+        [MenuItem("Vertigo Case/Play Commands/Force Bomb Fail")]
+        private static void ForceBombFail()
+        {
+            WheelGameState state = WheelRuntimeLocator.State;
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            WheelGameSettings settings = WheelRuntimeLocator.Settings;
+            WheelSpinner spinner = WheelRuntimeLocator.Spinner;
+            if (state == null || publisher == null || settings == null || spinner == null)
+            {
+                return;
+            }
+
+            state.Restart();
+            AddDebugRewards(state, settings, 3);
+            state.PrepareCurrentZone();
+            publisher.PublishAll();
+
+            int bombIndex = FindBombSliceIndex(state);
+            if (bombIndex < 0)
+            {
+                return;
+            }
+
+            spinner.SetSlices(state.Slices, state.SliceCount);
+            spinner.SnapToSelectionForDebug(bombIndex);
+            var result = new WheelSpinResult(bombIndex, state.Slices[bombIndex]);
+            state.Resolve(result);
+            publisher.PublishZone();
+            publisher.PublishOutcome(result, true);
+            publisher.PublishHud();
+            publisher.StartCoroutine(CaptureScreenshotAfterLayout(
+                "/Users/bengisucay/ComputerUse/vertigo-case/screenshots/vertigo_bomb_fail_frame.png",
+                false));
+        }
+
         [MenuItem("Vertigo Case/Play Commands/Add 15 Rewards")]
         private static void AddFifteenRewards()
         {
@@ -62,6 +135,23 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             _endWithRewardsRoutine = publisher.StartCoroutine(BuildFifteenRewardEndStateAfterReset());
+        }
+
+        [MenuItem("Vertigo Case/Play Commands/Capture Start Frame")]
+        private static void CaptureStartFrame()
+        {
+            WheelGameState state = WheelRuntimeLocator.State;
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            if (state == null || publisher == null)
+            {
+                return;
+            }
+
+            state.Restart();
+            publisher.PublishAll();
+            publisher.StartCoroutine(CaptureScreenshotAfterLayout(
+                "/Users/bengisucay/ComputerUse/vertigo-case/screenshots/vertigo_first_play_frame.png",
+                false));
         }
 
         private static IEnumerator BuildFifteenRewardEndStateAfterReset()
@@ -198,6 +288,54 @@ namespace Vertigo.Wheel.EditorTools
                     target.Add(source[i]);
                 }
             }
+        }
+
+        private static int FindBombSliceIndex(WheelGameState state)
+        {
+            for (int i = 0; i < state.SliceCount; i++)
+            {
+                if (state.Slices[i].IsBomb)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int FindRewardSliceIndex(WheelGameState state)
+        {
+            for (int i = 0; i < state.SliceCount; i++)
+            {
+                if (IsReferenceLikeReward(state.Slices[i]))
+                {
+                    return i;
+                }
+            }
+
+            for (int i = 0; i < state.SliceCount; i++)
+            {
+                if (!state.Slices[i].IsBomb)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool IsReferenceLikeReward(WheelSliceDefinition slice)
+        {
+            if (slice == null || slice.IsBomb || slice.Reward == null)
+            {
+                return false;
+            }
+
+            string displayName = slice.Reward.DisplayName;
+            return !string.IsNullOrEmpty(displayName)
+                && displayName.IndexOf("Points", System.StringComparison.OrdinalIgnoreCase) < 0
+                && displayName.IndexOf("Chest", System.StringComparison.OrdinalIgnoreCase) < 0
+                && displayName.IndexOf("Cash", System.StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         private static WheelRuntimeCompositionRoot Runtime()

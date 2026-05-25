@@ -11,6 +11,9 @@ namespace Vertigo.Wheel.Views
 {
     public sealed class WheelRewardOpeningView : MonoBehaviour
     {
+        private const float RevealScrollLeadIn = 0.10f;
+        private const float RevealScrollSettle = 0.36f;
+
         [SerializeField] private GameObject _root;
         [SerializeField] private TextMeshProUGUI _titleText;
         [SerializeField] private CanvasGroup _canvasGroup;
@@ -157,14 +160,24 @@ namespace Vertigo.Wheel.Views
         {
             EnsureCardCapacity(snapshot.RewardCardCount);
             LayoutVisibleCards(snapshot.RewardCardCount);
+            int visibleCount = Mathf.Min(snapshot.RewardCardCount, _rewardCards.Length);
+            Sprite frame = _cardFrameSource.sprite;
             for (int i = 0; i < _rewardCards.Length; i++)
             {
-                int visible = System.Convert.ToInt32(i < snapshot.RewardCardCount);
-                CardSlotActions[visible](_rewardCards[i], snapshot, _cardFrameSource.sprite, i);
+                if (i >= visibleCount)
+                {
+                    _rewardCards[i].Hide();
+                    continue;
+                }
+
+                int revealOrder = (visibleCount - 1) - i;
+                _rewardCards[i].ApplyFrames(frame);
+                _rewardCards[i].Apply(snapshot.RewardCards[i], revealOrder, true);
             }
 
-            FocusCardIndex(0);
+            FocusCardIndex(visibleCount - 1);
             UpdateScrollControls();
+            PlayReverseRevealScroll(visibleCount);
             PlayRevealParticleField(snapshot.RewardCardCount);
         }
 
@@ -179,6 +192,9 @@ namespace Vertigo.Wheel.Views
             const float cardWidth = 370f;
             const float spacing = 48f;
             float rowWidth = (count * cardWidth) + ((count - 1) * spacing);
+            float viewportWidth = _viewportRect == null ? 0f : _viewportRect.rect.width;
+            float contentWidth = Mathf.Max(viewportWidth, rowWidth);
+            float startX = ((contentWidth - rowWidth) * 0.5f) + (cardWidth * 0.5f);
             for (int i = 0; i < count; i++)
             {
                 RectTransform rect = _rewardCards[i].GetComponent<RectTransform>();
@@ -186,13 +202,12 @@ namespace Vertigo.Wheel.Views
                 rect.anchorMin = new Vector2(0f, 0.5f);
                 rect.anchorMax = new Vector2(0f, 0.5f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = new Vector2((cardWidth * 0.5f) + (i * (cardWidth + spacing)), 0f);
+                rect.anchoredPosition = new Vector2(startX + (i * (cardWidth + spacing)), 0f);
             }
 
             if (_contentRect != null)
             {
-                float viewportWidth = _viewportRect == null ? 0f : _viewportRect.rect.width;
-                _contentRect.sizeDelta = new Vector2(Mathf.Max(viewportWidth, rowWidth), 0f);
+                _contentRect.sizeDelta = new Vector2(contentWidth, 0f);
             }
         }
 
@@ -271,6 +286,39 @@ namespace Vertigo.Wheel.Views
             _contentRect.anchoredPosition = new Vector2(-targetX, _contentRect.anchoredPosition.y);
             _scrollRect.horizontalNormalizedPosition = maxScrollX <= 0f ? 0f : targetX / maxScrollX;
             UpdateScrollControls();
+        }
+
+        private void PlayReverseRevealScroll(int visibleCount)
+        {
+            _scrollTween?.Kill();
+            _scrollTween = null;
+            if (visibleCount <= 1 || _scrollRect == null || _contentRect == null || _viewportRect == null)
+            {
+                return;
+            }
+
+            float maxScrollX = Mathf.Max(0f, _contentRect.rect.width - _viewportRect.rect.width);
+            if (maxScrollX <= 1f)
+            {
+                return;
+            }
+
+            float revealDuration = Mathf.Min(
+                WheelRewardCardView.OpeningFeaturedRevealMaxDelay,
+                (visibleCount - 1) * WheelRewardCardView.OpeningFeaturedRevealStep);
+            float scrollDuration = Mathf.Max(0.24f, revealDuration + RevealScrollSettle);
+            _scrollTween = DOTween.Sequence()
+                .SetTarget(this)
+                .SetUpdate(true)
+                .AppendInterval(RevealScrollLeadIn)
+                .Append(DOTween.To(
+                        () => _scrollRect.horizontalNormalizedPosition,
+                        value => _scrollRect.horizontalNormalizedPosition = value,
+                        0f,
+                        scrollDuration)
+                    .SetEase(Ease.InOutCubic)
+                    .OnUpdate(UpdateScrollControls))
+                .OnComplete(UpdateScrollControls);
         }
 
         private void ScrollPrevious()
@@ -424,15 +472,5 @@ namespace Vertigo.Wheel.Views
                     name + " has no reward cards. Collect children in the inspector or rebuild the scene.");
             }
         }
-
-        private static readonly System.Action<WheelRewardCardView, WheelHudSnapshot, Sprite, int>[] CardSlotActions =
-        {
-            (view, snapshot, frame, index) => view.Hide(),
-            (view, snapshot, frame, index) =>
-            {
-                view.ApplyFrames(frame);
-                view.Apply(snapshot.RewardCards[index], index, true);
-            }
-        };
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.Collections;
@@ -18,6 +19,13 @@ namespace Vertigo.Wheel.Views
         [SerializeField] private RectTransform _viewportRect;
         [SerializeField] private RectTransform _contentRect;
         [SerializeField] private ScrollRect _scrollRect;
+        [SerializeField] private GameObject _starterLootRoot;
+        [SerializeField] private CanvasGroup _starterLootGroup;
+        [SerializeField] private CanvasGroup _cardPoolGroup;
+        [SerializeField] private Image _riskValueCardImage;
+        [SerializeField] private Image _riskValueGlowImage;
+        [SerializeField] private TextMeshProUGUI _riskValueLabel;
+        [SerializeField] private TextMeshProUGUI _riskValueAmount;
 
         private WheelEventBus _eventBus;
         private RewardInventoryEntry[] _renderedCards = Array.Empty<RewardInventoryEntry>();
@@ -34,8 +42,10 @@ namespace Vertigo.Wheel.Views
             RequireCardViews();
             EnsureBuffers();
             EnsureScrollableStrip();
+            EnsureFailStateReferences();
             _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
+            HideLegacyRiskValueCard();
         }
 
         public void Unbind()
@@ -61,13 +71,15 @@ namespace Vertigo.Wheel.Views
             EnsureCardCapacity(snapshot.RewardCardCount);
             EnsureBuffers();
             _panelFrameImage.sprite = snapshot.RewardPanelFrameSprite;
-            _panelFrameImage.color = Color.white;
             _panelFrameImage.raycastTarget = true;
             _cardFrameSprite = snapshot.RewardCardFrameSprite;
             if (ShouldDeferRewardGain(snapshot))
             {
                 StorePending(snapshot);
                 RenderStoredCards(_renderedCards, _renderedCount);
+                PreparePendingLandingSpace();
+                SyncStarterLootVisibility();
+                ApplyLostState(false);
                 ScheduleFallbackCommit();
                 return;
             }
@@ -167,6 +179,7 @@ namespace Vertigo.Wheel.Views
             PlayPanelPulse();
             FocusCardIndex(_pendingChangedIndex >= 0 ? _pendingChangedIndex : _renderedCount - 1, true);
             PulseChangedCards(oldCount, _pendingChangedIndex);
+            SyncStarterLootVisibility();
             _pendingChangedIndex = -1;
         }
 
@@ -177,6 +190,8 @@ namespace Vertigo.Wheel.Views
             _hasPendingCards = false;
             _renderedCount = CopyCards(snapshot, _renderedCards);
             RenderStoredCards(_renderedCards, _renderedCount, false, -1);
+            SyncStarterLootVisibility();
+            ApplyLostState(snapshot.Phase == WheelGamePhase.Bombed);
         }
 
         private void RenderStoredCards(RewardInventoryEntry[] cards, int count)
@@ -192,9 +207,26 @@ namespace Vertigo.Wheel.Views
                 int visible = System.Convert.ToInt32(i < count);
                 bool animated = animateChangedCard && i == changedIndex;
                 CardSlotActions[visible](_cardViews[i], cards, _cardFrameSprite, i, animated);
+                _cardViews[i].SetLostVisualState(false);
             }
 
             FocusCardIndex(count - 1, false);
+        }
+
+        private void SyncStarterLootVisibility()
+        {
+            if (_starterLootRoot != null)
+            {
+                _starterLootRoot.SetActive(false);
+            }
+        }
+
+        private void PreparePendingLandingSpace()
+        {
+            int reservedCount = Mathf.Max(_renderedCount, _pendingCount);
+            ArrangeCards(reservedCount);
+            int focusIndex = _pendingChangedIndex >= 0 ? _pendingChangedIndex : reservedCount - 1;
+            FocusCardIndex(focusIndex, true);
         }
 
         private void PulseChangedCards(int oldCount, int changedIndex)
@@ -221,6 +253,147 @@ namespace Vertigo.Wheel.Views
                 .SetUpdate(true)
                 .Append(panelTransform.DOScale(new Vector3(1.025f, 1.025f, 1f), 0.12f).SetEase(Ease.OutQuad))
                 .Append(panelTransform.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutBack));
+        }
+
+        private void ApplyLostState(bool isLost)
+        {
+            EnsureFailStateReferences();
+            SetGroupAlpha(_starterLootGroup, isLost ? 0.62f : 1f);
+            SetGroupAlpha(_cardPoolGroup, isLost ? 0.66f : 1f);
+
+            int count = Mathf.Min(_renderedCount, _cardViews.Length);
+            for (int i = 0; i < count; i++)
+            {
+                _cardViews[i].SetLostVisualState(isLost);
+            }
+
+            if (_riskValueLabel != null)
+            {
+                _riskValueLabel.text = isLost ? "LOOT LOST" : "CLAIM LOOT";
+                _riskValueLabel.color = isLost
+                    ? new Color(1f, 0.52f, 0.34f, 0.96f)
+                    : new Color(0.68f, 0.88f, 0.94f, 0.92f);
+            }
+
+            if (_riskValueAmount != null)
+            {
+                _riskValueAmount.text = isLost ? "0" : "+245";
+                _riskValueAmount.color = isLost
+                    ? new Color(1f, 0.28f, 0.10f, 1f)
+                    : new Color(0.62f, 1f, 0.84f, 1f);
+            }
+
+            if (_riskValueCardImage != null)
+            {
+                _riskValueCardImage.color = isLost
+                    ? new Color(0.18f, 0.055f, 0.04f, 0.94f)
+                    : new Color(0.035f, 0.16f, 0.20f, 0.92f);
+            }
+
+            if (_riskValueGlowImage != null)
+            {
+                _riskValueGlowImage.color = isLost
+                    ? new Color(1f, 0.22f, 0.05f, 0.20f)
+                    : new Color(0.22f, 0.92f, 1f, 0.12f);
+            }
+
+            if (isLost && _panelFrameImage != null)
+            {
+                _panelFrameImage.transform.DOKill();
+                _panelFrameImage.transform.localScale = Vector3.one;
+                DOTween.Sequence()
+                    .SetTarget(_panelFrameImage.transform)
+                    .SetUpdate(true)
+                    .Append(_panelFrameImage.transform.DOScale(new Vector3(0.985f, 0.985f, 1f), 0.10f).SetEase(Ease.OutQuad))
+                    .Append(_panelFrameImage.transform.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutBack));
+            }
+        }
+
+        private void EnsureFailStateReferences()
+        {
+            if (_starterLootRoot != null && _starterLootGroup == null)
+            {
+                _starterLootGroup = EnsureCanvasGroup(_starterLootRoot);
+            }
+
+            if (_cardPoolRoot != null && _cardPoolGroup == null)
+            {
+                _cardPoolGroup = EnsureCanvasGroup(_cardPoolRoot.gameObject);
+            }
+
+            if (_riskValueCardImage == null)
+            {
+                _riskValueCardImage = FindDescendantComponent<Image>(transform, "ui_loot_risk_value_card");
+            }
+
+            if (_riskValueGlowImage == null)
+            {
+                _riskValueGlowImage = FindDescendantComponent<Image>(transform, "ui_loot_risk_value_glow");
+            }
+
+            if (_riskValueLabel == null)
+            {
+                _riskValueLabel = FindDescendantComponent<TextMeshProUGUI>(transform, "ui_loot_risk_value_label");
+            }
+
+            if (_riskValueAmount == null)
+            {
+                _riskValueAmount = FindDescendantComponent<TextMeshProUGUI>(transform, "ui_loot_risk_value_amount");
+            }
+
+            HideLegacyRiskValueCard();
+        }
+
+        private void HideLegacyRiskValueCard()
+        {
+            if (_riskValueCardImage != null)
+            {
+                _riskValueCardImage.gameObject.SetActive(false);
+            }
+        }
+
+        private static CanvasGroup EnsureCanvasGroup(GameObject target)
+        {
+            CanvasGroup group = target.GetComponent<CanvasGroup>();
+            return group != null ? group : target.AddComponent<CanvasGroup>();
+        }
+
+        private static void SetGroupAlpha(CanvasGroup group, float alpha)
+        {
+            if (group != null)
+            {
+                group.alpha = alpha;
+            }
+        }
+
+        private static T FindDescendantComponent<T>(Transform root, string childName) where T : Component
+        {
+            Transform child = FindDescendant(root, childName);
+            return child == null ? null : child.GetComponent<T>();
+        }
+
+        private static Transform FindDescendant(Transform root, string childName)
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            foreach (Transform child in root)
+            {
+                if (child.name == childName)
+                {
+                    return child;
+                }
+
+                Transform nested = FindDescendant(child, childName);
+                if (nested != null)
+                {
+                    return nested;
+                }
+            }
+
+            return null;
         }
 
         private int FindFirstChangedIndex(WheelHudSnapshot snapshot)
@@ -279,7 +452,7 @@ namespace Vertigo.Wheel.Views
             for (int i = _cardViews.Length; i < requiredCount; i++)
             {
                 WheelRewardCardView view = Instantiate(template, _cardPoolRoot);
-                view.name = "ui_loot_card_runtime_" + i;
+                view.name = string.Concat("ui_loot_card_runtime_", i);
                 view.Hide();
                 expandedViews[i] = view;
             }
@@ -371,7 +544,7 @@ namespace Vertigo.Wheel.Views
 
             float spacing = 12f;
             float contentHeight = 0f;
-            int arrangedCount = Mathf.Max(visibleCount, _cardViews.Length);
+            int arrangedCount = Mathf.Clamp(visibleCount, 0, _cardViews.Length);
             for (int i = 0; i < arrangedCount && i < _cardViews.Length; i++)
             {
                 RectTransform rect = _cardViews[i].GetComponent<RectTransform>();
@@ -391,6 +564,12 @@ namespace Vertigo.Wheel.Views
         {
             if (_scrollRect == null || _contentRect == null || _viewportRect == null || _cardViews.Length == 0)
             {
+                return;
+            }
+
+            if (index < 0)
+            {
+                ApplyScrollY(0f, animated);
                 return;
             }
 
@@ -425,7 +604,10 @@ namespace Vertigo.Wheel.Views
             Vector2 position = _contentRect.anchoredPosition;
             position.y = targetY;
             _contentRect.anchoredPosition = position;
-            _scrollRect.verticalNormalizedPosition = targetY <= 0f ? 1f : 0f;
+            float viewportHeight = _viewportRect == null ? 0f : _viewportRect.rect.height;
+            float contentHeight = _contentRect == null ? 0f : _contentRect.rect.height;
+            float maxScrollY = Mathf.Max(0f, contentHeight - viewportHeight);
+            _scrollRect.verticalNormalizedPosition = maxScrollY <= 0f ? 1f : 1f - Mathf.Clamp01(targetY / maxScrollY);
         }
 
         private void RequireCardViews()

@@ -16,7 +16,6 @@ namespace Vertigo.Wheel.EditorTools
         private SerializedProperty _superRewards;
         private SerializedProperty _uiCopy;
         private SerializedProperty _skinCatalog;
-        private SerializedProperty _sliceLayoutCatalog;
         private SerializedProperty _outcomePopupMotionCatalog;
         private SerializedProperty _spinResolveCatalog;
 
@@ -30,7 +29,6 @@ namespace Vertigo.Wheel.EditorTools
             _superRewards = serializedObject.FindProperty("_superRewards");
             _uiCopy = serializedObject.FindProperty("_uiCopy");
             _skinCatalog = serializedObject.FindProperty("_skinCatalog");
-            _sliceLayoutCatalog = serializedObject.FindProperty("_sliceLayoutCatalog");
             _outcomePopupMotionCatalog = serializedObject.FindProperty("_outcomePopupMotionCatalog");
             _spinResolveCatalog = serializedObject.FindProperty("_spinResolveCatalog");
         }
@@ -53,11 +51,6 @@ namespace Vertigo.Wheel.EditorTools
                 {
                     VertigoWheelDesignerWindow.Open();
                 }
-
-                if (GUILayout.Button("Rebuild Scene", GUILayout.Height(30f)))
-                {
-                    VertigoWheelBootstrapper.RebuildScene();
-                }
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -79,7 +72,6 @@ namespace Vertigo.Wheel.EditorTools
             EditorGUILayout.LabelField("Linked Assets", EditorStyles.boldLabel);
             DrawReadOnlyObject("Zone Texts", _uiCopy);
             DrawReadOnlyObject("Wheel Skins", _skinCatalog);
-            DrawReadOnlyObject("Slice Positions", _sliceLayoutCatalog);
             DrawReadOnlyObject("Popup Motion", _outcomePopupMotionCatalog);
             DrawReadOnlyObject("Resolve Rules", _spinResolveCatalog);
         }
@@ -114,12 +106,6 @@ namespace Vertigo.Wheel.EditorTools
             if (_skinCatalog.objectReferenceValue == null)
             {
                 _skinCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureSkinCatalog();
-                dirty = true;
-            }
-
-            if (_sliceLayoutCatalog.objectReferenceValue == null)
-            {
-                _sliceLayoutCatalog.objectReferenceValue = VertigoWheelAssetPipeline.EnsureSliceLayoutCatalog();
                 dirty = true;
             }
 

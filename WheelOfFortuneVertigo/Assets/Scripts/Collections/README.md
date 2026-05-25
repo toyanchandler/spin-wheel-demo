@@ -15,7 +15,7 @@ Runtime footprint: **`[CollectChildren]` attribute only** on serialized array fi
 - Inspector shows the array with a **Collect Children** button (property drawer).
 - Optional `Transform` root when pooled objects are not direct children of the view.
 
-## Scene builder / batch
+## Editor collection
 
 ```csharp
 WheelEditorWiring.SetReference(view, "_slicePoolRoot", sliceRoot.transform);

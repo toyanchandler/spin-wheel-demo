@@ -26,7 +26,7 @@ Editor-only helper. **No extra collection MonoBehaviours.**
 |-------|------|
 | `[CollectChildren]` | Metadata on a Component array field (+ optional root `Transform` field name) |
 | `CollectChildrenPropertyDrawer` | **Collect / Reset Children**, preprocess toggle, **(i)** help foldout |
-| `ChildCollectionEditorService` | Collect + serialize (scene builder, preprocess build) |
+| `ChildCollectionEditorService` | Collect + serialize in editor tooling and preprocess build |
 | View-specific `CustomEditor` | Custom bindings (zone progress cells) |
 
 ### Example
@@ -45,4 +45,4 @@ Views use the pre-filled serialized arrays only.
 
 ## Validation
 
-Run `Vertigo Case/Run Smoke Checks` — includes `WheelHierarchyWiringValidator`.
+Use the view-specific collectors before entering play mode.

@@ -34,7 +34,7 @@ namespace Vertigo.Wheel.Runtime
             get
             {
                 return Settings != null
-                    && Settings.GetZoneGameplay(ZoneType).AllowLeave
+                    && (Settings.GetZoneGameplay(ZoneType).AllowLeave || _inventory.Count > 0)
                     && PhaseGameplay.AllowLeave;
             }
         }

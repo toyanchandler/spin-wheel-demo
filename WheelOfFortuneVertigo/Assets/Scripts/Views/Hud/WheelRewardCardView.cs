@@ -8,14 +8,26 @@ namespace Vertigo.Wheel.Views
 {
     public sealed class WheelRewardCardView : MonoBehaviour
     {
-        private const float OpeningAmountBottomOffset = 78f;
+        public const float OpeningFeaturedRevealStep = 0.165f;
+        public const float OpeningFeaturedRevealMaxDelay = 2.35f;
+
+        private const float OpeningTitleTopOffset = -38f;
+        private const float OpeningTitleWidth = 304f;
+        private const float OpeningTitleHeight = 46f;
+        private const float OpeningIconCenterY = 36f;
+        private const float OpeningIconWidth = 286f;
+        private const float OpeningIconHeight = 270f;
+        private const float OpeningSpotlightWidth = 332f;
+        private const float OpeningSpotlightHeight = 332f;
+        private const float OpeningAmountBottomOffset = 50f;
         private const float OpeningAmountWidth = 272f;
-        private const float OpeningAmountHeight = 54f;
+        private const float OpeningAmountHeight = 50f;
 
         [SerializeField] private Image _shadowImage;
         [SerializeField] private Image _frameImage;
         [SerializeField] private Image _frontPanelImage;
         [SerializeField] private Image _iconImage;
+        [SerializeField] private TextMeshProUGUI _titleText;
         [SerializeField] private TextMeshProUGUI _amountText;
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private CanvasGroup _frontGroup;
@@ -31,7 +43,11 @@ namespace Vertigo.Wheel.Views
 
         public void ApplyFrames(Sprite cardFrameSprite)
         {
-            _frameImage.sprite = cardFrameSprite;
+            if (cardFrameSprite != null)
+            {
+                _frameImage.sprite = cardFrameSprite;
+            }
+
             _frameImage.color = Color.white;
             _frameImage.maskable = true;
         }
@@ -49,9 +65,11 @@ namespace Vertigo.Wheel.Views
         public void Apply(RewardInventoryEntry entry, int displayIndex, bool featured, bool animated)
         {
             _iconImage.sprite = entry.Icon;
+            _iconImage.enabled = entry.Icon != null;
             _iconImage.color = Color.white;
             _iconImage.preserveAspect = true;
             _iconImage.maskable = true;
+            ApplyTitle(entry.DisplayName);
             _amountText.maskable = true;
             AmountTable.Apply(_amountText, entry.Amount, entry.AccentColor);
             ApplyOpeningAmountLayout();
@@ -99,6 +117,24 @@ namespace Vertigo.Wheel.Views
             gameObject.SetActive(false);
         }
 
+        public void SetLostVisualState(bool isLost)
+        {
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = isLost ? 0.62f : 1f;
+            }
+
+            if (_frontPanelImage != null && isLost)
+            {
+                _frontPanelImage.color = new Color(0.17f, 0.075f, 0.058f, 0.70f);
+            }
+
+            if (_glowImage != null && isLost)
+            {
+                _glowImage.color = new Color(1f, 0.22f, 0.06f, 0.16f);
+            }
+        }
+
         private void OnDisable()
         {
             transform.DOKill();
@@ -118,27 +154,27 @@ namespace Vertigo.Wheel.Views
             SetShadowAlpha(0f);
             if (_glowImage != null)
             {
-                Color glowColor = entry.AccentColor;
-                glowColor.a = featured ? 0.30f : 0.12f;
+                Color glowColor = featured ? Color.white : entry.AccentColor;
+                glowColor.a = featured ? 0.38f : 0.12f;
                 _glowImage.color = glowColor;
                 _glowImage.enabled = true;
                 _glowImage.maskable = true;
-                _glowImage.rectTransform.localScale = featured ? new Vector3(1.18f, 1.18f, 1f) : Vector3.one;
+                _glowImage.rectTransform.localScale = Vector3.one;
             }
 
             if (_frameImage != null)
             {
                 Color frameColor = featured
-                    ? Color.Lerp(Color.white, entry.AccentColor, 0.10f)
+                    ? new Color(0.80f, 0.82f, 0.80f, 1f)
                     : Color.white;
-                frameColor.a = featured ? 0.92f : 1f;
+                frameColor.a = 1f;
                 _frameImage.color = frameColor;
             }
 
             if (_frontPanelImage != null)
             {
                 Color panelColor = featured
-                    ? Color.Lerp(new Color(0.07f, 0.20f, 0.24f, 0.72f), entry.AccentColor, 0.10f)
+                    ? new Color(0.012f, 0.014f, 0.015f, 0.96f)
                     : new Color(0.06f, 0.18f, 0.22f, 0.58f);
                 _frontPanelImage.color = panelColor;
                 _frontPanelImage.enabled = true;
@@ -219,7 +255,7 @@ namespace Vertigo.Wheel.Views
 
         private void PlayFlipReveal(int displayIndex, Color accentColor)
         {
-            float delay = Mathf.Min(2.35f, displayIndex * 0.165f);
+            float delay = Mathf.Min(OpeningFeaturedRevealMaxDelay, displayIndex * OpeningFeaturedRevealStep);
             transform.localScale = new Vector3(0.62f, 0.62f, 1f);
             transform.localRotation = Quaternion.Euler(0f, -74f, -8f);
             SetCanvasAlpha(_frontGroup, 0f);
@@ -255,6 +291,12 @@ namespace Vertigo.Wheel.Views
                 _iconImage.transform.localScale = new Vector3(0.42f, 0.42f, 1f);
                 sequence.Insert(delay + 0.56f, _iconImage.transform.DOScale(new Vector3(1.10f, 1.10f, 1f), 0.20f).SetEase(Ease.OutBack));
                 sequence.Insert(delay + 0.76f, _iconImage.transform.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutQuad));
+            }
+
+            if (_titleText != null)
+            {
+                _titleText.transform.localScale = new Vector3(0.90f, 0.90f, 1f);
+                sequence.Insert(delay + 0.62f, _titleText.transform.DOScale(Vector3.one, 0.18f).SetEase(Ease.OutBack));
             }
 
             if (_amountText != null)
@@ -306,12 +348,53 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
+            if (_titleText != null)
+            {
+                RectTransform titleRect = _titleText.rectTransform;
+                titleRect.anchorMin = new Vector2(0.5f, 1f);
+                titleRect.anchorMax = new Vector2(0.5f, 1f);
+                titleRect.pivot = new Vector2(0.5f, 0.5f);
+                titleRect.anchoredPosition = new Vector2(0f, OpeningTitleTopOffset);
+                titleRect.sizeDelta = new Vector2(OpeningTitleWidth, OpeningTitleHeight);
+            }
+
+            RectTransform iconRect = _iconImage.rectTransform;
+            iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.anchoredPosition = new Vector2(0f, OpeningIconCenterY);
+            iconRect.sizeDelta = new Vector2(OpeningIconWidth, OpeningIconHeight);
+
+            if (_glowImage != null)
+            {
+                RectTransform glowRect = _glowImage.rectTransform;
+                glowRect.anchorMin = new Vector2(0.5f, 0.5f);
+                glowRect.anchorMax = new Vector2(0.5f, 0.5f);
+                glowRect.pivot = new Vector2(0.5f, 0.5f);
+                glowRect.anchoredPosition = new Vector2(0f, OpeningIconCenterY);
+                glowRect.sizeDelta = new Vector2(OpeningSpotlightWidth, OpeningSpotlightHeight);
+            }
+
             RectTransform rect = _amountText.rectTransform;
             rect.anchorMin = new Vector2(0.5f, 0f);
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = new Vector2(0f, OpeningAmountBottomOffset);
             rect.sizeDelta = new Vector2(OpeningAmountWidth, OpeningAmountHeight);
+        }
+
+        private void ApplyTitle(string displayName)
+        {
+            if (_titleText == null)
+            {
+                return;
+            }
+
+            _titleText.text = string.IsNullOrEmpty(displayName) ? "REWARD" : displayName.ToUpperInvariant();
+            _titleText.color = Color.white;
+            _titleText.fontStyle = FontStyles.Bold;
+            _titleText.maskable = true;
+            _titleText.enabled = true;
         }
 
         private Tween FadeGroup(float targetAlpha, float duration)
@@ -516,7 +599,7 @@ namespace Vertigo.Wheel.Views
 
             private static void ShowAmount(TextMeshProUGUI amountText, int amount, Color accentColor)
             {
-                amountText.SetText("{0}", amount);
+                amountText.SetText("x{0}", amount);
                 amountText.color = accentColor;
                 amountText.enabled = true;
             }
