@@ -17,21 +17,23 @@ namespace Vertigo.Wheel.Data
             int rewardIndex = 0;
             for (int i = 0; i < sliceCount; i++)
             {
-                int slotKind = System.Convert.ToInt32(i == bombIndex);
+                bool isBombSlot = i == bombIndex;
                 RewardDefinition poolReward = source[(zone + rewardIndex) % source.Count];
-                RewardDefinition[] rewardsByKind = { poolReward, settings.BombReward };
+                RewardDefinition reward = isBombSlot ? settings.BombReward : poolReward;
                 WheelSliceSlotProfile rewardProfile = WheelSliceSlotCatalog.CreateRewardProfile(poolReward);
-                WheelSliceSlotProfile[] profilesByKind = { rewardProfile, bombProfile };
 
                 WheelSliceSlotCatalog.ApplySlot(
                     buffer[i],
-                    slotKind == 1,
-                    rewardsByKind[slotKind],
+                    isBombSlot,
+                    reward,
                     settings.BombReward.WheelIcon,
-                    profilesByKind[0],
+                    rewardProfile,
                     bombProfile);
 
-                rewardIndex += 1 - slotKind;
+                if (!isBombSlot)
+                {
+                    rewardIndex++;
+                }
             }
 
             return sliceCount;

@@ -99,8 +99,7 @@ namespace Vertigo.Wheel.Data
             WheelPhaseUiCopy phaseCopy = GetPhaseCopy(phase);
             if (!string.IsNullOrEmpty(phaseCopy.StatusMessage))
             {
-                string[] messages = { phaseCopy.StatusMessage, winLabel };
-                return messages[System.Convert.ToInt32(phaseCopy.Gameplay.UseWinLabelForStatus)];
+                return phaseCopy.Gameplay.UseWinLabelForStatus ? winLabel : phaseCopy.StatusMessage;
             }
 
             return GetZoneCopy(zoneType).StatusHint;

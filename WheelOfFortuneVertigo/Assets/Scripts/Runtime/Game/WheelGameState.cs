@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using Vertigo.Wheel.Data;
 
@@ -7,6 +6,7 @@ namespace Vertigo.Wheel.Runtime
     public sealed class WheelGameState : MonoBehaviour
     {
         private readonly RewardInventory _inventory = new RewardInventory();
+        private WheelGameSettings _settings;
         private WheelSliceDefinition[] _sliceBuffer;
         private WheelSpinResult _lastResult;
         private bool _hasLastResult;
@@ -15,7 +15,7 @@ namespace Vertigo.Wheel.Runtime
         private WheelGamePhase _phase = WheelGamePhase.Ready;
         private bool _slicesDirty = true;
 
-        public WheelGameSettings Settings { get { return WheelRuntimeLocator.Settings; } }
+        public WheelGameSettings Settings { get { return _settings; } }
         public RewardInventory Inventory { get { return _inventory; } }
         public WheelSliceDefinition[] Slices { get { return _sliceBuffer; } }
         public WheelSpinResult LastResult { get { return _lastResult; } }
@@ -43,6 +43,7 @@ namespace Vertigo.Wheel.Runtime
 
         public void InitializeRuntime()
         {
+            _settings = WheelRuntimeLocator.Settings;
             Settings.InitializeRuntime();
             EnsureSliceBuffer();
         }
@@ -78,24 +79,38 @@ namespace Vertigo.Wheel.Runtime
 
         public void PrepareCurrentZone()
         {
-            SliceRefreshActions[Convert.ToInt32(_slicesDirty)](this);
+            if (!_slicesDirty)
+            {
+                return;
+            }
+
+            RefreshSlicesForCurrentZone();
         }
 
         private void ApplyResolveProfile(WheelSpinResult result, WheelSpinResolveProfile profile)
         {
             _phase = profile.TargetPhase;
-            ResolveEffects.Apply(_inventory, this, result, profile);
-        }
 
-        private void AdvanceZone()
-        {
-            _zone++;
-        }
+            if (profile.ClearInventory)
+            {
+                _inventory.Clear();
+            }
 
-        private void MarkSlicesDirtyAndPrepare()
-        {
-            _slicesDirty = true;
-            PrepareCurrentZone();
+            if (profile.AddResultToInventory)
+            {
+                _inventory.Add(result, Settings.UiCopy.InventoryFallbackRewardName);
+            }
+
+            if (profile.AdvanceZone)
+            {
+                _zone++;
+            }
+
+            if (profile.MarkSlicesDirty)
+            {
+                _slicesDirty = true;
+                PrepareCurrentZone();
+            }
         }
 
         private void RefreshSlicesForCurrentZone()
@@ -112,7 +127,12 @@ namespace Vertigo.Wheel.Runtime
 
         private void EnsureSliceBuffer()
         {
-            BufferEnsureActions[Convert.ToInt32(_sliceBuffer != null && _sliceBuffer.Length == Settings.SliceCount)](this);
+            if (_sliceBuffer != null && _sliceBuffer.Length == Settings.SliceCount)
+            {
+                return;
+            }
+
+            AllocateSliceBuffer();
         }
 
         private void AllocateSliceBuffer()
@@ -121,57 +141,6 @@ namespace Vertigo.Wheel.Runtime
             for (int i = 0; i < _sliceBuffer.Length; i++)
             {
                 _sliceBuffer[i] = new WheelSliceDefinition();
-            }
-        }
-
-        private static readonly Action<WheelGameState>[] SliceRefreshActions =
-        {
-            state => { },
-            state => state.RefreshSlicesForCurrentZone()
-        };
-
-        private static readonly Action<WheelGameState>[] BufferEnsureActions =
-        {
-            state => state.AllocateSliceBuffer(),
-            state => { }
-        };
-
-        private static class ResolveEffects
-        {
-            private static readonly Action<RewardInventory>[] ClearInventoryActions =
-            {
-                inventory => { },
-                inventory => inventory.Clear()
-            };
-
-            private static readonly Action<WheelGameState, RewardInventory, WheelSpinResult>[] AddResultActions =
-            {
-                (state, inventory, result) => { },
-                (state, inventory, result) => inventory.Add(result, state.Settings.UiCopy.InventoryFallbackRewardName)
-            };
-
-            private static readonly Action<WheelGameState>[] AdvanceZoneActions =
-            {
-                state => { },
-                state => state.AdvanceZone()
-            };
-
-            private static readonly Action<WheelGameState>[] RefreshSliceActions =
-            {
-                state => { },
-                state => state.MarkSlicesDirtyAndPrepare()
-            };
-
-            public static void Apply(
-                RewardInventory inventory,
-                WheelGameState state,
-                WheelSpinResult result,
-                WheelSpinResolveProfile profile)
-            {
-                ClearInventoryActions[Convert.ToInt32(profile.ClearInventory)](inventory);
-                AddResultActions[Convert.ToInt32(profile.AddResultToInventory)](state, inventory, result);
-                AdvanceZoneActions[Convert.ToInt32(profile.AdvanceZone)](state);
-                RefreshSliceActions[Convert.ToInt32(profile.MarkSlicesDirty)](state);
             }
         }
     }

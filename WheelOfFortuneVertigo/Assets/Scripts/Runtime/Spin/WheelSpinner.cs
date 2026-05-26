@@ -90,10 +90,6 @@ namespace Vertigo.Wheel.Runtime
             wheelView.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
         }
 
-        public void Bind(WheelEventBus eventBus)
-        {
-        }
-
         public void Unbind()
         {
             StopActiveTween(false);

@@ -184,8 +184,7 @@ namespace Vertigo.Wheel.Runtime
             WheelLayoutSettings layout = settings.Layout;
             ZoneType zoneType = state.ZoneType;
             WheelZoneUiCopy zoneCopy = catalog.GetZoneCopy(zoneType);
-            int hasWinLabel = System.Convert.ToInt32(state.HasLastResult);
-            string[] winLabels = { null, state.LastResult.WinLabel };
+            string winLabel = state.HasLastResult ? state.LastResult.WinLabel : null;
             RewardInventoryEntry[] rewardCards = CopyRewardCards(state.Inventory, out int rewardCardCount);
             int nextSafeZone = ResolveNextZone(state.Zone, settings.SafeZoneInterval);
             int nextSuperZone = ResolveNextZone(state.Zone, settings.SuperZoneInterval);
@@ -204,7 +203,7 @@ namespace Vertigo.Wheel.Runtime
                 string.Format(catalog.SuperMilestoneBadgeFormat, nextSuperZone),
                 theme.SafeMilestoneBadgeBackground,
                 theme.SuperMilestoneBadgeBackground,
-                catalog.ResolveStatusMessage(state.Phase, zoneType, winLabels[hasWinLabel]),
+                catalog.ResolveStatusMessage(state.Phase, zoneType, winLabel),
                 !catalog.ShouldHideStatusBar(state.Phase),
                 theme.SecondaryTextColor,
                 theme.BackgroundColor,
@@ -251,8 +250,12 @@ namespace Vertigo.Wheel.Runtime
         {
             int safeInterval = Mathf.Max(1, interval);
             int remainder = currentZone % safeInterval;
-            int[] offsets = { safeInterval - remainder, 0 };
-            return currentZone + offsets[System.Convert.ToInt32(remainder == 0)];
+            if (remainder == 0)
+            {
+                return currentZone;
+            }
+
+            return currentZone + (safeInterval - remainder);
         }
 
         public static WheelZoneSnapshot CreateZone(WheelGameState state)
@@ -284,18 +287,16 @@ namespace Vertigo.Wheel.Runtime
                 settings.UiCopy);
             string title = outcomeCopy.Title;
             ApplyRewardOutcomeResultText(phase, result, hasResult, ref resultText);
-            int iconVisible = System.Convert.ToInt32(outcomeCopy.ShowIcon && hasResult && result.Icon != null);
-            Sprite[] icons = { null, result.Icon };
-            Color[] iconColors = { Color.clear, ResolveOutcomeIconColor(result, hasResult) };
-            bool hasPresentableOutcome = hasResult && iconVisible == 1;
+            bool showIcon = outcomeCopy.ShowIcon && hasResult && result.Icon != null;
+            bool hasPresentableOutcome = hasResult && showIcon;
 
             return new WheelOutcomeSnapshot(
                 phase,
                 title,
                 resultText,
                 settings.UiCopy.ResolveColor(outcomeCopy.ResultColorKey, settings.Theme),
-                icons[iconVisible],
-                iconColors[iconVisible],
+                showIcon ? result.Icon : null,
+                showIcon ? ResolveOutcomeIconColor(result, hasResult) : Color.clear,
                 hasResult ? result.RewardId : string.Empty,
                 hasResult ? result.DisplayName : string.Empty,
                 hasResult ? result.Amount : 0,
@@ -344,15 +345,16 @@ namespace Vertigo.Wheel.Runtime
             RewardInventory inventory,
             WheelUiCopyCatalog catalog)
         {
-            int hasSpinResult = System.Convert.ToInt32(hasResult);
-            string[] values =
+            switch (resultSource)
             {
-                hasSpinResult == 1 ? result.WinLabel : resultFallback,
-                inventory.BuildSummary(catalog.InventoryEmptySummary),
-                resultFallback
-            };
-
-            return values[(int)resultSource];
+                case WheelOutcomeResultSource.SpinResultLabel:
+                    return hasResult ? result.WinLabel : resultFallback;
+                case WheelOutcomeResultSource.InventorySummary:
+                    return inventory.BuildSummary(catalog.InventoryEmptySummary);
+                case WheelOutcomeResultSource.StaticFallback:
+                default:
+                    return resultFallback;
+            }
         }
     }
 }

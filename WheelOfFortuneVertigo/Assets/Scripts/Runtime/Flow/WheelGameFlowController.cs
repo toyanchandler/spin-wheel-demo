@@ -1,4 +1,3 @@
-using System;
 using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Data;
@@ -8,16 +7,26 @@ namespace Vertigo.Wheel.Runtime
     public sealed class WheelGameFlowController : MonoBehaviour
     {
         private WheelEventBus _eventBus;
+        private WheelGameState _state;
+        private WheelStatePublisher _publisher;
+        private WheelSpinner _spinner;
 
         private const float LandingResolveDelay = 0.42f;
 
-        public void Bind(WheelEventBus eventBus)
+        public void Bind(
+            WheelEventBus eventBus,
+            WheelGameState state,
+            WheelStatePublisher publisher,
+            WheelSpinner spinner)
         {
             _eventBus = eventBus;
+            _state = state;
+            _publisher = publisher;
+            _spinner = spinner;
             _eventBus.SpinRequested += OnSpinRequested;
             _eventBus.LeaveRequested += OnLeaveRequested;
             _eventBus.RestartRequested += OnRestartRequested;
-            WheelRuntimeLocator.Spinner.SpinCompleted += OnSpinCompleted;
+            _spinner.SpinCompleted += OnSpinCompleted;
         }
 
         public void Unbind()
@@ -29,30 +38,46 @@ namespace Vertigo.Wheel.Runtime
                 _eventBus.RestartRequested -= OnRestartRequested;
             }
 
-            if (WheelRuntimeLocator.Spinner != null)
+            if (_spinner != null)
             {
-                WheelRuntimeLocator.Spinner.SpinCompleted -= OnSpinCompleted;
+                _spinner.SpinCompleted -= OnSpinCompleted;
             }
 
             DOTween.Kill(this);
             _eventBus = null;
+            _state = null;
+            _publisher = null;
+            _spinner = null;
         }
 
         private void OnSpinRequested()
         {
-            WheelGameState state = WheelRuntimeLocator.State;
-            int allowed = Convert.ToInt32(state.CanSpin && !WheelRuntimeLocator.Spinner.IsSpinning);
-            FlowActions.Spin[allowed](this);
+            if (!_state.CanSpin || _spinner.IsSpinning)
+            {
+                return;
+            }
+
+            ExecuteSpin();
         }
 
         private void OnLeaveRequested()
         {
-            FlowActions.Leave[Convert.ToInt32(WheelRuntimeLocator.State.CanLeave)](this);
+            if (!_state.CanLeave)
+            {
+                return;
+            }
+
+            ExecuteLeave();
         }
 
         private void OnRestartRequested()
         {
-            FlowActions.Restart[Convert.ToInt32(WheelRuntimeLocator.State.CanRestart)](this);
+            if (!_state.CanRestart)
+            {
+                return;
+            }
+
+            ExecuteRestart();
         }
 
         private void OnSpinCompleted(WheelSpinResult result)
@@ -65,63 +90,40 @@ namespace Vertigo.Wheel.Runtime
 
         private void ResolveCompletedSpin(WheelSpinResult result)
         {
-            WheelGameState state = WheelRuntimeLocator.State;
-            state.Resolve(result);
-            WheelRuntimeLocator.Publisher.PublishOutcome(result, true);
-            FlowActions.PublishAfterSpin[Convert.ToInt32(state.PhaseGameplay.PublishAllAfterSpin)](WheelRuntimeLocator.Publisher);
+            _state.Resolve(result);
+            _publisher.PublishOutcome(result, true);
+
+            if (_state.PhaseGameplay.PublishAllAfterSpin)
+            {
+                _publisher.PublishAll();
+            }
+            else
+            {
+                _publisher.PublishHud();
+            }
         }
 
         private void ExecuteSpin()
         {
-            WheelGameState state = WheelRuntimeLocator.State;
-            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
-            state.PrepareCurrentZone();
-            publisher.PublishZone();
-            state.BeginSpin();
-            publisher.PublishHud();
-            WheelRuntimeLocator.Spinner.SetSlices(state.Slices, state.SliceCount);
-            WheelRuntimeLocator.Spinner.Spin();
+            _state.PrepareCurrentZone();
+            _publisher.PublishZone();
+            _state.BeginSpin();
+            _publisher.PublishHud();
+            _spinner.SetSlices(_state.Slices, _state.SliceCount);
+            _spinner.Spin();
         }
 
         private void ExecuteLeave()
         {
-            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
-            WheelRuntimeLocator.State.CashOut();
-            publisher.PublishHud();
-            publisher.PublishOutcome(default(WheelSpinResult), false);
+            _state.CashOut();
+            _publisher.PublishHud();
+            _publisher.PublishOutcome(default(WheelSpinResult), false);
         }
 
         private void ExecuteRestart()
         {
-            WheelRuntimeLocator.State.Restart();
-            WheelRuntimeLocator.Publisher.PublishAll();
-        }
-
-        private static class FlowActions
-        {
-            public static readonly Action<WheelGameFlowController>[] Spin =
-            {
-                controller => { },
-                controller => controller.ExecuteSpin()
-            };
-
-            public static readonly Action<WheelGameFlowController>[] Leave =
-            {
-                controller => { },
-                controller => controller.ExecuteLeave()
-            };
-
-            public static readonly Action<WheelGameFlowController>[] Restart =
-            {
-                controller => { },
-                controller => controller.ExecuteRestart()
-            };
-
-            public static readonly Action<WheelStatePublisher>[] PublishAfterSpin =
-            {
-                publisher => publisher.PublishHud(),
-                publisher => publisher.PublishAll()
-            };
+            _state.Restart();
+            _publisher.PublishAll();
         }
     }
 }

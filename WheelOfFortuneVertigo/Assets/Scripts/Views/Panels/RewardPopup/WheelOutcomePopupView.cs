@@ -5,7 +5,7 @@ using Vertigo.Wheel.Runtime;
 namespace Vertigo.Wheel.Views
 {
     [WheelBind]
-    public sealed partial class WheelOutcomePopupView : MonoBehaviour
+    public sealed class WheelOutcomePopupView : MonoBehaviour
     {
         [WheelInject] private WheelEventBus _eventBus;
         [WheelInject] private WheelRewardPanelView _rewardPanelView;

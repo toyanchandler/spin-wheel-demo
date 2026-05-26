@@ -1,21 +1,18 @@
 using UnityEngine;
+using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Data
 {
     public static class WheelSliceSlotCatalog
     {
-        private static readonly int[] RewardSlotsOffsetByBombMode = { 0, -1 };
-
         public static int RewardSlotsForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
         {
-            int offset = RewardSlotsOffsetByBombMode[System.Convert.ToInt32(zoneGameplay.IncludesBombSlot)];
-            return sliceCount + offset;
+            return zoneGameplay.IncludesBombSlot ? sliceCount - 1 : sliceCount;
         }
 
         public static int BombIndexForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
         {
-            int[] bombIndexByMode = { -1, Random.Range(0, sliceCount) };
-            return bombIndexByMode[System.Convert.ToInt32(zoneGameplay.IncludesBombSlot)];
+            return zoneGameplay.IncludesBombSlot ? Random.Range(0, sliceCount) : -1;
         }
 
         public static void ApplySlot(
@@ -26,22 +23,18 @@ namespace Vertigo.Wheel.Data
             WheelSliceSlotProfile rewardProfile,
             WheelSliceSlotProfile bombProfile)
         {
-            WheelSliceSlotProfile[] profiles = { rewardProfile, bombProfile };
-            Sprite[] icons = { rewardDefinition.WheelIcon, bombIcon };
-            int profileIndex = System.Convert.ToInt32(isBombSlot);
-            WheelSliceSlotProfile profile = profiles[profileIndex];
+            WheelSliceSlotProfile profile = isBombSlot ? bombProfile : rewardProfile;
+            Sprite icon = isBombSlot ? bombIcon : rewardDefinition.WheelIcon;
 
             slice.ApplySlot(
                 isBombSlot,
                 rewardDefinition,
-                icons[profileIndex],
+                icon,
                 profile.DisplayAmount,
                 profile.DisplayColor,
                 profile.Label,
                 profile.ShowAmountLabel);
         }
-
-        private static readonly bool[] ShowAmountByAmountFlag = { false, true };
 
         public static WheelSliceSlotProfile CreateRewardProfile(RewardDefinition reward)
         {
@@ -49,7 +42,7 @@ namespace Vertigo.Wheel.Data
                 reward.Label,
                 reward.Amount,
                 reward.AccentColor,
-                ShowAmountByAmountFlag[System.Convert.ToInt32(reward.Amount > 1)]);
+                reward.Amount > 1);
         }
 
         public static WheelSliceSlotProfile CreateBombProfile()

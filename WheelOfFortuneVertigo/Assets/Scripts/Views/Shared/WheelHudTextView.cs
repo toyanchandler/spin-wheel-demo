@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using Vertigo.Wheel.Runtime;
@@ -36,18 +35,15 @@ namespace Vertigo.Wheel.Views
 
         protected void ApplyVisibleText(TextMeshProUGUI text, bool isVisible, string content, Color color)
         {
-            VisibleTextActions[System.Convert.ToInt32(isVisible)](text, content, color);
-        }
-
-        private static readonly Action<TextMeshProUGUI, string, Color>[] VisibleTextActions =
-        {
-            (target, content, color) => target.enabled = false,
-            (target, content, color) =>
+            if (!isVisible)
             {
-                target.enabled = true;
-                target.text = content;
-                target.color = color;
+                text.enabled = false;
+                return;
             }
-        };
+
+            text.enabled = true;
+            text.text = content;
+            text.color = color;
+        }
     }
 }

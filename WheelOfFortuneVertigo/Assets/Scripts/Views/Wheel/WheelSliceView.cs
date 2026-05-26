@@ -37,7 +37,7 @@ namespace Vertigo.Wheel.Views
             _icon.color = Color.white;
             _icon.enabled = presentation.Icon != null;
             ApplyMedallionColors(presentation);
-            AmountTable.Apply(_amount, presentation);
+            ApplyAmountLabel(_amount, presentation);
             _showsAmountBadge = presentation.ShowAmountLabel;
             _amountBadge.SetActive(_showsAmountBadge);
             gameObject.SetActive(true);
@@ -141,31 +141,18 @@ namespace Vertigo.Wheel.Views
             }
         }
 
-        private static class AmountTable
+        private static void ApplyAmountLabel(TextMeshProUGUI amountLabel, WheelSlicePresentation presentation)
         {
-            private static readonly System.Action<TextMeshProUGUI, WheelSlicePresentation>[] ApplyActions =
-            {
-                HideAmount,
-                ShowAmount
-            };
-
-            public static void Apply(TextMeshProUGUI amountLabel, WheelSlicePresentation presentation)
-            {
-                ApplyActions[System.Convert.ToInt32(presentation.ShowAmountLabel)](amountLabel, presentation);
-            }
-
-            private static void HideAmount(TextMeshProUGUI amountLabel, WheelSlicePresentation presentation)
+            if (!presentation.ShowAmountLabel)
             {
                 amountLabel.text = string.Empty;
                 amountLabel.enabled = false;
+                return;
             }
 
-            private static void ShowAmount(TextMeshProUGUI amountLabel, WheelSlicePresentation presentation)
-            {
-                amountLabel.SetText("{0}", presentation.Amount);
-                amountLabel.color = Color.white;
-                amountLabel.enabled = true;
-            }
+            amountLabel.SetText("{0}", presentation.Amount);
+            amountLabel.color = Color.white;
+            amountLabel.enabled = true;
         }
     }
 }

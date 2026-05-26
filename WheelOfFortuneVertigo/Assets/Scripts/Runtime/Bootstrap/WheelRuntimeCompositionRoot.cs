@@ -59,12 +59,22 @@ namespace Vertigo.Wheel.Runtime
 
         public void StartRuntime()
         {
-            StartActions[Convert.ToInt32(_isRunning)](this);
+            if (_isRunning)
+            {
+                return;
+            }
+
+            BeginRuntime();
         }
 
         public void StopRuntime()
         {
-            StopActions[Convert.ToInt32(_isRunning)](this);
+            if (!_isRunning)
+            {
+                return;
+            }
+
+            EndRuntime();
         }
 
         public void RequestSpin()
@@ -94,8 +104,7 @@ namespace Vertigo.Wheel.Runtime
             ConfigureTweenOnce();
             _state.InitializeRuntime();
             _publisher.Bind(_eventBus);
-            _flow.Bind(_eventBus);
-            WheelRuntimeLocator.Spinner.Bind(_eventBus);
+            _flow.Bind(_eventBus, _state, _publisher, WheelRuntimeLocator.Spinner);
             WheelRuntimeLocator.NotifyRuntimeReady();
             _state.Restart();
             _publisher.PublishAll();
@@ -125,30 +134,14 @@ namespace Vertigo.Wheel.Runtime
 
         private void ConfigureTweenOnce()
         {
-            ConfigureTweenActions[Convert.ToInt32(_hasConfiguredTween)](this);
-        }
-
-        private static readonly Action<WheelRuntimeCompositionRoot>[] StartActions =
-        {
-            root => root.BeginRuntime(),
-            root => { }
-        };
-
-        private static readonly Action<WheelRuntimeCompositionRoot>[] StopActions =
-        {
-            root => { },
-            root => root.EndRuntime()
-        };
-
-        private static readonly Action<WheelRuntimeCompositionRoot>[] ConfigureTweenActions =
-        {
-            root =>
+            if (_hasConfiguredTween)
             {
-                DOTween.Init(false, true, LogBehaviour.ErrorsOnly);
-                DOTween.SetTweensCapacity(64, 16);
-                root._hasConfiguredTween = true;
-            },
-            root => { }
-        };
+                return;
+            }
+
+            DOTween.Init(false, true, LogBehaviour.ErrorsOnly);
+            DOTween.SetTweensCapacity(64, 16);
+            _hasConfiguredTween = true;
+        }
     }
 }

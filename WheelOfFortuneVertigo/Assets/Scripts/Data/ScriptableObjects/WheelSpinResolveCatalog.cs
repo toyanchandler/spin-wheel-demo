@@ -9,7 +9,7 @@ namespace Vertigo.Wheel.Data
 
         public WheelSpinResolveProfile GetProfile(bool isBomb)
         {
-            return _profilesByOutcome[System.Convert.ToInt32(isBomb)];
+            return _profilesByOutcome[isBomb ? 1 : 0];
         }
 
         public void ResetToDefaults()
