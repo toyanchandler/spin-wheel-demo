@@ -11,7 +11,7 @@ namespace Vertigo.Wheel.Tests
         {
             var rules = new[] { WheelZoneIntervalRule.Create(5, ZoneType.Safe) };
 
-            Assert.AreEqual(ZoneType.Normal, WheelZoneTypeTable.Resolve(3, rules, ZoneType.Normal));
+            Assert.AreEqual(ZoneType.Standard, WheelZoneTypeTable.Resolve(3, rules, ZoneType.Standard));
         }
 
         [Test]
@@ -23,9 +23,9 @@ namespace Vertigo.Wheel.Tests
                 WheelZoneIntervalRule.Create(10, ZoneType.Super)
             };
 
-            Assert.AreEqual(ZoneType.Safe, WheelZoneTypeTable.Resolve(10, rules, ZoneType.Normal));
-            Assert.AreEqual(ZoneType.Safe, WheelZoneTypeTable.Resolve(20, rules, ZoneType.Normal));
-            Assert.AreEqual(ZoneType.Super, WheelZoneTypeTable.Resolve(10, new[] { WheelZoneIntervalRule.Create(10, ZoneType.Super) }, ZoneType.Normal));
+            Assert.AreEqual(ZoneType.Safe, WheelZoneTypeTable.Resolve(10, rules, ZoneType.Standard));
+            Assert.AreEqual(ZoneType.Safe, WheelZoneTypeTable.Resolve(20, rules, ZoneType.Standard));
+            Assert.AreEqual(ZoneType.Super, WheelZoneTypeTable.Resolve(10, new[] { WheelZoneIntervalRule.Create(10, ZoneType.Super) }, ZoneType.Standard));
         }
     }
 

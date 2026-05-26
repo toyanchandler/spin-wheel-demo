@@ -331,7 +331,7 @@ Views subscribe from `[WheelAfterInject]` and unsubscribe from `[WheelBeforeUnbi
 
 ### 7.2 Snapshot types (readonly structs)
 
-- `WheelHudSnapshot` — zone label, phase, buttons flags, loot sprites, milestone text/colors, reward cards, etc.
+- `WheelHudSnapshot` — composed HUD snapshot (`Zone`, `Phase`, `BackgroundColor`, plus nested parts: zone labels, milestones, status bar, actions, exit confirmation copy, reward cards). Flat properties on the root forward to nested parts so existing views stay stable.
 - `WheelZoneSnapshot` — slices, positions, skin tier, background
 - `WheelOutcomeSnapshot` — popup copy, colors, motion, icon
 

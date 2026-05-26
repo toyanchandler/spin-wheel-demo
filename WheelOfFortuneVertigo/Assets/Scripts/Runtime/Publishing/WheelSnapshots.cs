@@ -7,107 +7,71 @@ namespace Vertigo.Wheel.Runtime
     {
         public readonly int Zone;
         public readonly WheelGamePhase Phase;
-        public readonly string ZoneTypeLabel;
-        public readonly Color ZoneNumberColor;
-        public readonly Color ZoneTypeColor;
-        public readonly int SafeZoneInterval;
-        public readonly int SuperZoneInterval;
-        public readonly int NextSafeZone;
-        public readonly int NextSuperZone;
-        public readonly string SafeMilestoneBadgeText;
-        public readonly string SuperMilestoneBadgeText;
-        public readonly Color SafeMilestoneBadgeColor;
-        public readonly Color SuperMilestoneBadgeColor;
-        public readonly string StatusText;
-        public readonly bool IsStatusVisible;
-        public readonly Color StatusColor;
         public readonly Color BackgroundColor;
-        public readonly bool CanSpin;
-        public readonly bool CanLeave;
-        public readonly bool CanRestart;
-        public readonly bool IsOutcomePopupAllowed;
-        public readonly string SpinButtonLabel;
-        public readonly string LeaveButtonLabel;
-        public readonly string RestartButtonLabel;
-        public readonly string RewardOpeningTitle;
-        public readonly string DefaultRewardTitle;
-        public readonly string ExitConfirmationTitle;
-        public readonly string ExitConfirmationBody;
-        public readonly string ExitCollectButtonLabel;
-        public readonly string ExitComeBackButtonLabel;
-        public readonly Sprite RewardCardFrameSprite;
-        public readonly int RewardCardCount;
-        public readonly RewardInventoryEntry[] RewardCards;
+        public readonly WheelHudZoneLabelsSnapshot ZoneLabels;
+        public readonly WheelHudMilestoneSnapshot Milestones;
+        public readonly WheelHudStatusSnapshot StatusBar;
+        public readonly WheelHudActionsSnapshot Actions;
+        public readonly WheelHudExitConfirmationSnapshot ExitConfirmation;
+        public readonly WheelHudRewardCardsSnapshot Rewards;
 
         public WheelHudSnapshot(
             int zone,
             WheelGamePhase phase,
-            string zoneTypeLabel,
-            Color zoneNumberColor,
-            Color zoneTypeColor,
-            int safeZoneInterval,
-            int superZoneInterval,
-            int nextSafeZone,
-            int nextSuperZone,
-            string safeMilestoneBadgeText,
-            string superMilestoneBadgeText,
-            Color safeMilestoneBadgeColor,
-            Color superMilestoneBadgeColor,
-            string statusText,
-            bool isStatusVisible,
-            Color statusColor,
             Color backgroundColor,
-            bool canSpin,
-            bool canLeave,
-            bool canRestart,
-            bool isOutcomePopupAllowed,
-            string spinButtonLabel,
-            string leaveButtonLabel,
-            string restartButtonLabel,
-            string rewardOpeningTitle,
-            string defaultRewardTitle,
-            string exitConfirmationTitle,
-            string exitConfirmationBody,
-            string exitCollectButtonLabel,
-            string exitComeBackButtonLabel,
-            Sprite rewardCardFrameSprite,
-            int rewardCardCount,
-            RewardInventoryEntry[] rewardCards)
+            WheelHudZoneLabelsSnapshot zoneLabels,
+            WheelHudMilestoneSnapshot milestones,
+            WheelHudStatusSnapshot statusBar,
+            WheelHudActionsSnapshot actions,
+            WheelHudExitConfirmationSnapshot exitConfirmation,
+            WheelHudRewardCardsSnapshot rewards)
         {
             Zone = zone;
             Phase = phase;
-            ZoneTypeLabel = zoneTypeLabel;
-            ZoneNumberColor = zoneNumberColor;
-            ZoneTypeColor = zoneTypeColor;
-            SafeZoneInterval = safeZoneInterval;
-            SuperZoneInterval = superZoneInterval;
-            NextSafeZone = nextSafeZone;
-            NextSuperZone = nextSuperZone;
-            SafeMilestoneBadgeText = safeMilestoneBadgeText;
-            SuperMilestoneBadgeText = superMilestoneBadgeText;
-            SafeMilestoneBadgeColor = safeMilestoneBadgeColor;
-            SuperMilestoneBadgeColor = superMilestoneBadgeColor;
-            StatusText = statusText;
-            IsStatusVisible = isStatusVisible;
-            StatusColor = statusColor;
             BackgroundColor = backgroundColor;
-            CanSpin = canSpin;
-            CanLeave = canLeave;
-            CanRestart = canRestart;
-            IsOutcomePopupAllowed = isOutcomePopupAllowed;
-            SpinButtonLabel = spinButtonLabel;
-            LeaveButtonLabel = leaveButtonLabel;
-            RestartButtonLabel = restartButtonLabel;
-            RewardOpeningTitle = rewardOpeningTitle;
-            DefaultRewardTitle = defaultRewardTitle;
-            ExitConfirmationTitle = exitConfirmationTitle;
-            ExitConfirmationBody = exitConfirmationBody;
-            ExitCollectButtonLabel = exitCollectButtonLabel;
-            ExitComeBackButtonLabel = exitComeBackButtonLabel;
-            RewardCardFrameSprite = rewardCardFrameSprite;
-            RewardCardCount = rewardCardCount;
-            RewardCards = rewardCards;
+            ZoneLabels = zoneLabels;
+            Milestones = milestones;
+            StatusBar = statusBar;
+            Actions = actions;
+            ExitConfirmation = exitConfirmation;
+            Rewards = rewards;
         }
+
+        public string ZoneTypeLabel { get { return ZoneLabels.ZoneTypeLabel; } }
+        public Color ZoneNumberColor { get { return ZoneLabels.ZoneNumberColor; } }
+        public Color ZoneTypeColor { get { return ZoneLabels.ZoneTypeColor; } }
+
+        public int SafeZoneInterval { get { return Milestones.SafeZoneInterval; } }
+        public int SuperZoneInterval { get { return Milestones.SuperZoneInterval; } }
+        public int NextSafeZone { get { return Milestones.NextSafeZone; } }
+        public int NextSuperZone { get { return Milestones.NextSuperZone; } }
+        public string SafeMilestoneBadgeText { get { return Milestones.SafeMilestoneBadgeText; } }
+        public string SuperMilestoneBadgeText { get { return Milestones.SuperMilestoneBadgeText; } }
+        public Color SafeMilestoneBadgeColor { get { return Milestones.SafeMilestoneBadgeColor; } }
+        public Color SuperMilestoneBadgeColor { get { return Milestones.SuperMilestoneBadgeColor; } }
+
+        public string StatusText { get { return StatusBar.StatusText; } }
+        public bool IsStatusVisible { get { return StatusBar.IsStatusVisible; } }
+        public Color StatusColor { get { return StatusBar.StatusColor; } }
+
+        public bool CanSpin { get { return Actions.CanSpin; } }
+        public bool CanLeave { get { return Actions.CanLeave; } }
+        public bool CanRestart { get { return Actions.CanRestart; } }
+        public bool IsOutcomePopupAllowed { get { return Actions.IsOutcomePopupAllowed; } }
+        public string SpinButtonLabel { get { return Actions.SpinButtonLabel; } }
+        public string LeaveButtonLabel { get { return Actions.LeaveButtonLabel; } }
+        public string RestartButtonLabel { get { return Actions.RestartButtonLabel; } }
+
+        public string ExitConfirmationTitle { get { return ExitConfirmation.Title; } }
+        public string ExitConfirmationBody { get { return ExitConfirmation.Body; } }
+        public string ExitCollectButtonLabel { get { return ExitConfirmation.CollectButtonLabel; } }
+        public string ExitComeBackButtonLabel { get { return ExitConfirmation.ComeBackButtonLabel; } }
+
+        public string RewardOpeningTitle { get { return Rewards.RewardOpeningTitle; } }
+        public string DefaultRewardTitle { get { return Rewards.DefaultRewardTitle; } }
+        public Sprite RewardCardFrameSprite { get { return Rewards.RewardCardFrameSprite; } }
+        public int RewardCardCount { get { return Rewards.RewardCardCount; } }
+        public RewardInventoryEntry[] RewardCards { get { return Rewards.RewardCards; } }
     }
 
     public readonly struct WheelZoneSnapshot
@@ -192,37 +156,43 @@ namespace Vertigo.Wheel.Runtime
             return new WheelHudSnapshot(
                 state.Zone,
                 state.Phase,
-                zoneCopy.Label,
-                theme.PrimaryTextColor,
-                catalog.ResolveColor(zoneCopy.LabelColorKey, theme),
-                settings.SafeZoneInterval,
-                settings.SuperZoneInterval,
-                nextSafeZone,
-                nextSuperZone,
-                string.Format(catalog.SafeMilestoneBadgeFormat, nextSafeZone),
-                string.Format(catalog.SuperMilestoneBadgeFormat, nextSuperZone),
-                theme.SafeMilestoneBadgeBackground,
-                theme.SuperMilestoneBadgeBackground,
-                catalog.ResolveStatusMessage(state.Phase, zoneType, winLabel),
-                !catalog.ShouldHideStatusBar(state.Phase),
-                theme.SecondaryTextColor,
                 theme.BackgroundColor,
-                state.CanSpin,
-                state.CanLeave,
-                state.CanRestart,
-                !catalog.ShouldHideOutcomePopup(state.Phase),
-                catalog.SpinButtonLabel,
-                catalog.LeaveButtonLabel,
-                catalog.RestartButtonLabel,
-                catalog.RewardOpeningTitle,
-                catalog.DefaultRewardTitle,
-                catalog.ExitConfirmationTitle,
-                catalog.ExitConfirmationBody,
-                catalog.ExitCollectButtonLabel,
-                catalog.ExitComeBackButtonLabel,
-                layout.RewardCardFrameSprite,
-                rewardCardCount,
-                rewardCards);
+                new WheelHudZoneLabelsSnapshot(
+                    zoneCopy.Label,
+                    theme.PrimaryTextColor,
+                    catalog.ResolveColor(zoneCopy.LabelColorKey, theme)),
+                new WheelHudMilestoneSnapshot(
+                    settings.SafeZoneInterval,
+                    settings.SuperZoneInterval,
+                    nextSafeZone,
+                    nextSuperZone,
+                    string.Format(catalog.SafeMilestoneBadgeFormat, nextSafeZone),
+                    string.Format(catalog.SuperMilestoneBadgeFormat, nextSuperZone),
+                    theme.SafeMilestoneBadgeBackground,
+                    theme.SuperMilestoneBadgeBackground),
+                new WheelHudStatusSnapshot(
+                    catalog.ResolveStatusMessage(state.Phase, zoneType, winLabel),
+                    !catalog.ShouldHideStatusBar(state.Phase),
+                    theme.SecondaryTextColor),
+                new WheelHudActionsSnapshot(
+                    state.CanSpin,
+                    state.CanLeave,
+                    state.CanRestart,
+                    !catalog.ShouldHideOutcomePopup(state.Phase),
+                    catalog.SpinButtonLabel,
+                    catalog.LeaveButtonLabel,
+                    catalog.RestartButtonLabel),
+                new WheelHudExitConfirmationSnapshot(
+                    catalog.ExitConfirmationTitle,
+                    catalog.ExitConfirmationBody,
+                    catalog.ExitCollectButtonLabel,
+                    catalog.ExitComeBackButtonLabel),
+                new WheelHudRewardCardsSnapshot(
+                    catalog.RewardOpeningTitle,
+                    catalog.DefaultRewardTitle,
+                    layout.RewardCardFrameSprite,
+                    rewardCardCount,
+                    rewardCards));
         }
 
         private static RewardInventoryEntry[] CopyRewardCards(RewardInventory inventory, out int rewardCardCount)
