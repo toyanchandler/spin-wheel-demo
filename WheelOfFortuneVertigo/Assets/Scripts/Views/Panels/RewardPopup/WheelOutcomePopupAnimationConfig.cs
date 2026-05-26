@@ -14,6 +14,7 @@ namespace Vertigo.Wheel.Views
         public const float IconFadeOutDuration = 0.08f;
         public const float IconPreviewFadeDuration = 0.08f;
         public const float IconFinalFadeDuration = 0.08f;
+        public const float IconPopDuration = 0.32f;
         public const float TextFadeInDelay = 0.18f;
         public const float TextFadeInDuration = 0.18f;
         public const float FlashFadeInDuration = 0.48f;
@@ -28,7 +29,7 @@ namespace Vertigo.Wheel.Views
         public const float BombFlashAlpha = 0.22f;
         public const float RewardFlashAlpha = 0.34f;
 
-        public static readonly Vector3 IconStartScale = new Vector3(0.38f, 0.38f, 1f);
+        public static readonly Vector3 IconStartScale = new Vector3(0.02f, 0.02f, 1f);
         public static readonly Vector3 IconRevealScale = new Vector3(0.58f, 0.58f, 1f);
         public static readonly Vector3 IconRewardPeakScale = new Vector3(1.02f, 1.02f, 1f);
         public static readonly Vector3 IconRewardSettleScale = new Vector3(0.92f, 0.92f, 1f);

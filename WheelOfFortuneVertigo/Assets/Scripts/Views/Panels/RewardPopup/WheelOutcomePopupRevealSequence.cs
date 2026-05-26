@@ -17,7 +17,6 @@ namespace Vertigo.Wheel.Views
             float flightStageStart = WheelOutcomePopupAnimationConfig.RevealStageStart
                 + WheelOutcomePopupAnimationConfig.RewardHoldDuration;
             Sprite icon = snapshot.Icon;
-            float previewAlpha = icon == null ? 0f : WheelOutcomePopupAnimationConfig.IconPreviewAlpha;
             float finalAlpha = icon == null ? 0f : 1f;
 
             Sequence sequence = DOTween.Sequence()
@@ -25,14 +24,10 @@ namespace Vertigo.Wheel.Views
                 .SetUpdate(true)
                 .Append(binding.Root.FadeTo(1f, motion.FadeDuration))
                 .Join(binding.ContentRoot.TweenHomeScale(motion.ScaleDuration, motion.ScaleEase))
-                .Join(binding.Icon.FadeTo(previewAlpha, WheelOutcomePopupAnimationConfig.IconPreviewFadeDuration))
-                .Join(binding.Icon.TweenHomePosition(WheelOutcomePopupAnimationConfig.RevealStageStart, Ease.OutCubic))
-                .Join(binding.Icon.TweenScale(WheelOutcomePopupAnimationConfig.IconRevealScale, WheelOutcomePopupAnimationConfig.RevealStageStart, Ease.OutBack))
                 .Insert(0f, WheelOutcomePopupAnimator.PlayChromeReveal(binding, snapshot))
                 .InsertCallback(WheelOutcomePopupAnimationConfig.RevealStageStart, () => PrepareRewardReveal(binding, snapshot))
                 .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, binding.Icon.FadeTo(finalAlpha, WheelOutcomePopupAnimationConfig.IconFinalFadeDuration))
-                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, binding.Icon.TweenScale(WheelOutcomePopupAnimationConfig.IconRewardPeakScale, WheelOutcomePopupAnimationConfig.TextFadeInDuration, Ease.OutBack))
-                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart + WheelOutcomePopupAnimationConfig.TextFadeInDuration, binding.Icon.TweenScale(WheelOutcomePopupAnimationConfig.IconRewardSettleScale, WheelOutcomePopupAnimationConfig.TextFadeInDuration, Ease.OutQuad))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, binding.Icon.TweenScale(WheelOutcomePopupAnimationConfig.IconRewardSettleScale, WheelOutcomePopupAnimationConfig.IconPopDuration, Ease.OutBack))
                 .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, PlayFlash(binding, snapshot))
                 .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart + WheelOutcomePopupAnimationConfig.TextFadeInDelay, binding.ResultText.FadeTo(1f, WheelOutcomePopupAnimationConfig.TextFadeInDuration))
                 .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, PlayShine(binding))
@@ -43,7 +38,7 @@ namespace Vertigo.Wheel.Views
 
         private static void PrepareRewardReveal(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
         {
-            binding.Icon.ResetTransform(WheelOutcomePopupAnimationConfig.IconRevealScale);
+            binding.Icon.ResetTransform(WheelOutcomePopupAnimationConfig.IconStartScale);
             binding.Icon.ApplySprite(
                 snapshot.Icon,
                 WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor),
