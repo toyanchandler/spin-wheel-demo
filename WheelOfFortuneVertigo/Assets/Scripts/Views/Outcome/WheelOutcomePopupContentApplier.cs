@@ -9,12 +9,11 @@ namespace Vertigo.Wheel.Views
     {
         public static void Apply(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
         {
-            Sprite icon = WheelOutcomePopupAnimator.ResolvePresentationIcon(snapshot);
             ApplyOverlayTone(binding, snapshot);
             ApplyStateCopy(binding, snapshot);
-            binding.IconImage.sprite = icon;
-            binding.IconImage.enabled = icon != null;
-            binding.IconImage.color = WheelOutcomePopupAnimator.ResolvePresentationIconColor(snapshot);
+            binding.IconImage.sprite = snapshot.Icon;
+            binding.IconImage.enabled = snapshot.Icon != null;
+            binding.IconImage.color = WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor);
             binding.IconImage.preserveAspect = true;
         }
 
@@ -38,7 +37,6 @@ namespace Vertigo.Wheel.Views
 
         private static void ApplyStateCopy(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
         {
-            binding.TitleText.text = snapshot.Title;
             binding.ResultText.text = snapshot.ResultText;
             binding.ResultText.color = snapshot.ResultColor;
             SetSummaryActive(binding, !string.IsNullOrEmpty(snapshot.SummaryText));

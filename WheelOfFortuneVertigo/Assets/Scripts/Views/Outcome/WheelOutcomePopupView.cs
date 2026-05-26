@@ -10,41 +10,44 @@ namespace Vertigo.Wheel.Views
     {
         [WheelInject] private WheelEventBus _eventBus;
         [WheelInject] private WheelRewardPanelView _rewardPanelView;
-        [WheelInject(Optional = true)] private WheelZoneProgressView _zoneProgress;
         [WheelInject] private WheelOutcomePopupRootBinding _rootBinding;
         [WheelInject] private WheelOutcomePopupContentRootBinding _contentRootBinding;
         [WheelInject] private WheelOutcomePopupIconBinding _iconBinding;
-        [WheelInject] private WheelOutcomePopupTitleTextBinding _titleTextBinding;
         [WheelInject] private WheelOutcomePopupResultTextBinding _resultTextBinding;
         [WheelInject(Optional = true)] private WheelOutcomePopupSummaryTextBinding _summaryTextBinding;
-        [WheelInject(Optional = true)] private WheelOutcomePopupCenterAnchorBinding _centerAnchorBinding;
-        [WheelInject(Optional = true)] private WheelOutcomePopupFitAreaBinding _fitAreaBinding;
         [WheelInject] private WheelOutcomePopupChromeBinding _chromeBinding;
-        [WheelInject] private WheelOutcomePopupBombBackgroundBinding _bombBackgroundBinding;
-        [WheelInject] private WheelOutcomePopupRewardBackgroundBinding _rewardBackgroundBinding;
-        [WheelInject] private WheelOutcomePopupBombCardShadowBinding _bombCardShadowBinding;
-        [WheelInject] private WheelOutcomePopupBombOuterStrokeBinding _bombOuterStrokeBinding;
-        [WheelInject] private WheelOutcomePopupBombWarmTopGlowBinding _bombWarmTopGlowBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupRewardBackgroundBinding _rewardBackgroundBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupBombCardShadowBinding _bombCardShadowBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupBombWarmTopGlowBinding _bombWarmTopGlowBinding;
         [WheelInject(Optional = true)] private WheelOutcomePopupBombHaloBinding _bombHaloBinding;
-        [WheelInject] private WheelOutcomePopupRetryButtonBinding _retryButtonBinding;
-        [WheelInject] private WheelOutcomePopupExitButtonBinding _exitButtonBinding;
-        [WheelInject] private WheelOutcomePopupFlashBinding _flashBinding;
-        [WheelInject] private WheelOutcomePopupShineBinding _shineBinding;
-        [WheelInject] private WheelOutcomePopupFlightIconBinding _flightIconBinding;
-        [WheelInject] private WheelOutcomePopupRewardBurstCameraBinding _rewardBurstCameraBinding;
-        [WheelInject] private WheelOutcomePopupRewardBurstDisplayBinding _rewardBurstDisplayBinding;
-        [WheelInject] private WheelOutcomePopupRewardBurstParticleBinding _rewardBurstParticleBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupRetryButtonBinding _retryButtonBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupFlashBinding _flashBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupShineBinding _shineBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupFlightIconBinding _flightIconBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupRewardBurstCameraBinding _rewardBurstCameraBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupRewardBurstDisplayBinding _rewardBurstDisplayBinding;
+        [WheelInject(Optional = true)] private WheelOutcomePopupRewardBurstParticleBinding _rewardBurstParticleBinding;
 
         private WheelOutcomePopupPresenter _presenter;
         private Image[] _flightIconPool = Array.Empty<Image>();
         private Vector2 _iconHomeAnchoredPosition;
+        private Vector2 _contentHomeAnchorMin;
+        private Vector2 _contentHomeAnchorMax;
+        private Vector2 _contentHomePivot;
+        private Vector2 _contentHomeAnchoredPosition;
+        private Vector3 _contentHomeScale;
 
         [WheelAfterInject]
         private void Connect()
         {
             ValidateWiring();
-            _flightIconPool = new[] { _flightIconBinding.Image };
+            _flightIconPool = _flightIconBinding != null ? new[] { _flightIconBinding.Image } : Array.Empty<Image>();
             _iconHomeAnchoredPosition = _iconBinding.RectTransform.anchoredPosition;
+            _contentHomeAnchorMin = _contentRootBinding.RectTransform.anchorMin;
+            _contentHomeAnchorMax = _contentRootBinding.RectTransform.anchorMax;
+            _contentHomePivot = _contentRootBinding.RectTransform.pivot;
+            _contentHomeAnchoredPosition = _contentRootBinding.RectTransform.anchoredPosition;
+            _contentHomeScale = _contentRootBinding.RectTransform.localScale;
             _presenter = new WheelOutcomePopupPresenter(CreateRefs(), this);
             _presenter.Reset();
             _eventBus.OutcomeResolved += OnOutcomeResolved;
@@ -56,11 +59,8 @@ namespace Vertigo.Wheel.Views
         {
             _eventBus.OutcomeResolved -= OnOutcomeResolved;
             _eventBus.HudStateChanged -= OnHudStateChanged;
-            if (_presenter != null)
-            {
-                _presenter.Reset();
-                _presenter = null;
-            }
+            _presenter?.Reset();
+            _presenter = null;
         }
 
         private void OnOutcomeResolved(WheelOutcomeSnapshot snapshot)
@@ -76,13 +76,8 @@ namespace Vertigo.Wheel.Views
         private void ValidateWiring()
         {
             if (_rootBinding == null || _contentRootBinding == null || _iconBinding == null
-                || _titleTextBinding == null || _resultTextBinding == null || _chromeBinding == null
-                || _bombBackgroundBinding == null || _rewardBackgroundBinding == null
-                || _bombCardShadowBinding == null || _bombOuterStrokeBinding == null
-                || _bombWarmTopGlowBinding == null || _retryButtonBinding == null
-                || _exitButtonBinding == null || _flashBinding == null || _shineBinding == null
-                || _flightIconBinding == null || _rewardBurstCameraBinding == null
-                || _rewardBurstDisplayBinding == null || _rewardBurstParticleBinding == null)
+                || _resultTextBinding == null || _chromeBinding == null
+                || _eventBus == null || _rewardPanelView == null)
             {
                 throw new InvalidOperationException(
                     name + " outcome popup scene bindings are incomplete. Add marker components to the popup hierarchy.");
@@ -95,40 +90,32 @@ namespace Vertigo.Wheel.Views
             {
                 Root = _rootBinding.Root,
                 IconImage = _iconBinding.Image,
-                TitleText = _titleTextBinding.Text,
                 ResultText = _resultTextBinding.Text,
-                SummaryText = _summaryTextBinding != null ? _summaryTextBinding.Text : null,
+                SummaryText = _summaryTextBinding?.Text,
                 CanvasGroup = _rootBinding.CanvasGroup,
                 ContentRoot = _contentRootBinding.RectTransform,
                 RewardChromeGroup = _chromeBinding.CanvasGroup,
-                BombPopupBackground = _bombBackgroundBinding.Target,
-                RewardPopupBackground = _rewardBackgroundBinding.Target,
-                BombCardShadow = _bombCardShadowBinding.Target,
-                BombOuterStroke = _bombOuterStrokeBinding.Target,
-                BombWarmTopGlow = _bombWarmTopGlowBinding.Target,
-                BombHalo = _bombHaloBinding != null ? _bombHaloBinding.Target : null,
-                OutcomeRetryButton = _retryButtonBinding.Target,
-                OutcomeExitButton = _exitButtonBinding.Target,
-                FlashImage = _flashBinding.Image,
-                ShineImage = _shineBinding.Image,
+                RewardPopupBackground = _rewardBackgroundBinding?.Target,
+                BombCardShadow = _bombCardShadowBinding?.Target,
+                BombWarmTopGlow = _bombWarmTopGlowBinding?.Target,
+                BombHalo = _bombHaloBinding?.Target,
+                OutcomeRetryButton = _retryButtonBinding?.Target,
+                FlashImage = _flashBinding?.Image,
+                ShineImage = _shineBinding?.Image,
                 FlightIconPool = _flightIconPool,
-                RewardBurstCamera = _rewardBurstCameraBinding.Camera,
-                RewardBurstDisplay = _rewardBurstDisplayBinding.RawImage,
-                RewardBurstParticle = _rewardBurstParticleBinding.ParticleSystem,
-                RewardBurstRenderer = _rewardBurstParticleBinding.Renderer,
+                RewardBurstCamera = _rewardBurstCameraBinding?.Camera,
+                RewardBurstDisplay = _rewardBurstDisplayBinding?.RawImage,
+                RewardBurstParticle = _rewardBurstParticleBinding?.ParticleSystem,
+                RewardBurstRenderer = _rewardBurstParticleBinding?.Renderer,
                 RewardPanelView = _rewardPanelView,
                 IconHomeAnchoredPosition = _iconHomeAnchoredPosition,
-                PopupCenterAnchor = _centerAnchorBinding != null ? _centerAnchorBinding.RectTransform : null,
-                PopupFitArea = _fitAreaBinding != null ? _fitAreaBinding.RectTransform : null,
-                ZoneProgress = _zoneProgress,
-                GetCurrentSnapshot = () => _presenter != null ? _presenter.CurrentSnapshot : default,
-                MarkPresentationComplete = () =>
-                {
-                    if (_presenter != null)
-                    {
-                        _presenter.MarkPresentationComplete();
-                    }
-                },
+                ContentHomeAnchorMin = _contentHomeAnchorMin,
+                ContentHomeAnchorMax = _contentHomeAnchorMax,
+                ContentHomePivot = _contentHomePivot,
+                ContentHomeAnchoredPosition = _contentHomeAnchoredPosition,
+                ContentHomeScale = _contentHomeScale,
+                GetCurrentSnapshot = () => _presenter?.CurrentSnapshot ?? default,
+                MarkPresentationComplete = () => _presenter?.MarkPresentationComplete(),
             };
         }
     }

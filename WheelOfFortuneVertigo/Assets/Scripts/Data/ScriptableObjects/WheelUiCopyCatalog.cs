@@ -189,11 +189,11 @@ namespace Vertigo.Wheel.Data
                 WheelOutcomeUiCopy.Create(
                     WheelGamePhase.Bombed,
                     "RUN LOST",
-                    "You hit a bomb.\nYour current loot is gone.",
+                    "BOOM! BUSTED",
                     "Retry or leave the run.",
                     WheelUiColorKey.Danger,
                     true,
-                    WheelOutcomeResultSource.SpinResultLabel),
+                    WheelOutcomeResultSource.StaticFallback),
                 WheelOutcomeUiCopy.Create(
                     WheelGamePhase.CashedOut,
                     "CASHED OUT",

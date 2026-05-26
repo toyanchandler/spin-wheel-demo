@@ -112,13 +112,11 @@ MonoBehaviour:
     _resultSource: 0
   - _phase: 3
     _title: RUN LOST
-    _resultFallback: 'You hit a bomb.
-
-      Your current loot is gone.'
+    _resultFallback: BOOM! BUSTED
     _summary: Retry or leave the run.
     _resultColorKey: 5
     _showIcon: 1
-    _resultSource: 0
+    _resultSource: 2
   - _phase: 4
     _title: CASHED OUT
     _resultFallback: Cashed out

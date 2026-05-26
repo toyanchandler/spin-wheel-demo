@@ -1,5 +1,4 @@
 using DG.Tweening;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.Wheel.Data;
@@ -9,624 +8,329 @@ namespace Vertigo.Wheel.Views
 {
     internal static class WheelOutcomePopupAnimator
     {
+        public static void Hide(WheelOutcomePopupRefs binding, ref Sequence sequence)
+        {
+            WheelUiTweenUtility.Kill(ref sequence);
+            StopRewardBurst(binding);
+            ClearMainIcon(binding);
+            binding.Root.SetActive(false);
+        }
 
-            public static void Hide(WheelOutcomePopupRefs binding, ref Sequence sequence)
+        public static void ClearMainIcon(WheelOutcomePopupRefs binding)
+        {
+            if (binding.IconImage == null)
             {
-                Kill(ref sequence);
-                RestoreSourceSliceRewardVisual();
-                StopRewardBurst(binding);
-                ClearMainIcon(binding);
-                binding.Root.SetActive(false);
+                return;
             }
 
-            public static void ClearMainIcon(WheelOutcomePopupRefs binding)
-            {
-                if (binding.IconImage == null)
-                {
-                    return;
-                }
+            RectTransform iconRect = binding.IconImage.rectTransform;
+            binding.IconImage.sprite = null;
+            WheelUiGraphicUtility.SetGraphicAlpha(binding.IconImage, 0f);
+            iconRect.anchoredPosition = binding.IconHomeAnchoredPosition;
+            iconRect.localScale = Vector3.one;
+            iconRect.localRotation = Quaternion.identity;
+        }
 
-                RectTransform iconRect = binding.IconImage.rectTransform;
-                binding.IconImage.sprite = null;
-                Color color = binding.IconImage.color;
-                color.a = 0f;
-                binding.IconImage.color = color;
-                iconRect.anchoredPosition = binding.IconHomeAnchoredPosition;
-                iconRect.localScale = Vector3.one;
-                iconRect.localRotation = Quaternion.identity;
+        public static void Show(
+            WheelOutcomePopupRefs binding,
+            WheelOutcomePopupMotion motion,
+            Object tweenTarget,
+            WheelOutcomeSnapshot snapshot,
+            bool hasOutcome,
+            ref Sequence sequence)
+        {
+            if (binding.Root.activeSelf)
+            {
+                return;
             }
 
-            public static void Show(
-                WheelOutcomePopupRefs binding,
-                WheelOutcomePopupMotion motion,
-                Object tweenTarget,
-                WheelOutcomeSnapshot snapshot,
-                bool hasOutcome,
-                ref Sequence sequence)
+            WheelUiTweenUtility.Kill(ref sequence);
+            binding.Root.SetActive(true);
+
+            if (binding.CanvasGroup == null || binding.ContentRoot == null)
             {
-                if (binding.Root.activeSelf)
-                {
-                    return;
-                }
-
-                Kill(ref sequence);
-                binding.Root.SetActive(true);
-
-                if (binding.CanvasGroup == null || binding.ContentRoot == null)
-                {
-                    return;
-                }
-
-                const float burstStageDuration = 0.32f;
-                const float revealStageStart = burstStageDuration;
-                const float burstVisibleDuration = 3.6f;
-                const float rewardHoldDuration = 1.86f;
-                const float flightStageStart = revealStageStart + rewardHoldDuration;
-
-                binding.CanvasGroup.alpha = 0f;
-                ConfigureChromeForPhase(binding, snapshot.Phase);
-                float startScale = motion.StartScale;
-                Vector3 responsiveScale = ResolveResponsiveContentScale(binding);
-                ApplyResponsiveContentPlacement(binding);
-                binding.ContentRoot.localScale = MultiplyScale(responsiveScale, startScale);
-                RectTransform iconRect = binding.IconImage.rectTransform;
-                Vector2 revealIconPosition = ResolveRewardRevealPosition(binding);
-                ApplyRewardRevealLayout(binding, snapshot, revealIconPosition);
-                iconRect.anchoredPosition = ResolveIconStartPosition(binding, snapshot, iconRect);
-                Sprite icon = ResolvePresentationIcon(snapshot);
-                SuppressSourceSliceRewardVisual(snapshot);
-                iconRect.localScale = new Vector3(0.38f, 0.38f, 1f);
-                iconRect.localRotation = Quaternion.identity;
-                binding.IconImage.sprite = icon;
-                binding.IconImage.enabled = icon != null;
-                binding.IconImage.color = WheelOutcomePopupColors.WithAlpha(ResolvePresentationIconColor(snapshot), 0f);
-                SetTextAlpha(binding.TitleText, 0f);
-                SetTextAlpha(binding.ResultText, 0f);
-                SetOptionalTextAlpha(binding.SummaryText, 0f);
-                PrepareVfx(binding);
-
-                sequence = DOTween.Sequence()
-                    .SetTarget(tweenTarget)
-                    .SetUpdate(true)
-                    .Append(binding.CanvasGroup.DOFade(1f, 0.09f))
-                    .Join(binding.ContentRoot.DOScale(responsiveScale, motion.ScaleDuration).SetEase(motion.ScaleEase))
-                    .Join(binding.IconImage.DOFade(icon == null ? 0f : 0.92f, 0.08f))
-                    .Join(iconRect.DOAnchorPos(revealIconPosition, revealStageStart).SetEase(Ease.OutCubic))
-                    .Join(iconRect.DOScale(new Vector3(0.58f, 0.58f, 1f), revealStageStart).SetEase(Ease.OutBack))
-                    .Insert(0.04f, PlayChromeReveal(binding, snapshot))
-                    .InsertCallback(revealStageStart, () =>
-                    {
-                        PrepareRewardReveal(binding, snapshot, icon, revealIconPosition);
-                        PlayRewardBurst(binding, snapshot, revealIconPosition);
-                    })
-                    .Insert(revealStageStart, binding.IconImage.DOFade(1f, 0.08f))
-                    .Insert(revealStageStart, iconRect.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.30f).SetEase(Ease.OutBack))
-                    .Insert(revealStageStart + 0.30f, iconRect.DOScale(new Vector3(0.92f, 0.92f, 1f), 0.18f).SetEase(Ease.OutQuad))
-                    .Insert(revealStageStart + 0.04f, PlayFlash(binding, snapshot))
-                    .Insert(revealStageStart + 0.10f, binding.TitleText.DOFade(1f, 0.16f))
-                    .Insert(revealStageStart + 0.18f, binding.ResultText.DOFade(1f, 0.18f))
-                    .Insert(revealStageStart + 0.38f, PlayShine(binding))
-                    .InsertCallback(burstVisibleDuration, () => StopRewardBurst(binding))
-                    .InsertCallback(flightStageStart, () => PlayRewardFlight(binding, tweenTarget, hasOutcome));
-
-                if (binding.SummaryText != null && binding.SummaryText.gameObject.activeInHierarchy)
-                {
-                    sequence.Insert(flightStageStart - 0.18f, binding.SummaryText.DOFade(1f, 0.18f));
-                }
+                return;
             }
 
-            private static void Kill(ref Sequence sequence)
-            {
-                if (sequence != null)
+            float flightStageStart = WheelOutcomePopupAnimationConfig.RevealStageStart + WheelOutcomePopupAnimationConfig.RewardHoldDuration;
+            RectTransform iconRect = binding.IconImage.rectTransform;
+            Vector2 revealIconPosition = binding.IconHomeAnchoredPosition;
+            Sprite icon = snapshot.Icon;
+
+            PreparePopup(binding, motion, snapshot, iconRect, icon);
+            sequence = BuildShowSequence(binding, motion, tweenTarget, snapshot, hasOutcome, iconRect, revealIconPosition, icon, flightStageStart);
+            AddSummaryFade(binding, sequence, flightStageStart);
+        }
+
+        private static Sequence BuildShowSequence(
+            WheelOutcomePopupRefs binding,
+            WheelOutcomePopupMotion motion,
+            Object tweenTarget,
+            WheelOutcomeSnapshot snapshot,
+            bool hasOutcome,
+            RectTransform iconRect,
+            Vector2 revealIconPosition,
+            Sprite icon,
+            float flightStageStart)
+        {
+            return DOTween.Sequence()
+                .SetTarget(tweenTarget)
+                .SetUpdate(true)
+                .Append(binding.CanvasGroup.DOFade(1f, WheelOutcomePopupAnimationConfig.PopupFadeInDuration))
+                .Join(binding.ContentRoot.DOScale(binding.ContentHomeScale, motion.ScaleDuration).SetEase(motion.ScaleEase))
+                .Join(binding.IconImage.DOFade(icon == null ? 0f : WheelOutcomePopupAnimationConfig.IconPreviewAlpha, WheelOutcomePopupAnimationConfig.IconPreviewFadeDuration))
+                .Join(iconRect.DOAnchorPos(revealIconPosition, WheelOutcomePopupAnimationConfig.RevealStageStart).SetEase(Ease.OutCubic))
+                .Join(iconRect.DOScale(WheelOutcomePopupAnimationConfig.IconRevealScale, WheelOutcomePopupAnimationConfig.RevealStageStart).SetEase(Ease.OutBack))
+                .Insert(0f, PlayChromeReveal(binding, snapshot))
+                .InsertCallback(WheelOutcomePopupAnimationConfig.RevealStageStart, () =>
                 {
-                    sequence.Kill();
-                    sequence = null;
-                }
+                    PrepareRewardReveal(binding, snapshot, icon, revealIconPosition);
+                    PlayRewardBurst(binding, snapshot);
+                })
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, binding.IconImage.DOFade(icon == null ? 0f : 1f, WheelOutcomePopupAnimationConfig.IconFinalFadeDuration))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, iconRect.DOScale(WheelOutcomePopupAnimationConfig.IconRewardPeakScale, WheelOutcomePopupAnimationConfig.TextFadeInDuration).SetEase(Ease.OutBack))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart + WheelOutcomePopupAnimationConfig.TextFadeInDuration, iconRect.DOScale(WheelOutcomePopupAnimationConfig.IconRewardSettleScale, WheelOutcomePopupAnimationConfig.TextFadeInDuration).SetEase(Ease.OutQuad))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, PlayFlash(binding, snapshot))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart + WheelOutcomePopupAnimationConfig.TextFadeInDelay, binding.ResultText.DOFade(1f, WheelOutcomePopupAnimationConfig.TextFadeInDuration))
+                .Insert(WheelOutcomePopupAnimationConfig.RevealStageStart, PlayShine(binding))
+                .InsertCallback(WheelOutcomePopupAnimationConfig.RewardBurstStopTime, () => StopRewardBurst(binding))
+                .InsertCallback(flightStageStart, () => PlayRewardFlight(binding, tweenTarget, hasOutcome));
+        }
+
+        private static void AddSummaryFade(WheelOutcomePopupRefs binding, Sequence sequence, float flightStageStart)
+        {
+            if (binding.SummaryText?.gameObject.activeInHierarchy == true)
+            {
+                sequence.Insert(flightStageStart - WheelOutcomePopupAnimationConfig.SummaryFadeBeforeFlight, binding.SummaryText.DOFade(1f, WheelOutcomePopupAnimationConfig.TextFadeInDuration));
             }
+        }
 
-            private static void PrepareVfx(WheelOutcomePopupRefs binding)
+        private static void PreparePopup(
+            WheelOutcomePopupRefs binding,
+            WheelOutcomePopupMotion motion,
+            WheelOutcomeSnapshot snapshot,
+            RectTransform iconRect,
+            Sprite icon)
+        {
+            RestoreBakedContentTransform(binding);
+            binding.CanvasGroup.alpha = 0f;
+            ConfigureChromeForPhase(binding, snapshot.Phase);
+            PrepareChrome(binding);
+            HideFlightIconPool(binding);
+            StopRewardBurst(binding);
+
+            binding.ContentRoot.localScale = WheelUiTweenUtility.Scale(binding.ContentHomeScale, motion.StartScale);
+            iconRect.anchoredPosition = binding.IconHomeAnchoredPosition;
+            iconRect.localScale = WheelOutcomePopupAnimationConfig.IconStartScale;
+            iconRect.localRotation = Quaternion.identity;
+
+            binding.IconImage.sprite = icon;
+            binding.IconImage.enabled = icon != null;
+            binding.IconImage.color = WheelUiGraphicUtility.WithAlpha(WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor), 0f);
+            binding.IconImage.preserveAspect = true;
+
+            WheelUiGraphicUtility.SetTextAlpha(binding.ResultText, 0f);
+            WheelUiGraphicUtility.SetTextAlpha(binding.SummaryText, 0f);
+            WheelUiGraphicUtility.SetGraphicAlpha(binding.FlashImage, 0f);
+            WheelUiGraphicUtility.SetGraphicAlpha(binding.ShineImage, 0f);
+            WheelUiGraphicUtility.SetLocalScale(binding.ShineImage?.rectTransform, Vector3.one);
+        }
+
+        private static void RestoreBakedContentTransform(WheelOutcomePopupRefs binding)
+        {
+            binding.ContentRoot.anchorMin = binding.ContentHomeAnchorMin;
+            binding.ContentRoot.anchorMax = binding.ContentHomeAnchorMax;
+            binding.ContentRoot.pivot = binding.ContentHomePivot;
+            binding.ContentRoot.anchoredPosition = binding.ContentHomeAnchoredPosition;
+        }
+
+        private static void PrepareChrome(WheelOutcomePopupRefs binding)
+        {
+            if (binding.RewardChromeGroup != null)
             {
-                HideFlightIconPool(binding);
-                PrepareChrome(binding);
-
-                if (binding.FlashImage != null)
-                {
-                    Color color = binding.FlashImage.color;
-                    color.a = 0f;
-                    binding.FlashImage.color = color;
-                    binding.FlashImage.rectTransform.localScale = new Vector3(0.54f, 0.54f, 1f);
-                    binding.FlashImage.rectTransform.localRotation = Quaternion.identity;
-                }
-
-                if (binding.ShineImage != null)
-                {
-                    Color color = binding.ShineImage.color;
-                    color.a = 0f;
-                    binding.ShineImage.color = color;
-                    binding.ShineImage.rectTransform.localScale = Vector3.one;
-                }
-            }
-
-            private static void PrepareChrome(WheelOutcomePopupRefs binding)
-            {
-                if (binding.RewardChromeGroup == null)
-                {
-                    return;
-                }
-
                 binding.RewardChromeGroup.alpha = 0f;
-                binding.RewardChromeGroup.transform.localScale = new Vector3(0.94f, 0.94f, 1f);
+            }
+        }
+
+        private static Tween PlayChromeReveal(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
+        {
+            if (binding.RewardChromeGroup == null)
+            {
+                return WheelUiTweenUtility.EmptyTween();
             }
 
-            private static Vector3 ResolveResponsiveContentScale(WheelOutcomePopupRefs binding)
+            ConfigureChromeForPhase(binding, snapshot.Phase);
+            return binding.RewardChromeGroup.DOFade(1f, WheelOutcomePopupAnimationConfig.ChromeFadeInDuration).SetUpdate(true);
+        }
+
+        private static void ConfigureChromeForPhase(WheelOutcomePopupRefs binding, WheelGamePhase phase)
+        {
+            bool isBombed = phase == WheelGamePhase.Bombed;
+            WheelUiGraphicUtility.SetActive(binding.RewardPopupBackground, true);
+            WheelUiGraphicUtility.SetActive(binding.BombCardShadow, isBombed);
+            WheelUiGraphicUtility.SetActive(binding.BombWarmTopGlow, isBombed);
+            WheelUiGraphicUtility.SetActive(binding.BombHalo, isBombed);
+            WheelUiGraphicUtility.SetActive(binding.OutcomeRetryButton, isBombed);
+        }
+
+        private static void PrepareRewardReveal(
+            WheelOutcomePopupRefs binding,
+            WheelOutcomeSnapshot snapshot,
+            Sprite icon,
+            Vector2 revealIconPosition)
+        {
+            RectTransform iconRect = binding.IconImage.rectTransform;
+            iconRect.anchoredPosition = revealIconPosition;
+            iconRect.localScale = WheelOutcomePopupAnimationConfig.IconRevealScale;
+            iconRect.localRotation = Quaternion.identity;
+            binding.IconImage.sprite = icon;
+            binding.IconImage.enabled = icon != null;
+            binding.IconImage.color = WheelUiGraphicUtility.WithAlpha(WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor), 0f);
+            binding.IconImage.preserveAspect = true;
+        }
+
+        private static Tween PlayFlash(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
+        {
+            if (binding.FlashImage == null)
             {
-                RectTransform parent = binding.ContentRoot == null ? null : binding.ContentRoot.parent as RectTransform;
-                Bounds visualBounds = WheelOutcomePopupLayout.ResolvePopupVisualBounds(binding.ContentRoot, WheelOutcomePopupLayout.ResolvePopupVisualRoot(binding));
-                WheelOutcomePopupPlacementArea placementArea = WheelOutcomePopupLayout.ResolvePlacementArea(binding, parent, visualBounds);
-                float scale = WheelOutcomePopupLayout.ResolveRewardPopupScale(visualBounds, placementArea.Size);
-                return new Vector3(scale, scale, 1f);
+                return WheelUiTweenUtility.EmptyTween();
             }
 
-            private static Vector3 MultiplyScale(Vector3 scale, float multiplier)
+            binding.FlashImage.color = WheelUiGraphicUtility.WithAlpha(WheelOutcomePopupPalette.FlashColor(snapshot), 0f);
+
+            return DOTween.Sequence()
+                .SetUpdate(true)
+                .Append(binding.FlashImage.DOFade(WheelOutcomePopupPalette.FlashAlpha(snapshot), WheelOutcomePopupAnimationConfig.FlashFadeInDuration))
+                .Append(binding.FlashImage.DOFade(0f, WheelOutcomePopupAnimationConfig.FlashFadeOutDuration));
+        }
+
+        private static Tween PlayShine(WheelOutcomePopupRefs binding)
+        {
+            if (binding.ShineImage == null)
             {
-                return new Vector3(scale.x * multiplier, scale.y * multiplier, 1f);
+                return WheelUiTweenUtility.EmptyTween();
             }
 
-            private static void ApplyResponsiveContentPlacement(WheelOutcomePopupRefs binding)
-            {
-                if (binding.ContentRoot == null)
-                {
-                    return;
-                }
+            return DOTween.Sequence()
+                .SetUpdate(true)
+                .Append(binding.ShineImage.DOFade(WheelOutcomePopupAnimationConfig.ShineAlpha, WheelOutcomePopupAnimationConfig.ShineFadeInDuration))
+                .AppendInterval(WheelOutcomePopupAnimationConfig.ShineHoldDuration)
+                .Append(binding.ShineImage.DOFade(0f, WheelOutcomePopupAnimationConfig.ShineFadeOutDuration));
+        }
 
-                binding.ContentRoot.anchorMin = new Vector2(0.5f, 0.5f);
-                binding.ContentRoot.anchorMax = new Vector2(0.5f, 0.5f);
-                binding.ContentRoot.pivot = new Vector2(0.5f, 0.5f);
-                RectTransform parent = binding.ContentRoot.parent as RectTransform;
-                Bounds visualBounds = WheelOutcomePopupLayout.ResolvePopupVisualBounds(binding.ContentRoot, WheelOutcomePopupLayout.ResolvePopupVisualRoot(binding));
-                WheelOutcomePopupPlacementArea placementArea = WheelOutcomePopupLayout.ResolvePlacementArea(binding, parent, visualBounds);
-                float scale = WheelOutcomePopupLayout.ResolveRewardPopupScale(visualBounds, placementArea.Size);
-                Vector2 target = WheelOutcomePopupLayout.ResolvePopupTarget(binding.PopupCenterAnchor, placementArea, parent);
-                binding.ContentRoot.anchoredPosition = WheelOutcomePopupLayout.ResolveRewardPopupAnchoredPosition(visualBounds, scale, target);
+        private static void PlayRewardFlight(WheelOutcomePopupRefs binding, Object tweenTarget, bool hasOutcome)
+        {
+            if (!hasOutcome || binding.RewardPanelView == null || binding.GetCurrentSnapshot == null)
+            {
+                CompletePresentation(binding);
+                return;
             }
 
-
-            private static Tween PlayChromeReveal(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
+            WheelOutcomeSnapshot snapshot = binding.GetCurrentSnapshot();
+            if (snapshot.Phase == WheelGamePhase.Bombed)
             {
-                if (binding.RewardChromeGroup == null)
-                {
-                    return DOVirtual.DelayedCall(0f, () => { }, false);
-                }
-
-                ConfigureChromeForPhase(binding, snapshot.Phase);
-
-                return DOTween.Sequence()
-                    .SetUpdate(true)
-                    .Append(binding.RewardChromeGroup.DOFade(1f, 0.14f))
-                    .Join(binding.RewardChromeGroup.transform.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.22f).SetEase(Ease.OutCubic))
-                    .Append(binding.RewardChromeGroup.transform.DOScale(Vector3.one, 0.14f).SetEase(Ease.OutQuad));
+                return;
             }
 
-            private static void ConfigureChromeForPhase(WheelOutcomePopupRefs binding, WheelGamePhase phase)
+            if (snapshot.Phase != WheelGamePhase.Won || snapshot.RewardAmount <= 0)
             {
-                bool isBombed = phase == WheelGamePhase.Bombed;
-                SetChromeChildActive(binding.BombPopupBackground, isBombed);
-                SetChromeChildActive(binding.RewardPopupBackground, !isBombed);
-                SetChromeChildActive(binding.BombCardShadow, isBombed);
-                SetChromeChildActive(binding.BombOuterStroke, isBombed);
-                SetChromeChildActive(binding.BombWarmTopGlow, isBombed);
-                SetChromeChildActive(binding.BombHalo, isBombed);
-                SetChromeChildActive(binding.OutcomeRetryButton, isBombed);
-                SetChromeChildActive(binding.OutcomeExitButton, false);
+                CompletePresentation(binding);
+                return;
             }
 
-            private static void SetChromeChildActive(GameObject target, bool isActive)
+            Sprite icon = snapshot.Icon;
+            if (icon == null)
             {
-                if (target != null)
-                {
-                    target.SetActive(isActive);
-                }
+                CompletePresentation(binding);
+                return;
             }
 
-            private static void PrepareRewardReveal(
-                WheelOutcomePopupRefs binding,
-                WheelOutcomeSnapshot snapshot,
-                Sprite icon,
-                Vector2 revealIconPosition)
+            binding.RewardPanelView.HoldPendingRewardsForArrival();
+            PlayPopupIconFlight(binding, snapshot, icon, tweenTarget);
+        }
+
+        private static void CompletePresentation(WheelOutcomePopupRefs binding)
+        {
+            StopRewardBurst(binding);
+            ClearMainIcon(binding);
+            binding.Root.SetActive(false);
+            binding.MarkPresentationComplete?.Invoke();
+        }
+
+        private static void PlayRewardBurst(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
+        {
+            if (snapshot.Phase != WheelGamePhase.Won || snapshot.Icon == null || binding.RewardBurstParticle == null)
             {
-                RectTransform iconRect = binding.IconImage.rectTransform;
-                iconRect.anchoredPosition = revealIconPosition;
-                iconRect.localScale = new Vector3(0.58f, 0.58f, 1f);
-                iconRect.localRotation = Quaternion.identity;
-                binding.IconImage.sprite = icon;
-                binding.IconImage.enabled = icon != null;
-                binding.IconImage.color = WheelOutcomePopupColors.WithAlpha(ResolvePresentationIconColor(snapshot), 0f);
-                binding.IconImage.preserveAspect = true;
-                MoveRewardVfx(binding, revealIconPosition);
-            }
-
-            private static Vector2 ResolveRewardRevealPosition(WheelOutcomePopupRefs binding)
-            {
-                return binding.IconHomeAnchoredPosition;
-            }
-
-            private static void ApplyRewardRevealLayout(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot, Vector2 revealIconPosition)
-            {
-                bool isBombed = snapshot.Phase == WheelGamePhase.Bombed;
-                SetAnchoredY(binding.TitleText.rectTransform, revealIconPosition.y + (isBombed ? 102f : 150f));
-                SetAnchoredY(binding.ResultText.rectTransform, revealIconPosition.y - (isBombed ? 140f : 210f));
-                if (binding.SummaryText != null)
-                {
-                    SetAnchoredY(binding.SummaryText.rectTransform, revealIconPosition.y - (isBombed ? 202f : 242f));
-                }
-            }
-
-            private static void SetAnchoredY(RectTransform rect, float y)
-            {
-                Vector2 position = rect.anchoredPosition;
-                position.y = y;
-                rect.anchoredPosition = position;
-            }
-
-            private static void MoveRewardVfx(WheelOutcomePopupRefs binding, Vector2 revealIconPosition)
-            {
-                if (binding.FlashImage != null)
-                {
-                    binding.FlashImage.rectTransform.anchoredPosition = revealIconPosition;
-                }
-
-                if (binding.ShineImage != null)
-                {
-                    binding.ShineImage.rectTransform.anchoredPosition = revealIconPosition;
-                }
-            }
-
-            private static Tween PlayFlash(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
-            {
-                if (binding.FlashImage == null)
-                {
-                    return DOVirtual.DelayedCall(0f, () => { }, false);
-                }
-
-                RectTransform rect = binding.FlashImage.rectTransform;
-                binding.FlashImage.color = snapshot.Phase == WheelGamePhase.Bombed
-                    ? WheelOutcomePopupColors.WithAlpha(new Color(1f, 0.22f, 0.04f, 1f), 0f)
-                    : WheelOutcomePopupColors.WithAlpha(new Color(1f, 0.8f, 0.28f, 1f), 0f);
-                bool isBombed = snapshot.Phase == WheelGamePhase.Bombed;
-                if (!isBombed)
-                {
-                    return DOTween.Sequence()
-                        .SetUpdate(true)
-                        .Append(binding.FlashImage.DOFade(0.34f, 0.16f))
-                        .Join(rect.DOScale(new Vector3(1.02f, 1.02f, 1f), 0.34f).SetEase(Ease.OutCubic))
-                        .Join(rect.DORotate(new Vector3(0f, 0f, 168f), 1.18f, RotateMode.FastBeyond360).SetEase(Ease.OutCubic))
-                        .Append(binding.FlashImage.DOFade(0.10f, 0.74f));
-                }
-
-                return DOTween.Sequence()
-                    .SetUpdate(true)
-                    .Append(binding.FlashImage.DOFade(0.22f, 0.12f))
-                    .Join(rect.DOScale(new Vector3(1.06f, 1.06f, 1f), 0.34f).SetEase(Ease.OutCubic))
-                    .Join(rect.DORotate(new Vector3(0f, 0f, 32f), 0.30f, RotateMode.Fast))
-                    .Append(binding.FlashImage.DOFade(0.015f, 0.34f));
-            }
-
-            private static Tween PlayShine(WheelOutcomePopupRefs binding)
-            {
-                if (binding.ShineImage == null)
-                {
-                    return DOVirtual.DelayedCall(0f, () => { }, false);
-                }
-
-                RectTransform rect = binding.ShineImage.rectTransform;
-                Vector2 home = rect.anchoredPosition;
-                rect.anchoredPosition = home + new Vector2(-150f, 6f);
-                return DOTween.Sequence()
-                    .SetUpdate(true)
-                    .Append(binding.ShineImage.DOFade(0.64f, 0.12f))
-                    .Join(rect.DOAnchorPos(home + new Vector2(170f, 6f), 0.58f).SetEase(Ease.InOutSine))
-                    .Append(binding.ShineImage.DOFade(0f, 0.18f))
-                    .OnComplete(() => rect.anchoredPosition = home);
-            }
-
-            private static void PlayRewardFlight(WheelOutcomePopupRefs binding, Object tweenTarget, bool hasOutcome)
-            {
-                if (!hasOutcome || binding.RewardPanelView == null)
-                {
-                    CompletePresentation(binding);
-                    return;
-                }
-
-                WheelOutcomeSnapshot snapshot = default(WheelOutcomeSnapshot);
-                if (binding.GetCurrentSnapshot == null)
-                {
-                    CompletePresentation(binding);
-                    return;
-                }
-
-                snapshot = binding.GetCurrentSnapshot();
-                if (snapshot.Phase == WheelGamePhase.Bombed)
-                {
-                    return;
-                }
-
-                if (snapshot.Phase != WheelGamePhase.Won || snapshot.RewardAmount <= 0)
-                {
-                    CompletePresentation(binding);
-                    return;
-                }
-
-                Sprite icon = ResolvePresentationIcon(snapshot);
-                if (icon == null)
-                {
-                    CompletePresentation(binding);
-                    return;
-                }
-
-                const float delay = 0.07f;
-                const float duration = 0.72f;
-                binding.RewardPanelView.HoldPendingRewardsForArrival();
-                PlayPopupIconFlight(binding, snapshot, icon, tweenTarget, delay, duration);
-            }
-
-            private static void CompletePresentation(WheelOutcomePopupRefs binding)
-            {
-                RestoreSourceSliceRewardVisual();
                 StopRewardBurst(binding);
-                ClearMainIcon(binding);
-                binding.Root.SetActive(false);
-                binding.MarkPresentationComplete?.Invoke();
+                return;
             }
 
-            private static void PlayRewardBurst(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot, Vector2 burstCenter)
+            WheelUiGraphicUtility.SetEnabled(binding.RewardBurstCamera, true);
+            WheelUiGraphicUtility.SetEnabled(binding.RewardBurstDisplay, true);
+
+            binding.RewardBurstParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            binding.RewardBurstParticle.Play(true);
+        }
+
+        private static void StopRewardBurst(WheelOutcomePopupRefs binding)
+        {
+            if (binding.RewardBurstParticle != null)
             {
-                if (snapshot.Phase != WheelGamePhase.Won || snapshot.Icon == null || binding.RewardBurstParticle == null)
-                {
-                    StopRewardBurst(binding);
-                    return;
-                }
-
-                if (binding.RewardBurstCamera != null)
-                {
-                    binding.RewardBurstCamera.enabled = true;
-                }
-
-                if (binding.RewardBurstDisplay != null)
-                {
-                    binding.RewardBurstDisplay.enabled = true;
-                    binding.RewardBurstDisplay.color = new Color(1f, 0.78f, 0.32f, 0.58f);
-                    RectTransform displayRect = binding.RewardBurstDisplay.rectTransform;
-                    RectTransform iconRect = binding.IconImage.rectTransform;
-                    RectTransform displayParent = displayRect.parent as RectTransform;
-                    displayRect.anchorMin = new Vector2(0.5f, 0.5f);
-                    displayRect.anchorMax = new Vector2(0.5f, 0.5f);
-                    displayRect.pivot = new Vector2(0.5f, 0.5f);
-                    displayRect.anchoredPosition = ResolveBurstDisplayPosition(iconRect, displayRect, displayParent, burstCenter);
-                    displayRect.sizeDelta = ResolveBurstDisplaySize(iconRect);
-                    displayRect.localRotation = Quaternion.identity;
-                    displayRect.localScale = Vector3.one;
-                }
-
-                ParticleSystem.TextureSheetAnimationModule textureSheet = binding.RewardBurstParticle.textureSheetAnimation;
-                textureSheet.enabled = false;
-
-                if (binding.RewardBurstCamera != null)
-                {
-                    Transform cameraTransform = binding.RewardBurstCamera.transform;
-                    cameraTransform.localPosition = new Vector3(0f, 0f, cameraTransform.localPosition.z);
-                    cameraTransform.localRotation = Quaternion.identity;
-                }
-
-                Transform particleTransform = binding.RewardBurstParticle.transform;
-                particleTransform.localPosition = Vector3.zero;
-                particleTransform.localRotation = Quaternion.identity;
-                particleTransform.localScale = Vector3.one;
                 binding.RewardBurstParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                binding.RewardBurstParticle.Play(true);
-#if UNITY_EDITOR
-                // Debug capture is intentionally disabled; enable only while tuning UI particle placement.
-                // if (binding.Owner != null)
-                // {
-                //     binding.Owner.CaptureRewardBurstDebug(binding, snapshot);
-                // }
-#endif
             }
 
-            private static Vector2 ResolveBurstDisplayPosition(
-                RectTransform iconRect,
-                RectTransform displayRect,
-                RectTransform displayParent,
-                Vector2 fallback)
+            WheelUiGraphicUtility.SetEnabled(binding.RewardBurstDisplay, false);
+
+            WheelUiGraphicUtility.SetEnabled(binding.RewardBurstCamera, false);
+        }
+
+        private static void PlayPopupIconFlight(
+            WheelOutcomePopupRefs binding,
+            WheelOutcomeSnapshot snapshot,
+            Sprite icon,
+            Object tweenTarget)
+        {
+            RectTransform rect = binding.IconImage.rectTransform;
+            WheelUiTweenUtility.KillImageTweens(binding.IconImage);
+            binding.IconImage.sprite = icon;
+            binding.IconImage.enabled = true;
+            binding.IconImage.color = WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor);
+            binding.IconImage.preserveAspect = true;
+
+            Vector3 target = binding.RewardPanelView.ResolveLandingWorldPosition(snapshot.RewardId, 0, 1);
+            DOTween.Sequence()
+                .SetTarget(tweenTarget)
+                .SetUpdate(true)
+                .AppendInterval(WheelOutcomePopupAnimationConfig.RewardFlightDelay)
+                .Append(rect.DOMove(target, WheelOutcomePopupAnimationConfig.RewardFlightDuration).SetEase(Ease.InOutQuad))
+                .Join(rect.DOScale(WheelOutcomePopupAnimationConfig.IconFlightEndScale, WheelOutcomePopupAnimationConfig.RewardFlightDuration).SetEase(Ease.InOutQuad))
+                .Join(rect.DOLocalRotate(new Vector3(0f, 0f, WheelOutcomePopupAnimationConfig.RewardFlightRotation), WheelOutcomePopupAnimationConfig.RewardFlightDuration * 0.48f, RotateMode.Fast).SetEase(Ease.OutSine))
+                .Join(binding.IconImage.DOFade(1f, WheelOutcomePopupAnimationConfig.RewardFlightDuration * WheelOutcomePopupAnimationConfig.RewardFlightFadeRatio))
+                .AppendCallback(() => binding.RewardPanelView.CommitPendingRewardsNow())
+                .Append(binding.IconImage.DOFade(0f, WheelOutcomePopupAnimationConfig.IconFadeOutDuration))
+                .Append(binding.CanvasGroup.DOFade(0f, WheelOutcomePopupAnimationConfig.PopupFadeOutDuration))
+                .AppendCallback(() => CompletePresentation(binding));
+        }
+
+        private static void HideFlightIconPool(WheelOutcomePopupRefs binding)
+        {
+            if (binding.FlightIconPool == null)
             {
-                if (iconRect == null || displayParent == null)
-                {
-                    return fallback;
-                }
-
-                Vector2 iconCenter = WheelOutcomePopupLayout.ResolveRectCenterInParent(iconRect, displayParent);
-                return iconCenter - WheelOutcomePopupLayout.ResolveAnchorReferencePoint(displayParent, displayRect);
+                return;
             }
 
-            private static Vector2 ResolveBurstDisplaySize(RectTransform iconRect)
+            for (int i = 0; i < binding.FlightIconPool.Length; i++)
             {
-                float baseSize = Mathf.Max(iconRect.rect.width, iconRect.rect.height);
-                float size = Mathf.Clamp(baseSize * 2.35f, 520f, 620f);
-                return new Vector2(size, size);
+                Image image = binding.FlightIconPool[i];
+                if (image == null)
+                {
+                    continue;
+                }
+
+                WheelUiTweenUtility.KillImageTweens(image);
+                image.gameObject.SetActive(false);
             }
+        }
 
-            private static void StopRewardBurst(WheelOutcomePopupRefs binding)
-            {
-                if (binding.RewardBurstParticle != null)
-                {
-                    binding.RewardBurstParticle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                }
-
-                if (binding.RewardBurstDisplay != null)
-                {
-                    binding.RewardBurstDisplay.enabled = false;
-                }
-
-                if (binding.RewardBurstCamera != null)
-                {
-                    binding.RewardBurstCamera.enabled = false;
-                }
-            }
-
-            private static void PlayPopupIconFlight(
-                WheelOutcomePopupRefs binding,
-                WheelOutcomeSnapshot snapshot,
-                Sprite icon,
-                Object tweenTarget,
-                float delay,
-                float duration)
-            {
-                RectTransform rect = binding.IconImage.rectTransform;
-                rect.DOKill();
-                binding.IconImage.DOKill();
-                binding.IconImage.sprite = icon;
-                binding.IconImage.enabled = true;
-                binding.IconImage.color = ResolvePresentationIconColor(snapshot);
-                binding.IconImage.preserveAspect = true;
-
-                Vector3 target = binding.RewardPanelView.ResolveLandingWorldPosition(snapshot.RewardId, 0, 1);
-                DOTween.Sequence()
-                    .SetTarget(tweenTarget)
-                    .SetUpdate(true)
-                    .AppendInterval(delay)
-                    .Append(rect.DOMove(target, duration).SetEase(Ease.InOutQuad))
-                    .Join(rect.DOScale(new Vector3(0.42f, 0.42f, 1f), duration).SetEase(Ease.InOutQuad))
-                    .Join(rect.DOLocalRotate(new Vector3(0f, 0f, 10f), duration * 0.48f, RotateMode.Fast).SetEase(Ease.OutSine))
-                    .Join(binding.IconImage.DOFade(1f, duration * 0.68f))
-                    .AppendCallback(() => binding.RewardPanelView.CommitPendingRewardsNow())
-                    .Append(binding.IconImage.DOFade(0f, 0.08f))
-                    .Append(binding.CanvasGroup.DOFade(0f, 0.12f))
-                    .AppendCallback(() => CompletePresentation(binding));
-            }
-
-            public static Sprite ResolvePresentationIcon(WheelOutcomeSnapshot snapshot)
-            {
-                if (snapshot.Icon != null)
-                {
-                    return snapshot.Icon;
-                }
-
-                WheelView wheelView = WheelRuntimeLocator.WheelView;
-                if (wheelView == null || snapshot.SourceSliceIndex < 0)
-                {
-                    return null;
-                }
-
-                RectTransform parent = null;
-                if (wheelView.TryResolveSliceIconPresentation(
-                    snapshot.SourceSliceIndex,
-                    parent,
-                    out Vector2 _,
-                    out Sprite sprite,
-                    out Color _))
-                {
-                    return sprite;
-                }
-
-                return null;
-            }
-
-            public static Color ResolvePresentationIconColor(WheelOutcomeSnapshot snapshot)
-            {
-                WheelView wheelView = WheelRuntimeLocator.WheelView;
-                if (wheelView != null
-                    && snapshot.SourceSliceIndex >= 0
-                    && wheelView.TryResolveSliceIconPresentation(
-                        snapshot.SourceSliceIndex,
-                        null,
-                        out Vector2 _,
-                        out Sprite sprite,
-                        out Color color)
-                    && sprite != null)
-                {
-                    return WheelOutcomePopupColors.ResolveVisibleIconColor(color);
-                }
-
-                return WheelOutcomePopupColors.ResolveVisibleIconColor(Color.white);
-            }
-
-            private static void SuppressSourceSliceRewardVisual(WheelOutcomeSnapshot snapshot)
-            {
-                if (snapshot.Phase != WheelGamePhase.Won || snapshot.SourceSliceIndex < 0)
-                {
-                    return;
-                }
-
-                WheelView wheelView = WheelRuntimeLocator.WheelView;
-                if (wheelView != null)
-                {
-                    wheelView.SuppressAllRewardVisuals();
-                }
-            }
-
-            private static void RestoreSourceSliceRewardVisual()
-            {
-                WheelView wheelView = WheelRuntimeLocator.WheelView;
-                if (wheelView != null)
-                {
-                    wheelView.RestoreAllRewardVisuals();
-                    wheelView.RestoreSuppressedSliceRewardVisual();
-                }
-            }
-
-            private static void HideFlightIconPool(WheelOutcomePopupRefs binding)
-            {
-                if (binding.FlightIconPool == null)
-                {
-                    return;
-                }
-
-                for (int i = 0; i < binding.FlightIconPool.Length; i++)
-                {
-                    Image image = binding.FlightIconPool[i];
-                    if (image == null)
-                    {
-                        continue;
-                    }
-
-                    image.DOKill();
-                    image.rectTransform.DOKill();
-                    image.gameObject.SetActive(false);
-                }
-            }
-
-            private static Vector2 ResolveIconStartPosition(
-                WheelOutcomePopupRefs binding,
-                WheelOutcomeSnapshot snapshot,
-                RectTransform iconRect)
-            {
-                RectTransform parent = iconRect.parent as RectTransform;
-                if (snapshot.SourceSliceIndex >= 0
-                    && parent != null
-                    && WheelRuntimeLocator.WheelView != null
-                    && WheelRuntimeLocator.WheelView.TryResolveSliceIconAnchoredPosition(
-                        snapshot.SourceSliceIndex,
-                        parent,
-                        out Vector2 anchoredPosition))
-                {
-                    return anchoredPosition;
-                }
-
-                return binding.IconHomeAnchoredPosition;
-            }
-
-            private static void SetTextAlpha(TextMeshProUGUI text, float alpha)
-            {
-                Color color = text.color;
-                color.a = alpha;
-                text.color = color;
-            }
-
-            private static void SetOptionalTextAlpha(TextMeshProUGUI text, float alpha)
-            {
-                if (text != null)
-                {
-                    SetTextAlpha(text, alpha);
-                }
-            }
     }
 }

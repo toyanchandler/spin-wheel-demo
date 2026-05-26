@@ -30,25 +30,21 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             bool changed = false;
-            Add<WheelOutcomePopupRootBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay", ref changed);
-            Add<WheelOutcomePopupContentRootBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot", ref changed);
-            Add<WheelOutcomePopupIconBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeIconValue", ref changed);
-            Add<WheelOutcomePopupTitleTextBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeTitleValue", ref changed);
-            Add<WheelOutcomePopupResultTextBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeResultValue", ref changed);
-            Add<WheelOutcomePopupChromeBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome", ref changed);
-            Add<WheelOutcomePopupBombBackgroundBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomePopupBg", ref changed);
-            Add<WheelOutcomePopupRewardBackgroundBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeRewardPopupBg", ref changed);
-            Add<WheelOutcomePopupBombCardShadowBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeFailCardShadow", ref changed);
-            Add<WheelOutcomePopupBombOuterStrokeBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeFailOuterStroke", ref changed);
-            Add<WheelOutcomePopupBombWarmTopGlowBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeFailWarmTopGlow", ref changed);
-            Add<WheelOutcomePopupRetryButtonBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/ButtonOutcomeRetry", ref changed);
-            Add<WheelOutcomePopupExitButtonBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/ButtonOutcomeExit", ref changed);
-            Add<WheelOutcomePopupFlashBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeFlash", ref changed);
-            Add<WheelOutcomePopupShineBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeShine", ref changed);
-            Add<WheelOutcomePopupFlightIconBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/RewardFlightIcon0", ref changed);
-            Add<WheelOutcomePopupRewardBurstCameraBinding>("HudCanvas/OutcomePopupController/UIParticleWorldRig/UIParticleCamera", ref changed);
-            Add<WheelOutcomePopupRewardBurstDisplayBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/RewardBurstRenderTexture", ref changed);
-            Add<WheelOutcomePopupRewardBurstParticleBinding>("HudCanvas/OutcomePopupController/UIParticleWorldRig/UIParticleRewardBurst", ref changed);
+            AddOptional<WheelOutcomePopupRootBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay", ref changed);
+            AddOptional<WheelOutcomePopupContentRootBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot", ref changed);
+            AddOptional<WheelOutcomePopupIconBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeIconValue", ref changed);
+            AddOptional<WheelOutcomePopupResultTextBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeResultValue", ref changed);
+            AddOptional<WheelOutcomePopupChromeBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome", ref changed);
+            AddOptional<WheelOutcomePopupRewardBackgroundBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeRewardPopupBg", ref changed);
+            AddOptional<WheelOutcomePopupBombCardShadowBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeFailCardShadow", ref changed);
+            AddOptional<WheelOutcomePopupBombWarmTopGlowBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/OutcomeFailWarmTopGlow", ref changed);
+            AddOptional<WheelOutcomePopupRetryButtonBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeRewardChrome/ButtonOutcomeRetry", ref changed);
+            AddOptional<WheelOutcomePopupFlashBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeFlash", ref changed);
+            AddOptional<WheelOutcomePopupShineBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/OutcomeShine", ref changed);
+            AddOptional<WheelOutcomePopupFlightIconBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/RewardFlightIcon0", ref changed);
+            AddOptional<WheelOutcomePopupRewardBurstCameraBinding>("HudCanvas/OutcomePopupController/UIParticleWorldRig/UIParticleCamera", ref changed);
+            AddOptional<WheelOutcomePopupRewardBurstDisplayBinding>("HudCanvas/OutcomePopupController/OutcomeOverlay/OutcomeContentRoot/RewardBurstRenderTexture", ref changed);
+            AddOptional<WheelOutcomePopupRewardBurstParticleBinding>("HudCanvas/OutcomePopupController/UIParticleWorldRig/UIParticleRewardBurst", ref changed);
 
             if (!changed)
             {
@@ -60,15 +56,10 @@ namespace Vertigo.Wheel.EditorTools
             Debug.Log("WheelOutcomePopupBindingMigration applied outcome popup scene bindings.");
         }
 
-        private static void Add<TComponent>(string path, ref bool changed) where TComponent : Component
+        private static void AddOptional<TComponent>(string path, ref bool changed) where TComponent : Component
         {
             GameObject target = FindByPath(path);
-            if (target == null)
-            {
-                throw new InvalidOperationException("Missing outcome popup hierarchy path: " + path);
-            }
-
-            if (target.GetComponent<TComponent>() != null)
+            if (target == null || target.GetComponent<TComponent>() != null)
             {
                 return;
             }

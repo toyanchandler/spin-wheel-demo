@@ -13,31 +13,6 @@ namespace Vertigo.Wheel.Views
 
         public void RefreshResponsiveLayoutForCapture()
         {
-            if (_contentRootBinding == null)
-            {
-                return;
-            }
-
-            WheelOutcomePopupRefs refs = CreateRefs();
-            RectTransform contentRoot = refs.ContentRoot;
-            if (contentRoot == null)
-            {
-                return;
-            }
-
-            RectTransform parent = contentRoot.parent as RectTransform;
-            Bounds visualBounds = WheelOutcomePopupLayout.ResolvePopupVisualBounds(
-                contentRoot,
-                WheelOutcomePopupLayout.ResolvePopupVisualRoot(refs));
-            WheelOutcomePopupPlacementArea placementArea = WheelOutcomePopupLayout.ResolvePlacementArea(refs, parent, visualBounds);
-            float scale = WheelOutcomePopupLayout.ResolveRewardPopupScale(visualBounds, placementArea.Size);
-            Vector2 target = WheelOutcomePopupLayout.ResolvePopupTarget(refs.PopupCenterAnchor, placementArea, parent);
-
-            contentRoot.anchorMin = new Vector2(0.5f, 0.5f);
-            contentRoot.anchorMax = new Vector2(0.5f, 0.5f);
-            contentRoot.pivot = new Vector2(0.5f, 0.5f);
-            contentRoot.anchoredPosition = WheelOutcomePopupLayout.ResolveRewardPopupAnchoredPosition(visualBounds, scale, target);
-            contentRoot.localScale = new Vector3(scale, scale, 1f);
         }
 
         private void CaptureRewardBurstDebug(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
