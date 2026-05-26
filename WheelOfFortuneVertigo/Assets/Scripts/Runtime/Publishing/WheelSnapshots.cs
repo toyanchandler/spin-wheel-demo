@@ -36,42 +36,6 @@ namespace Vertigo.Wheel.Runtime
             ExitConfirmation = exitConfirmation;
             Rewards = rewards;
         }
-
-        public string ZoneTypeLabel { get { return ZoneLabels.ZoneTypeLabel; } }
-        public Color ZoneNumberColor { get { return ZoneLabels.ZoneNumberColor; } }
-        public Color ZoneTypeColor { get { return ZoneLabels.ZoneTypeColor; } }
-
-        public int SafeZoneInterval { get { return Milestones.SafeZoneInterval; } }
-        public int SuperZoneInterval { get { return Milestones.SuperZoneInterval; } }
-        public int NextSafeZone { get { return Milestones.NextSafeZone; } }
-        public int NextSuperZone { get { return Milestones.NextSuperZone; } }
-        public string SafeMilestoneBadgeText { get { return Milestones.SafeMilestoneBadgeText; } }
-        public string SuperMilestoneBadgeText { get { return Milestones.SuperMilestoneBadgeText; } }
-        public Color SafeMilestoneBadgeColor { get { return Milestones.SafeMilestoneBadgeColor; } }
-        public Color SuperMilestoneBadgeColor { get { return Milestones.SuperMilestoneBadgeColor; } }
-
-        public string StatusText { get { return StatusBar.StatusText; } }
-        public bool IsStatusVisible { get { return StatusBar.IsStatusVisible; } }
-        public Color StatusColor { get { return StatusBar.StatusColor; } }
-
-        public bool CanSpin { get { return Actions.CanSpin; } }
-        public bool CanLeave { get { return Actions.CanLeave; } }
-        public bool CanRestart { get { return Actions.CanRestart; } }
-        public bool IsOutcomePopupAllowed { get { return Actions.IsOutcomePopupAllowed; } }
-        public string SpinButtonLabel { get { return Actions.SpinButtonLabel; } }
-        public string LeaveButtonLabel { get { return Actions.LeaveButtonLabel; } }
-        public string RestartButtonLabel { get { return Actions.RestartButtonLabel; } }
-
-        public string ExitConfirmationTitle { get { return ExitConfirmation.Title; } }
-        public string ExitConfirmationBody { get { return ExitConfirmation.Body; } }
-        public string ExitCollectButtonLabel { get { return ExitConfirmation.CollectButtonLabel; } }
-        public string ExitComeBackButtonLabel { get { return ExitConfirmation.ComeBackButtonLabel; } }
-
-        public string RewardOpeningTitle { get { return Rewards.RewardOpeningTitle; } }
-        public string DefaultRewardTitle { get { return Rewards.DefaultRewardTitle; } }
-        public Sprite RewardCardFrameSprite { get { return Rewards.RewardCardFrameSprite; } }
-        public int RewardCardCount { get { return Rewards.RewardCardCount; } }
-        public RewardInventoryEntry[] RewardCards { get { return Rewards.RewardCards; } }
     }
 
     public readonly struct WheelZoneSnapshot

@@ -8,7 +8,7 @@ namespace Vertigo.Wheel.Tests
     public sealed class WheelHudSnapshotTests
     {
         [Test]
-        public void FlatProperties_ForwardToNestedParts()
+        public void NestedParts_ExposeComposedHudData()
         {
             var rewardCards = new[] { new RewardInventoryEntry("gold", "Gold", 2, null, Color.yellow) };
             var snapshot = new WheelHudSnapshot(
@@ -50,26 +50,26 @@ namespace Vertigo.Wheel.Tests
             Assert.AreEqual(WheelGamePhase.Ready, snapshot.Phase);
             Assert.AreEqual(Color.black, snapshot.BackgroundColor);
 
-            Assert.AreEqual("Super Zone", snapshot.ZoneTypeLabel);
-            Assert.AreEqual(Color.red, snapshot.ZoneTypeColor);
-            Assert.AreEqual(5, snapshot.SafeZoneInterval);
-            Assert.AreEqual("Super 10", snapshot.SuperMilestoneBadgeText);
-            Assert.AreEqual(Color.blue, snapshot.SuperMilestoneBadgeColor);
+            Assert.AreEqual("Super Zone", snapshot.ZoneLabels.ZoneTypeLabel);
+            Assert.AreEqual(Color.red, snapshot.ZoneLabels.ZoneTypeColor);
+            Assert.AreEqual(5, snapshot.Milestones.SafeZoneInterval);
+            Assert.AreEqual("Super 10", snapshot.Milestones.SuperMilestoneBadgeText);
+            Assert.AreEqual(Color.blue, snapshot.Milestones.SuperMilestoneBadgeColor);
 
-            Assert.AreEqual("Spin to win", snapshot.StatusText);
-            Assert.IsTrue(snapshot.IsStatusVisible);
+            Assert.AreEqual("Spin to win", snapshot.StatusBar.StatusText);
+            Assert.IsTrue(snapshot.StatusBar.IsStatusVisible);
 
-            Assert.IsTrue(snapshot.CanSpin);
-            Assert.IsFalse(snapshot.CanLeave);
-            Assert.AreEqual("SPIN", snapshot.SpinButtonLabel);
-            Assert.IsTrue(snapshot.IsOutcomePopupAllowed);
+            Assert.IsTrue(snapshot.Actions.CanSpin);
+            Assert.IsFalse(snapshot.Actions.CanLeave);
+            Assert.AreEqual("SPIN", snapshot.Actions.SpinButtonLabel);
+            Assert.IsTrue(snapshot.Actions.IsOutcomePopupAllowed);
 
-            Assert.AreEqual("Leave?", snapshot.ExitConfirmationTitle);
-            Assert.AreEqual("Stay", snapshot.ExitComeBackButtonLabel);
+            Assert.AreEqual("Leave?", snapshot.ExitConfirmation.Title);
+            Assert.AreEqual("Stay", snapshot.ExitConfirmation.ComeBackButtonLabel);
 
-            Assert.AreEqual("Your Rewards", snapshot.RewardOpeningTitle);
-            Assert.AreEqual(1, snapshot.RewardCardCount);
-            Assert.AreEqual("Gold", snapshot.RewardCards[0].DisplayName);
+            Assert.AreEqual("Your Rewards", snapshot.Rewards.RewardOpeningTitle);
+            Assert.AreEqual(1, snapshot.Rewards.RewardCardCount);
+            Assert.AreEqual("Gold", snapshot.Rewards.RewardCards[0].DisplayName);
         }
     }
 }

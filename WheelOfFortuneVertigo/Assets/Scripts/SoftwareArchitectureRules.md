@@ -331,7 +331,7 @@ Views subscribe from `[WheelAfterInject]` and unsubscribe from `[WheelBeforeUnbi
 
 ### 7.2 Snapshot types (readonly structs)
 
-- `WheelHudSnapshot` — composed HUD snapshot (`Zone`, `Phase`, `BackgroundColor`, plus nested parts: zone labels, milestones, status bar, actions, exit confirmation copy, reward cards). Flat properties on the root forward to nested parts so existing views stay stable.
+- `WheelHudSnapshot` — composed HUD snapshot (`Zone`, `Phase`, `BackgroundColor`, plus nested parts: `ZoneLabels`, `Milestones`, `StatusBar`, `Actions`, `ExitConfirmation`, `Rewards`). Views read nested parts directly.
 - `WheelZoneSnapshot` — slices, positions, skin tier, background
 - `WheelOutcomeSnapshot` — popup copy, colors, motion, icon
 
@@ -464,7 +464,7 @@ actions[Convert.ToInt32(state.CanSpin && !spinner.IsSpinning)](this);
 
 Pure `Data/Rules` helpers must stay deterministic — no hidden `Random` or locator access inside rule tables.
 
-New HUD views should read nested snapshot parts (`snapshot.Actions`, `snapshot.Milestones`, etc.) instead of flat forwarding properties when possible.
+HUD views must read nested snapshot parts (`snapshot.Actions`, `snapshot.Milestones`, etc.); do not add flat forwarding properties on the root snapshot.
 
 ## 11. Validation
 
