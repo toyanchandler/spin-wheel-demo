@@ -72,7 +72,8 @@ namespace Vertigo.Wheel.Views
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
-            _renderer.SetPresentation(snapshot.RewardCardFrameSprite, snapshot.DefaultRewardTitle);
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
+            _renderer.SetPresentation(rewards.RewardCardFrameSprite, rewards.DefaultRewardTitle);
             if (_inventory.ShouldDeferRewardGain(snapshot))
             {
                 _inventory.StorePending(snapshot);

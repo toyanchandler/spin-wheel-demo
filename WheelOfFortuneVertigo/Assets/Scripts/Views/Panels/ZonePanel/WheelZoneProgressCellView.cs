@@ -43,12 +43,13 @@ namespace Vertigo.Wheel.Views
 
         private static WheelZoneProgressCellKind ResolveKind(WheelHudSnapshot snapshot, int zone)
         {
-            if (IsIntervalZone(zone, snapshot.SuperZoneInterval))
+            WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
+            if (IsIntervalZone(zone, milestones.SuperZoneInterval))
             {
                 return WheelZoneProgressCellKind.Super;
             }
 
-            return IsIntervalZone(zone, snapshot.SafeZoneInterval)
+            return IsIntervalZone(zone, milestones.SafeZoneInterval)
                 ? WheelZoneProgressCellKind.Safe
                 : WheelZoneProgressCellKind.Standard;
         }
@@ -95,19 +96,20 @@ namespace Vertigo.Wheel.Views
             bool isCurrentZone,
             WheelHudSnapshot snapshot)
         {
+            WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
             if (kind == WheelZoneProgressCellKind.Super)
             {
-                return snapshot.SuperMilestoneBadgeColor;
+                return milestones.SuperMilestoneBadgeColor;
             }
 
             if (kind == WheelZoneProgressCellKind.Safe)
             {
-                return snapshot.SafeMilestoneBadgeColor;
+                return milestones.SafeMilestoneBadgeColor;
             }
 
             return isCurrentZone
                 ? new Color(1f, 1f, 1f, 0.92f)
-                : snapshot.SafeMilestoneBadgeColor;
+                : milestones.SafeMilestoneBadgeColor;
         }
     }
 }

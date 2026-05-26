@@ -359,8 +359,8 @@ public sealed class WheelStatusTextView : MonoBehaviour
 
     private void OnHudStateChanged(WheelHudSnapshot snapshot)
     {
-        _titleText.SetText(snapshot.SuperMilestoneBadgeText);
-        _badgeImage.color = snapshot.SuperMilestoneBadgeColor;
+        _titleText.SetText(snapshot.Milestones.SuperMilestoneBadgeText);
+        _badgeImage.color = snapshot.Milestones.SuperMilestoneBadgeColor;
     }
 }
 ```
@@ -463,6 +463,8 @@ actions[Convert.ToInt32(state.CanSpin && !spinner.IsSpinning)](this);
 ```
 
 Pure `Data/Rules` helpers must stay deterministic — no hidden `Random` or locator access inside rule tables.
+
+New HUD views should read nested snapshot parts (`snapshot.Actions`, `snapshot.Milestones`, etc.) instead of flat forwarding properties when possible.
 
 ## 11. Validation
 

@@ -10,12 +10,12 @@ namespace Vertigo.Wheel.Views
 
         protected override bool IsInteractable(WheelHudSnapshot snapshot)
         {
-            return snapshot.CanSpin;
+            return snapshot.Actions.CanSpin;
         }
 
         protected override string ResolveLabel(WheelHudSnapshot snapshot)
         {
-            return snapshot.SpinButtonLabel;
+            return snapshot.Actions.SpinButtonLabel;
         }
 
         protected override void Execute()

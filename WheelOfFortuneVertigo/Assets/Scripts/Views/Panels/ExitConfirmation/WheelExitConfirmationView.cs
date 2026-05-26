@@ -34,7 +34,7 @@ namespace Vertigo.Wheel.Views
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             _bindings.ApplyCopy(snapshot);
-            if (_bindings.IsVisible && !snapshot.CanLeave)
+            if (_bindings.IsVisible && !snapshot.Actions.CanLeave)
             {
                 HideImmediate();
             }

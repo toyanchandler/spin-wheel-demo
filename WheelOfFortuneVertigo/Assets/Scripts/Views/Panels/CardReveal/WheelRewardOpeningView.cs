@@ -51,7 +51,7 @@ namespace Vertigo.Wheel.Views
             }
 
             ShowOpening();
-            _rootBinding.SetTitle(snapshot.RewardOpeningTitle);
+            _rootBinding.SetTitle(snapshot.Rewards.RewardOpeningTitle);
             RenderCards(snapshot);
         }
 
@@ -82,19 +82,20 @@ namespace Vertigo.Wheel.Views
 
         private void RenderCards(WheelHudSnapshot snapshot)
         {
-            if (snapshot.RewardCardCount > _bindings.CardCount)
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
+            if (rewards.RewardCardCount > _bindings.CardCount)
             {
                 throw new InvalidOperationException(
-                    name + " needs " + snapshot.RewardCardCount + " baked reward cards, but only " + _bindings.CardCount + " are wired.");
+                    name + " needs " + rewards.RewardCardCount + " baked reward cards, but only " + _bindings.CardCount + " are wired.");
             }
 
-            int visibleCount = Mathf.Min(snapshot.RewardCardCount, _bindings.CardCount);
+            int visibleCount = Mathf.Min(rewards.RewardCardCount, _bindings.CardCount);
             _scroller.ApplyBounds(visibleCount);
             _deckRenderer.Render(snapshot, visibleCount);
             _scroller.FocusCardIndex(visibleCount - 1);
             _scroller.UpdateControls();
             _scroller.PlayReverseReveal(visibleCount);
-            _burst.Play(snapshot.RewardCardCount);
+            _burst.Play(rewards.RewardCardCount);
         }
 
         private void ScrollPrevious()

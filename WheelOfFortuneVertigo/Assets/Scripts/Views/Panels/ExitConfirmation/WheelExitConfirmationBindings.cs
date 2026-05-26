@@ -48,10 +48,11 @@ namespace Vertigo.Wheel.Views
 
         public void ApplyCopy(WheelHudSnapshot snapshot)
         {
-            _titleText.text = snapshot.ExitConfirmationTitle;
-            _bodyText.text = snapshot.ExitConfirmationBody;
-            _collectButtonLabelText.text = snapshot.ExitCollectButtonLabel;
-            _comeBackButtonLabelText.text = snapshot.ExitComeBackButtonLabel;
+            WheelHudExitConfirmationSnapshot copy = snapshot.ExitConfirmation;
+            _titleText.text = copy.Title;
+            _bodyText.text = copy.Body;
+            _collectButtonLabelText.text = copy.CollectButtonLabel;
+            _comeBackButtonLabelText.text = copy.ComeBackButtonLabel;
         }
 
         public Sequence Show()

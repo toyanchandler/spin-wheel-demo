@@ -13,6 +13,7 @@ namespace Vertigo.Wheel.Views
 
         public void Render(WheelHudSnapshot snapshot, int visibleCount)
         {
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
             for (int i = 0; i < _cards.Length; i++)
             {
                 if (i >= visibleCount)
@@ -22,8 +23,8 @@ namespace Vertigo.Wheel.Views
                 }
 
                 int revealOrder = (visibleCount - 1) - i;
-                _cards[i].ApplyFrames(snapshot.RewardCardFrameSprite);
-                _cards[i].Apply(snapshot.RewardCards[i], revealOrder, visibleCount, true, true, snapshot.DefaultRewardTitle);
+                _cards[i].ApplyFrames(rewards.RewardCardFrameSprite);
+                _cards[i].Apply(rewards.RewardCards[i], revealOrder, visibleCount, true, true, rewards.DefaultRewardTitle);
             }
         }
     }

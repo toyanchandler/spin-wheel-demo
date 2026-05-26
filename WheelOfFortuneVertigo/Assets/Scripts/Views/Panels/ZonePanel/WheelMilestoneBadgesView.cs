@@ -29,8 +29,9 @@ namespace Vertigo.Wheel.Views
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
-            SetIntervalText(_superBadgeNumberText, snapshot.SuperZoneInterval, ref _lastSuperZoneInterval);
-            SetIntervalText(_safeBadgeNumberText, snapshot.SafeZoneInterval, ref _lastSafeZoneInterval);
+            WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
+            SetIntervalText(_superBadgeNumberText, milestones.SuperZoneInterval, ref _lastSuperZoneInterval);
+            SetIntervalText(_safeBadgeNumberText, milestones.SafeZoneInterval, ref _lastSafeZoneInterval);
         }
 
         private static void SetIntervalText(TextMeshProUGUI text, int interval, ref int lastInterval)

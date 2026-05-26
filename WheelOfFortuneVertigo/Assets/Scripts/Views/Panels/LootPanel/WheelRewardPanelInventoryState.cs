@@ -70,15 +70,16 @@ namespace Vertigo.Wheel.Views
 
         private bool SnapshotDiffersFromRendered(WheelHudSnapshot snapshot)
         {
-            if (snapshot.RewardCardCount != RenderedCount)
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
+            if (rewards.RewardCardCount != RenderedCount)
             {
                 return true;
             }
 
-            int count = Mathf.Min(snapshot.RewardCardCount, _renderedCards.Length);
+            int count = Mathf.Min(rewards.RewardCardCount, _renderedCards.Length);
             for (int i = 0; i < count; i++)
             {
-                RewardInventoryEntry incoming = snapshot.RewardCards[i];
+                RewardInventoryEntry incoming = rewards.RewardCards[i];
                 RewardInventoryEntry rendered = _renderedCards[i];
                 if (incoming.RewardId != rendered.RewardId || incoming.Amount != rendered.Amount)
                 {
@@ -91,11 +92,12 @@ namespace Vertigo.Wheel.Views
 
         private int FindLastChangedIndex(WheelHudSnapshot snapshot)
         {
-            int count = Mathf.Min(snapshot.RewardCardCount, _renderedCards.Length);
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
+            int count = Mathf.Min(rewards.RewardCardCount, _renderedCards.Length);
             int changedIndex = -1;
             for (int i = 0; i < count; i++)
             {
-                RewardInventoryEntry incoming = snapshot.RewardCards[i];
+                RewardInventoryEntry incoming = rewards.RewardCards[i];
                 RewardInventoryEntry rendered = _renderedCards[i];
                 if (incoming.RewardId != rendered.RewardId || incoming.Amount != rendered.Amount)
                 {
@@ -103,7 +105,7 @@ namespace Vertigo.Wheel.Views
                 }
             }
 
-            return snapshot.RewardCardCount > RenderedCount ? snapshot.RewardCardCount - 1 : changedIndex;
+            return rewards.RewardCardCount > RenderedCount ? rewards.RewardCardCount - 1 : changedIndex;
         }
 
         private int FindPendingIndex(string rewardId)
@@ -126,7 +128,8 @@ namespace Vertigo.Wheel.Views
 
         private int CopyCards(WheelHudSnapshot snapshot, RewardInventoryEntry[] target)
         {
-            return CopyCards(snapshot.RewardCards, snapshot.RewardCardCount, target);
+            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
+            return CopyCards(rewards.RewardCards, rewards.RewardCardCount, target);
         }
 
         private static int CopyCards(RewardInventoryEntry[] source, int sourceCount, RewardInventoryEntry[] target)

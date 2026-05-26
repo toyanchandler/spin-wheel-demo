@@ -6,7 +6,8 @@ namespace Vertigo.Wheel.Views
     {
         protected override void Apply(WheelHudSnapshot snapshot)
         {
-            ApplyVisibleText(Text, snapshot.IsStatusVisible, snapshot.StatusText, snapshot.StatusColor);
+            WheelHudStatusSnapshot status = snapshot.StatusBar;
+            ApplyVisibleText(Text, status.IsStatusVisible, status.StatusText, status.StatusColor);
         }
     }
 }

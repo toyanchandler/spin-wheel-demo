@@ -45,7 +45,7 @@ namespace Vertigo.Wheel.Views
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
-            _presenter.HandleHud(snapshot.IsOutcomePopupAllowed);
+            _presenter.HandleHud(snapshot.Actions.IsOutcomePopupAllowed);
         }
 
         private void ValidateWiring()

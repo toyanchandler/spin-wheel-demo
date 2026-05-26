@@ -15,7 +15,7 @@ namespace Vertigo.Wheel.Views
                 return false;
             }
 
-            return snapshot.CanLeave;
+            return snapshot.Actions.CanLeave;
         }
 
         protected override bool IsInteractable(WheelHudSnapshot snapshot)
@@ -25,12 +25,12 @@ namespace Vertigo.Wheel.Views
                 return false;
             }
 
-            return snapshot.CanLeave;
+            return snapshot.Actions.CanLeave;
         }
 
         protected override string ResolveLabel(WheelHudSnapshot snapshot)
         {
-            return snapshot.LeaveButtonLabel;
+            return snapshot.Actions.LeaveButtonLabel;
         }
 
         protected override void Execute()
