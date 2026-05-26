@@ -444,13 +444,31 @@ Editor assembly must not become a second runtime.
 - Mega inspector lists on runtime root
 - Silent nulls in UI when wiring is missing (prefer throw on bind)
 - Committing secrets or machine paths in `Assets/Config`
+- Bool-to-index dispatch tables (`Convert.ToInt32(condition)` indexing action arrays) — prefer explicit `if` / `switch` for readability
 
 ---
+
+## 10.1 Readability conventions
+
+Prefer direct conditionals over clever dispatch:
+
+```csharp
+// Good
+if (!state.CanSpin || spinner.IsSpinning) return;
+ExecuteSpin();
+
+// Avoid
+Action[] actions = { _ => { }, _ => ExecuteSpin() };
+actions[Convert.ToInt32(state.CanSpin && !spinner.IsSpinning)](this);
+```
+
+Pure `Data/Rules` helpers must stay deterministic — no hidden `Random` or locator access inside rule tables.
 
 ## 11. Validation
 
 Before considering a feature done:
 
+0. Edit Mode tests: run `Vertigo.Wheel.Tests` for touched pure rules / inventory helpers when applicable
 1. Play mode: spin, bomb, cash out, restart — HUD/wheel/popup update
 2. Inspector: `[CollectChildren]` arrays populated, each UI canvas has exactly one `WheelViewScope`
 3. Console after entering play mode: no `No view binding for X`, compile, or lifecycle exceptions
