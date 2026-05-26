@@ -31,16 +31,16 @@ namespace Vertigo.Wheel.Views
 
         public void Validate()
         {
-            Require(_root, nameof(_root));
-            Require(_titleText, nameof(_titleText));
-            Require(_canvasGroup, nameof(_canvasGroup));
-            Require(_contentRoot, nameof(_contentRoot));
-            Require(_cardPoolRoot, nameof(_cardPoolRoot));
-            Require(_viewportRect, nameof(_viewportRect));
-            Require(_contentRect, nameof(_contentRect));
-            Require(_scrollRect, nameof(_scrollRect));
-            Require(_previousButton, nameof(_previousButton));
-            Require(_nextButton, nameof(_nextButton));
+            WheelBindingValidation.Require(this, _root, nameof(_root), "opening");
+            WheelBindingValidation.Require(this, _titleText, nameof(_titleText), "opening");
+            WheelBindingValidation.Require(this, _canvasGroup, nameof(_canvasGroup), "opening");
+            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "opening");
+            WheelBindingValidation.Require(this, _cardPoolRoot, nameof(_cardPoolRoot), "opening");
+            WheelBindingValidation.Require(this, _viewportRect, nameof(_viewportRect), "opening");
+            WheelBindingValidation.Require(this, _contentRect, nameof(_contentRect), "opening");
+            WheelBindingValidation.Require(this, _scrollRect, nameof(_scrollRect), "opening");
+            WheelBindingValidation.Require(this, _previousButton, nameof(_previousButton), "opening");
+            WheelBindingValidation.Require(this, _nextButton, nameof(_nextButton), "opening");
 
             if (_rewardCards == null || _rewardCards.Length == 0)
             {
@@ -87,14 +87,6 @@ namespace Vertigo.Wheel.Views
             return new WheelRewardOpeningBurst(
                 new WheelRewardOpeningBurstBinding(_rewardBurstCamera, _rewardBurstDisplay, _rewardBurstParticle),
                 tweenTarget);
-        }
-
-        private void Require(UnityEngine.Object value, string fieldName)
-        {
-            if (value == null)
-            {
-                throw new InvalidOperationException(name + " requires opening binding " + fieldName + ".");
-            }
         }
     }
 }

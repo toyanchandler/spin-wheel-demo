@@ -1,4 +1,3 @@
-using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -24,15 +23,15 @@ namespace Vertigo.Wheel.Views
 
         public void Validate()
         {
-            Require(_root, nameof(_root));
-            Require(_canvasGroup, nameof(_canvasGroup));
-            Require(_contentRoot, nameof(_contentRoot));
-            Require(_titleText, nameof(_titleText));
-            Require(_bodyText, nameof(_bodyText));
-            Require(_collectButton, nameof(_collectButton));
-            Require(_comeBackButton, nameof(_comeBackButton));
-            Require(_collectButtonLabelText, nameof(_collectButtonLabelText));
-            Require(_comeBackButtonLabelText, nameof(_comeBackButtonLabelText));
+            WheelBindingValidation.Require(this, _root, nameof(_root), "exit confirmation");
+            WheelBindingValidation.Require(this, _canvasGroup, nameof(_canvasGroup), "exit confirmation");
+            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "exit confirmation");
+            WheelBindingValidation.Require(this, _titleText, nameof(_titleText), "exit confirmation");
+            WheelBindingValidation.Require(this, _bodyText, nameof(_bodyText), "exit confirmation");
+            WheelBindingValidation.Require(this, _collectButton, nameof(_collectButton), "exit confirmation");
+            WheelBindingValidation.Require(this, _comeBackButton, nameof(_comeBackButton), "exit confirmation");
+            WheelBindingValidation.Require(this, _collectButtonLabelText, nameof(_collectButtonLabelText), "exit confirmation");
+            WheelBindingValidation.Require(this, _comeBackButtonLabelText, nameof(_comeBackButtonLabelText), "exit confirmation");
         }
 
         public void AddButtonListeners(UnityAction collect, UnityAction comeBack)
@@ -86,14 +85,6 @@ namespace Vertigo.Wheel.Views
             _canvasGroup.interactable = false;
             _canvasGroup.blocksRaycasts = false;
             _root.SetActive(false);
-        }
-
-        private void Require(UnityEngine.Object value, string fieldName)
-        {
-            if (value == null)
-            {
-                throw new InvalidOperationException(name + " requires exit confirmation binding " + fieldName + ".");
-            }
         }
     }
 }

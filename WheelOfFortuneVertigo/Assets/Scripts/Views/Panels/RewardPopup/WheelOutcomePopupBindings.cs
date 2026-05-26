@@ -23,20 +23,20 @@ namespace Vertigo.Wheel.Views
 
         public void Validate()
         {
-            Require(_root, nameof(_root));
-            Require(_contentRoot, nameof(_contentRoot));
-            Require(_icon, nameof(_icon));
-            Require(_resultText, nameof(_resultText));
-            Require(_chrome, nameof(_chrome));
-            Require(_rewardPopupBackground, nameof(_rewardPopupBackground));
-            Require(_bombCardShadow, nameof(_bombCardShadow));
-            Require(_outcomeRetryButton, nameof(_outcomeRetryButton));
-            Require(_flash, nameof(_flash));
-            Require(_shine, nameof(_shine));
-            Require(_flightIcon, nameof(_flightIcon));
-            Require(_rewardBurstCamera, nameof(_rewardBurstCamera));
-            Require(_rewardBurstDisplay, nameof(_rewardBurstDisplay));
-            Require(_rewardBurstParticle, nameof(_rewardBurstParticle));
+            WheelBindingValidation.Require(this, _root, nameof(_root), "popup");
+            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "popup");
+            WheelBindingValidation.Require(this, _icon, nameof(_icon), "popup");
+            WheelBindingValidation.Require(this, _resultText, nameof(_resultText), "popup");
+            WheelBindingValidation.Require(this, _chrome, nameof(_chrome), "popup");
+            WheelBindingValidation.Require(this, _rewardPopupBackground, nameof(_rewardPopupBackground), "popup");
+            WheelBindingValidation.Require(this, _bombCardShadow, nameof(_bombCardShadow), "popup");
+            WheelBindingValidation.Require(this, _outcomeRetryButton, nameof(_outcomeRetryButton), "popup");
+            WheelBindingValidation.Require(this, _flash, nameof(_flash), "popup");
+            WheelBindingValidation.Require(this, _shine, nameof(_shine), "popup");
+            WheelBindingValidation.Require(this, _flightIcon, nameof(_flightIcon), "popup");
+            WheelBindingValidation.Require(this, _rewardBurstCamera, nameof(_rewardBurstCamera), "popup");
+            WheelBindingValidation.Require(this, _rewardBurstDisplay, nameof(_rewardBurstDisplay), "popup");
+            WheelBindingValidation.Require(this, _rewardBurstParticle, nameof(_rewardBurstParticle), "popup");
         }
 
         public void CaptureHome()
@@ -69,14 +69,6 @@ namespace Vertigo.Wheel.Views
                 rewardPanelView,
                 getCurrentSnapshot,
                 markPresentationComplete);
-        }
-
-        private void Require(UnityEngine.Object value, string fieldName)
-        {
-            if (value == null)
-            {
-                throw new InvalidOperationException(name + " requires popup binding " + fieldName + ".");
-            }
         }
     }
 }
