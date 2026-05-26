@@ -314,22 +314,7 @@ MonoBehaviour:
   _outcomePopupMotionCatalog: {fileID: 11400000, guid: 19c1d868273b04741810067c993b3d30, type: 2}
   _spinResolveCatalog: {fileID: 11400000, guid: dc3247dd498c3499fafb2277fdcd0fa3, type: 2}
   _layout:
-    _rewardPanelFrameSpriteName: ui_card_frame_gardient
-    _rewardCardFrameSpriteName: ui_loot_row_frame_blue
-    _zoneStandardPanelSpriteName: ui_card_panel_zone_bg
-    _zoneUpcomingPanelSpriteName: ui_card_panel_zone_coming
-    _zoneSmallFrameSpriteName: ui_card_frame_4px_zone
-    _starFlashSpriteName: star_flash_alpha
-    _starGlowSpriteName: star_glow_alpha
-    _shineSpriteName: ui_vfx_offer_shine
-    _rewardPanelFrameSprite: {fileID: 21300000, guid: 4aa0ec944a1174843a3f901a51e99109, type: 3}
     _rewardCardFrameSprite: {fileID: 21300000, guid: 18a8ecbe3ae54728b511601061e3b043, type: 3}
-    _zoneStandardPanelSprite: {fileID: 21300000, guid: 52b5447199e70411f907e892b43a5190, type: 3}
-    _zoneUpcomingPanelSprite: {fileID: 21300000, guid: 63084c08c2c9843b69ca7f881e07534e, type: 3}
-    _zoneSmallFrameSprite: {fileID: 21300000, guid: 35a173753226a4a958b6a871b3f8070d, type: 3}
-    _starFlashSprite: {fileID: 21300000, guid: b21cc1da1a1294cd39b760e9a6f96712, type: 3}
-    _starGlowSprite: {fileID: 21300000, guid: 9ce31117abe734e12865e83990d22810, type: 3}
-    _shineSprite: {fileID: 21300000, guid: 08fa12457ef344b0f8f20b4aaee2427c, type: 3}
   _theme:
     _backgroundColor: {r: 0.045, g: 0.05, b: 0.065, a: 1}
     _primaryTextColor: {r: 1, g: 1, b: 1, a: 1}
@@ -341,11 +326,3 @@ MonoBehaviour:
     _superMilestoneBadgeBackground: {r: 0.18, g: 0.58, b: 0.02, a: 0.9}
     _dangerColor: {r: 0.9, g: 0.22, b: 0.16, a: 1}
     _successColor: {r: 0.28, g: 0.84, b: 0.48, a: 1}
-    _uiColorPalette:
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 0.76, g: 0.8, b: 0.88, a: 1}
-    - {r: 0.78, g: 0.48, b: 0.18, a: 1}
-    - {r: 0.44, g: 0.88, b: 1, a: 1}
-    - {r: 0.58, g: 1, b: 0.18, a: 1}
-    - {r: 0.9, g: 0.22, b: 0.16, a: 1}
-    - {r: 0.28, g: 0.84, b: 0.48, a: 1}

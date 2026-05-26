@@ -19,51 +19,19 @@ namespace Vertigo.Wheel.EditorTools
             WheelGameSettings settings = AssetDatabase.LoadAssetAtPath<WheelGameSettings>(VertigoWheelPaths.GameSettingsPath);
             if (settings != null)
             {
+                WireLayoutSprites(settings);
                 return settings;
             }
 
-            Component legacySettings = FindLegacySceneSettings();
             settings = ScriptableObject.CreateInstance<WheelGameSettings>();
-            if (legacySettings != null)
-            {
-                EditorUtility.CopySerialized(legacySettings, settings);
-            }
-            else
-            {
-                settings.ResetToDefaults();
-            }
+            settings.ResetToDefaults();
 
             WireDefaultCatalogs(settings);
+            WireLayoutSprites(settings);
             AssetDatabase.CreateAsset(settings, VertigoWheelPaths.GameSettingsPath);
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
             return settings;
-        }
-
-        private static Component FindLegacySceneSettings()
-        {
-            GameObject legacyRoot = GameObject.Find("game_wheel_settings");
-            if (legacyRoot == null)
-            {
-                return null;
-            }
-
-            Component[] components = legacyRoot.GetComponents<Component>();
-            for (int i = 0; i < components.Length; i++)
-            {
-                if (components[i] == null)
-                {
-                    continue;
-                }
-
-                string typeName = components[i].GetType().Name;
-                if (typeName == "WheelGameSettings")
-                {
-                    return components[i];
-                }
-            }
-
-            return null;
         }
 
         private static void WireDefaultCatalogs(WheelGameSettings settings)
@@ -72,6 +40,18 @@ namespace Vertigo.Wheel.EditorTools
             settings.ConfigureSkinCatalog(EnsureSkinCatalog());
             settings.ConfigureOutcomePopupMotionCatalog(EnsureOutcomePopupMotionCatalog());
             settings.ConfigureSpinResolveCatalog(EnsureSpinResolveCatalog());
+        }
+
+        private static void WireLayoutSprites(WheelGameSettings settings)
+        {
+            if (settings.Layout == null || settings.Layout.RewardCardFrameSprite != null)
+            {
+                return;
+            }
+
+            settings.Layout.BindRewardCardFrameSprite(FindSprite("ui_loot_row_frame_blue"));
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
         }
 
         public static WheelUiCopyCatalog EnsureUiCopyCatalog()
@@ -85,27 +65,9 @@ namespace Vertigo.Wheel.EditorTools
                 AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.UiCopyCatalogPath);
             }
 
-            WireUiCopyCatalogSprites(catalog);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             return catalog;
-        }
-
-        public static void WireUiCopyCatalogSprites(WheelUiCopyCatalog catalog)
-        {
-            SerializedObject serializedCatalog = new SerializedObject(catalog);
-            SerializedProperty zones = serializedCatalog.FindProperty("_zones");
-            for (int i = 0; i < zones.arraySize; i++)
-            {
-                SerializedProperty zone = zones.GetArrayElementAtIndex(i);
-                string panelSpriteName = zone.FindPropertyRelative("_panelSpriteName").stringValue;
-                string mapFrameSpriteName = zone.FindPropertyRelative("_mapFrameSpriteName").stringValue;
-                zone.FindPropertyRelative("_panelSprite").objectReferenceValue = FindSprite(panelSpriteName);
-                zone.FindPropertyRelative("_mapFrameSprite").objectReferenceValue = FindSprite(mapFrameSpriteName);
-            }
-
-            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
-            catalog.RefreshLookups();
         }
 
         public static WheelSkinCatalog EnsureSkinCatalog()
@@ -119,21 +81,15 @@ namespace Vertigo.Wheel.EditorTools
             }
 
             catalog.Configure(
-                new WheelSkinTierSprites
-                {
-                    wheelBase = FindSprite("ui_spin_bronze_base"),
-                    indicator = FindSprite("ui_spin_bronze_indicator")
-                },
-                new WheelSkinTierSprites
-                {
-                    wheelBase = FindSprite("ui_spin_silver_base"),
-                    indicator = FindSprite("ui_spin_silver_indicator")
-                },
-                new WheelSkinTierSprites
-                {
-                    wheelBase = FindSprite("ui_spin_golden_base"),
-                    indicator = FindSprite("ui_spin_golden_indicator")
-                });
+                WheelSkinTierSprites.Create(
+                    FindSprite("ui_spin_bronze_base"),
+                    FindSprite("ui_spin_bronze_indicator")),
+                WheelSkinTierSprites.Create(
+                    FindSprite("ui_spin_silver_base"),
+                    FindSprite("ui_spin_silver_indicator")),
+                WheelSkinTierSprites.Create(
+                    FindSprite("ui_spin_golden_base"),
+                    FindSprite("ui_spin_golden_indicator")));
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();

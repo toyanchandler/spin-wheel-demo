@@ -12,6 +12,7 @@ namespace Vertigo.Wheel.Views
     }
 
     [RequireComponent(typeof(Image))]
+    [WheelBind]
     public sealed class WheelSkinView : MonoBehaviour
     {
         private delegate Sprite SkinSpriteResolver(WheelSkinCatalog catalog, WheelSkinTier tier);
@@ -26,29 +27,31 @@ namespace Vertigo.Wheel.Views
         [SerializeField] private WheelSkinSlot _slot;
         [SerializeField] private Image _image;
 
-        private WheelEventBus _eventBus;
+        [WheelInject] private WheelEventBus _eventBus;
+        [WheelInject] private WheelSpinner _spinner;
         private RectTransform _rectTransform;
         private float _indicatorBaseRotation;
         private float _lastWheelAngle;
         private float _indicatorTickOffset;
         private int _lastTickIndex;
         private bool _hasTickSample;
+        private bool _hasIndicatorBaseRotation;
 
-        private const float IndicatorFlippedRotation = 180f;
-        private const float IndicatorTickAngle = 17f;
-        private const float IndicatorTickReturnSpeed = 220f;
+        private const float IndicatorTickAngle = 30f;
+        private const float IndicatorTickReturnSpeed = 260f;
 
-        public void Bind(WheelEventBus eventBus)
+        [WheelAfterInject]
+        private void Connect()
         {
+            ValidateWiring();
             ConfigureIndicatorTransform();
-            _eventBus = eventBus;
             _eventBus.ZoneChanged += OnZoneChanged;
         }
 
-        public void Unbind()
+        [WheelBeforeUnbind]
+        private void Disconnect()
         {
             _eventBus.ZoneChanged -= OnZoneChanged;
-            _eventBus = null;
         }
 
         private void LateUpdate()
@@ -58,16 +61,15 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
-            WheelSpinner spinner = WheelRuntimeLocator.Spinner;
-            if (spinner == null || spinner.WheelTransform == null || !spinner.IsSpinning)
+            if (_spinner == null || _spinner.WheelTransform == null || !_spinner.IsSpinning)
             {
                 _hasTickSample = false;
                 SetIndicatorTickOffset(Mathf.MoveTowards(_indicatorTickOffset, 0f, IndicatorTickReturnSpeed * Time.deltaTime));
                 return;
             }
 
-            int sliceCount = Mathf.Max(1, spinner.CurrentSliceCount);
-            float wheelAngle = Mathf.Repeat(spinner.WheelTransform.eulerAngles.z, 360f);
+            int sliceCount = Mathf.Max(1, _spinner.CurrentSliceCount);
+            float wheelAngle = Mathf.Repeat(_spinner.WheelTransform.eulerAngles.z, 360f);
             int tickIndex = Mathf.FloorToInt(wheelAngle / (360f / sliceCount));
 
             if (!_hasTickSample)
@@ -88,6 +90,8 @@ namespace Vertigo.Wheel.Views
 
                 SetIndicatorTickOffset(spinDirection * IndicatorTickAngle);
                 _lastTickIndex = tickIndex;
+                _lastWheelAngle = wheelAngle;
+                return;
             }
 
             _lastWheelAngle = wheelAngle;
@@ -98,6 +102,14 @@ namespace Vertigo.Wheel.Views
         {
             ConfigureIndicatorTransform();
             _image.sprite = SpriteResolvers[(int)_slot](_catalog, snapshot.SkinTier);
+        }
+
+        private void ValidateWiring()
+        {
+            if (_catalog == null || _image == null)
+            {
+                throw new System.InvalidOperationException(name + " requires WheelSkinCatalog and Image references.");
+            }
         }
 
         private void ConfigureIndicatorTransform()
@@ -117,8 +129,12 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
-            _rectTransform.pivot = new Vector2(0.5f, 1f);
-            _indicatorBaseRotation = IndicatorFlippedRotation;
+            if (!_hasIndicatorBaseRotation)
+            {
+                _indicatorBaseRotation = NormalizeSignedAngle(_rectTransform.localEulerAngles.z);
+                _hasIndicatorBaseRotation = true;
+            }
+
             SetIndicatorTickOffset(_indicatorTickOffset);
         }
 
@@ -129,6 +145,22 @@ namespace Vertigo.Wheel.Views
             {
                 _rectTransform.localRotation = Quaternion.Euler(0f, 0f, _indicatorBaseRotation + _indicatorTickOffset);
             }
+        }
+
+        private static float NormalizeSignedAngle(float angle)
+        {
+            angle %= 360f;
+            if (angle > 180f)
+            {
+                angle -= 360f;
+            }
+
+            if (angle < -180f)
+            {
+                angle += 360f;
+            }
+
+            return angle;
         }
     }
 }

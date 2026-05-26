@@ -1,33 +1,39 @@
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
+    [WheelBind]
     [RequireComponent(typeof(Button))]
     public abstract class WheelButtonAction : MonoBehaviour
     {
         [SerializeField] private Button _button;
-        private WheelEventBus _eventBus;
+        [SerializeField] private TextMeshProUGUI _labelText;
+
+        [WheelInject] private WheelEventBus _eventBus;
         private CanvasGroup _canvasGroup;
 
         protected WheelEventBus EventBus { get { return _eventBus; } }
         protected Button Button { get { return _button; } }
+        protected virtual bool ShouldPlayIdlePulse { get { return false; } }
 
-        public void Bind(WheelEventBus eventBus)
+        [WheelAfterInject]
+        private void Connect()
         {
-            _eventBus = eventBus;
+            RequireReferences();
             _canvasGroup = GetComponent<CanvasGroup>();
             _button.onClick.AddListener(HandleClick);
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Unbind()
+        [WheelBeforeUnbind]
+        private void Disconnect()
         {
             _button.onClick.RemoveListener(HandleClick);
             _eventBus.HudStateChanged -= OnHudStateChanged;
-            _eventBus = null;
             transform.DOKill();
         }
 
@@ -44,15 +50,16 @@ namespace Vertigo.Wheel.Views
             DOTween.Sequence()
                 .SetTarget(transform)
                 .SetUpdate(true)
-                .Append(transform.DOScale(new Vector3(0.88f, 0.88f, 1f), 0.07f).SetEase(Ease.OutQuad))
-                .Append(transform.DOScale(new Vector3(1.08f, 1.08f, 1f), 0.10f).SetEase(Ease.OutCubic))
-                .Append(transform.DOScale(Vector3.one, 0.08f).SetEase(Ease.OutQuad));
+                .Append(transform.DOScale(WheelButtonMotion.PressInScale, WheelButtonMotion.PressInDuration).SetEase(Ease.OutQuad))
+                .Append(transform.DOScale(WheelButtonMotion.PressOutScale, WheelButtonMotion.PressOutDuration).SetEase(Ease.OutCubic))
+                .Append(transform.DOScale(Vector3.one, WheelButtonMotion.PressSettleDuration).SetEase(Ease.OutQuad));
         }
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             bool visible = IsVisible(snapshot);
             _button.interactable = visible && IsInteractable(snapshot);
+            ApplyLabel(snapshot);
             if (_canvasGroup != null)
             {
                 _canvasGroup.alpha = visible ? 1f : 0f;
@@ -61,13 +68,16 @@ namespace Vertigo.Wheel.Views
             }
 
             transform.DOKill();
-            float targetScale = visible && _button.interactable ? 1f : 0.94f;
-            Tween settle = transform.DOScale(new Vector3(targetScale, targetScale, 1f), 0.14f).SetEase(Ease.OutQuad).SetUpdate(true);
-            if (visible && _button.interactable && name.Contains("spin"))
+            float targetScale = visible && _button.interactable ? 1f : WheelButtonMotion.DisabledScale;
+            Tween settle = transform
+                .DOScale(WheelButtonMotion.UniformScale(targetScale), WheelButtonMotion.StateSettleDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true);
+            if (visible && _button.interactable && ShouldPlayIdlePulse)
             {
                 settle.OnComplete(() =>
                 {
-                    transform.DOScale(new Vector3(1.025f, 1.025f, 1f), 0.8f)
+                    transform.DOScale(WheelButtonMotion.IdlePulseScale, WheelButtonMotion.IdlePulseDuration)
                         .SetEase(Ease.InOutSine)
                         .SetLoops(-1, LoopType.Yoyo)
                         .SetTarget(transform)
@@ -81,9 +91,36 @@ namespace Vertigo.Wheel.Views
             transform.DOKill();
         }
 
+        private void RequireReferences()
+        {
+            if (_button == null)
+            {
+                throw new System.InvalidOperationException(name + " requires a serialized Button reference.");
+            }
+        }
+
         protected virtual bool IsVisible(WheelHudSnapshot snapshot)
         {
             return true;
+        }
+
+        protected virtual string ResolveLabel(WheelHudSnapshot snapshot)
+        {
+            return null;
+        }
+
+        private void ApplyLabel(WheelHudSnapshot snapshot)
+        {
+            if (_labelText == null)
+            {
+                return;
+            }
+
+            string label = ResolveLabel(snapshot);
+            if (!string.IsNullOrEmpty(label))
+            {
+                _labelText.text = label;
+            }
         }
 
         protected abstract bool IsInteractable(WheelHudSnapshot snapshot);

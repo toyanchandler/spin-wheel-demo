@@ -13,6 +13,7 @@ namespace Vertigo.Wheel.Runtime
         private WheelStatePublisher _publisher;
         private WheelGameFlowController _flow;
         private bool _isRunning;
+        private bool _hasConfiguredTween;
 
         private void EnsureGameplayComponents()
         {
@@ -90,7 +91,7 @@ namespace Vertigo.Wheel.Runtime
         {
             _isRunning = true;
             EnsureGameplayComponents();
-            TweenSetup.ConfigureOnce();
+            ConfigureTweenOnce();
             _state.InitializeRuntime();
             _publisher.Bind(_eventBus);
             _flow.Bind(_eventBus);
@@ -122,6 +123,11 @@ namespace Vertigo.Wheel.Runtime
             _isRunning = false;
         }
 
+        private void ConfigureTweenOnce()
+        {
+            ConfigureTweenActions[Convert.ToInt32(_hasConfiguredTween)](this);
+        }
+
         private static readonly Action<WheelRuntimeCompositionRoot>[] StartActions =
         {
             root => root.BeginRuntime(),
@@ -134,25 +140,15 @@ namespace Vertigo.Wheel.Runtime
             root => root.EndRuntime()
         };
 
-        private static class TweenSetup
+        private static readonly Action<WheelRuntimeCompositionRoot>[] ConfigureTweenActions =
         {
-            private static bool _configured;
-
-            public static void ConfigureOnce()
+            root =>
             {
-                ConfigureActions[Convert.ToInt32(_configured)]();
-            }
-
-            private static readonly Action[] ConfigureActions =
-            {
-                () =>
-                {
-                    DOTween.Init(false, true, LogBehaviour.ErrorsOnly);
-                    DOTween.SetTweensCapacity(64, 16);
-                    _configured = true;
-                },
-                () => { }
-            };
-        }
+                DOTween.Init(false, true, LogBehaviour.ErrorsOnly);
+                DOTween.SetTweensCapacity(64, 16);
+                root._hasConfiguredTween = true;
+            },
+            root => { }
+        };
     }
 }

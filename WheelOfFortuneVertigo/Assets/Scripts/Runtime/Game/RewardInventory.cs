@@ -25,11 +25,10 @@ namespace Vertigo.Wheel.Runtime
 
     public sealed class RewardInventory
     {
-        private const string EmptySummary = "No rewards";
-
         private readonly Dictionary<string, RewardStack> _rewards = new Dictionary<string, RewardStack>();
+        private readonly List<string> _rewardOrder = new List<string>();
         private readonly StringBuilder _builder = new StringBuilder(128);
-        private string _summary = EmptySummary;
+        private string _summary = string.Empty;
         private bool _dirty;
 
         public int Count { get { return _rewards.Count; } }
@@ -37,85 +36,112 @@ namespace Vertigo.Wheel.Runtime
         public void Clear()
         {
             _rewards.Clear();
-            _summary = EmptySummary;
+            _rewardOrder.Clear();
+            _summary = string.Empty;
             _dirty = false;
         }
 
-        public void Add(WheelSpinResult result)
+        public void Add(WheelSpinResult result, string fallbackRewardName)
         {
-            RewardStack stack = StackAcquireActions[Convert.ToInt32(_rewards.ContainsKey(result.RewardId))](this, result);
+            bool alreadyTracked = _rewards.ContainsKey(result.RewardId);
+            RewardStack stack = StackAcquireActions[Convert.ToInt32(alreadyTracked)](this, result, fallbackRewardName);
             stack.RefreshPresentation(result);
-            stack.Amount += result.Amount;
+            stack.AddAmount(result.Amount);
+            MoveRewardToNewest(result.RewardId, alreadyTracked);
             _dirty = true;
         }
 
         public int CopyEntries(RewardInventoryEntry[] buffer)
         {
             int index = 0;
-            foreach (KeyValuePair<string, RewardStack> pair in _rewards)
+            for (int i = 0; i < _rewardOrder.Count; i++)
             {
                 if (index >= buffer.Length)
                 {
                     break;
                 }
 
-                buffer[index] = pair.Value.ToEntry(pair.Key);
+                string rewardId = _rewardOrder[i];
+                RewardStack stack;
+                if (!_rewards.TryGetValue(rewardId, out stack))
+                {
+                    continue;
+                }
+
+                buffer[index] = stack.ToEntry(rewardId);
                 index++;
             }
 
             return index;
         }
 
-        public string BuildSummary()
+        public string BuildSummary(string emptySummary)
         {
-            return SummaryActions[Convert.ToInt32(_dirty)](this);
+            return SummaryActions[Convert.ToInt32(_dirty)](this, emptySummary);
         }
 
-        private RewardStack CreateStack(WheelSpinResult result)
+        private RewardStack CreateStack(WheelSpinResult result, string fallbackRewardName)
         {
-            RewardStack stack = new RewardStack(result);
+            RewardStack stack = new RewardStack(result, fallbackRewardName);
             _rewards.Add(result.RewardId, stack);
             return stack;
         }
 
-        private RewardStack GetStack(WheelSpinResult result)
+        private RewardStack GetStack(WheelSpinResult result, string fallbackRewardName)
         {
             return _rewards[result.RewardId];
         }
 
-        private string ReadCachedSummary()
+        private void MoveRewardToNewest(string rewardId, bool alreadyTracked)
         {
-            return _summary;
+            if (alreadyTracked)
+            {
+                _rewardOrder.Remove(rewardId);
+            }
+
+            _rewardOrder.Add(rewardId);
         }
 
-        private string RebuildSummary()
+        private string ReadCachedSummary(string emptySummary)
+        {
+            return string.IsNullOrEmpty(_summary) ? emptySummary : _summary;
+        }
+
+        private string RebuildSummary(string emptySummary)
         {
             _builder.Clear();
             int index = 0;
-            foreach (KeyValuePair<string, RewardStack> pair in _rewards)
+            for (int i = 0; i < _rewardOrder.Count; i++)
             {
+                string rewardId = _rewardOrder[i];
+                RewardStack stack;
+                if (!_rewards.TryGetValue(rewardId, out stack))
+                {
+                    continue;
+                }
+
                 SeparatorActions[Convert.ToInt32(index > 0)](_builder);
-                _builder.Append(pair.Value.DisplayName);
+                _builder.Append(stack.DisplayName);
                 _builder.Append(" x");
-                _builder.Append(pair.Value.Amount);
+                _builder.Append(stack.Amount);
                 index++;
             }
 
-            _summary = _builder.Length == 0 ? EmptySummary : _builder.ToString();
+            _summary = _builder.Length == 0 ? emptySummary : _builder.ToString();
             _dirty = false;
             return _summary;
         }
 
-        private static readonly Func<RewardInventory, WheelSpinResult, RewardStack>[] StackAcquireActions =
+        private static readonly Func<RewardInventory, WheelSpinResult, string, RewardStack>[] StackAcquireActions =
         {
-            (inventory, result) => inventory.CreateStack(result),
-            (inventory, result) => inventory.GetStack(result)
+            (inventory, result, fallbackRewardName) => inventory.CreateStack(result, fallbackRewardName),
+            (inventory, result, fallbackRewardName) => inventory.GetStack(result, fallbackRewardName)
         };
 
-        private static readonly Func<RewardInventory, string>[] SummaryActions =
+        private static readonly Func<RewardInventory, string, string>[] SummaryActions =
         {
-            inventory => inventory.ReadCachedSummary(),
-            inventory => inventory.RebuildSummary()
+            (inventory, emptySummary) => inventory.ReadCachedSummary(emptySummary),
+            (inventory, emptySummary) => inventory.RebuildSummary(emptySummary)
         };
 
         private static readonly Action<StringBuilder>[] SeparatorActions =
@@ -126,12 +152,6 @@ namespace Vertigo.Wheel.Runtime
 
         private sealed class RewardStack
         {
-            private static readonly Func<string, string>[] DisplayNameResolve =
-            {
-                name => name,
-                name => "Reward"
-            };
-
             private static readonly Func<Sprite, Sprite, Sprite>[] IconRefreshActions =
             {
                 (current, incoming) => current,
@@ -141,11 +161,13 @@ namespace Vertigo.Wheel.Runtime
             public readonly string DisplayName;
             public Sprite Icon { get; private set; }
             public readonly Color AccentColor;
-            public int Amount;
+            public int Amount { get; private set; }
 
-            public RewardStack(WheelSpinResult result)
+            public RewardStack(WheelSpinResult result, string fallbackRewardName)
             {
-                DisplayName = DisplayNameResolve[Convert.ToInt32(string.IsNullOrEmpty(result.DisplayName))](result.DisplayName);
+                DisplayName = string.IsNullOrEmpty(result.DisplayName)
+                    ? fallbackRewardName
+                    : result.DisplayName;
                 Icon = result.Icon;
                 AccentColor = result.AccentColor;
                 Amount = 0;
@@ -154,6 +176,11 @@ namespace Vertigo.Wheel.Runtime
             public void RefreshPresentation(WheelSpinResult result)
             {
                 Icon = IconRefreshActions[Convert.ToInt32(result.Icon != null)](Icon, result.Icon);
+            }
+
+            public void AddAmount(int amount)
+            {
+                Amount += amount;
             }
 
             public RewardInventoryEntry ToEntry(string rewardId)

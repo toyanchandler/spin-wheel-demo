@@ -1,6 +1,7 @@
 # Wheel Scripts — klasör rehberi
 
 **Architecture constitution:** [`SoftwareArchitectureRules.md`](SoftwareArchitectureRules.md)
+**Advanced rules:** [`AdvancedSoftwareRules.md`](AdvancedSoftwareRules.md)
 
 ## İki farklı “config”
 
@@ -22,14 +23,14 @@ Oyun açıkken çalışan mantık (MonoBehaviour + saf C#).
 | Alt klasör | Sorumluluk |
 |------------|------------|
 | `Bootstrap/` | Composition root, `WheelRuntimeLocator`, event bus |
-| `Views/Hosts/` | Canvas-level UI hosts (child-only wiring) |
-
-See `HIERARCHY_WIRING.md` for serialization rules.
+| `DI/` | Attribute tabanlı same-scope view injection/lifecycle — [`DI/README.md`](Runtime/DI/README.md) |
 | `Events/` | `WheelEventBus` |
 | `Flow/` | Spin / leave / restart akışı |
 | `Game/` | `WheelGameState`, envanter, spin sonucu |
 | `Publishing/` | Snapshot üretimi ve event publish |
 | `Spin/` | Çark animasyonu (`WheelSpinner`) |
+
+See `HIERARCHY_WIRING.md` for serialization rules.
 
 ## `Views/`
 
@@ -37,11 +38,17 @@ Sahnedeki UI `MonoBehaviour` bileşenleri (eski `UI/`).
 
 | Alt klasör | Örnek |
 |------------|--------|
-| `Hud/` | Zone metni, status, arka plan |
+| `Panels/ZonePanel/` | Zone progress ve milestone badge |
+| `Panels/LootPanel/` | Current loot panel ve loot card |
+| `Panels/WheelSpinPanel/` | Spin / leave / restart butonları ve footer status |
+| `Panels/RewardPopup/` | Sonuç popup |
+| `Panels/CardReveal/` | Cashout card reveal |
+| `Panels/Background/` | Arka plan tint view |
+| `Panels/ExitConfirmation/` | Exit confirmation overlay |
 | `Wheel/` | Dilimler, skin, `WheelView` |
-| `Outcome/` | Sonuç popup |
-| `Buttons/` | Spin / leave / restart |
 | `Shared/` | `WheelHudTextView`, `WheelButtonAction` tabanı |
+
+Canvas başına bir `WheelViewScope` (`Runtime/DI/`) — eski `*UiHost` script'leri kaldırıldı.
 
 ## `Data/`
 
@@ -52,7 +59,7 @@ Veri modeli ve kurallar (asset dosyası yok).
 | `ScriptableObjects/` | `[CreateAssetMenu]` sınıfları → `Assets/Config/` altına asset üretir |
 | `Definitions/` | Struct, enum, profil (`WheelSliceDefinition`, …) |
 | `Rules/` | Generator, resolver, statik tablolar |
-| `ScriptableObjects/` | `WheelGameSettings` ve diğer config SO scriptleri |
+| `SceneSettings/` | Scene-authored settings contracts when needed |
 
 ## `Diagnostics/`
 

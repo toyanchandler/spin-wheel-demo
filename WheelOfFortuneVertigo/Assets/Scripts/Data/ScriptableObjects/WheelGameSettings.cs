@@ -95,7 +95,6 @@ namespace Vertigo.Wheel.Data
         {
             _zoneIntervalRules = CreateZoneIntervalRules();
             _rewardPoolsByZone = new[] { _standardRewards, _safeRewards, _superRewards };
-            _theme.SyncUiColorPalette();
             ValidateRuntimeConfig();
             RequireUiCopy();
             RequireOutcomePopupMotionCatalog();

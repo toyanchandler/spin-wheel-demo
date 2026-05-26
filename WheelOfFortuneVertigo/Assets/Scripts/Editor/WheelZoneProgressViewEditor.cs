@@ -1,12 +1,6 @@
 #if UNITY_EDITOR
-using System;
-using System.Collections.Generic;
-using TMPro;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
-using Vertigo.Collections;
-using Vertigo.Collections.Editor;
 using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.EditorTools
@@ -16,102 +10,19 @@ namespace Vertigo.Wheel.EditorTools
     {
         public override void OnInspectorGUI()
         {
+            serializedObject.Update();
             DrawDefaultInspector();
-
             EditorGUILayout.Space(6f);
-            if (!GUILayout.Button("Collect Zone Cells"))
+            if (GUILayout.Button("Collect Zone Progress Children"))
             {
-                return;
+                WheelZoneProgressBindingUtility.CollectIntoView((WheelZoneProgressView)target);
+                serializedObject.Update();
             }
 
-            CollectZoneCells((WheelZoneProgressView)target);
-        }
-
-        public static void CollectZoneCells(WheelZoneProgressView view)
-        {
-            Transform root = view.transform;
-            var bindings = new List<ZoneProgressCellBinding>();
-            var connectors = new List<Image>();
-            var settings = new ChildCollectionSettings
-            {
-                Root = root,
-                Scope = ChildCollectionScope.DirectChildren,
-                IncludeInactive = true
-            };
-
-            ChildCollectionUtility.VisitOrdered(settings, child =>
-            {
-                if (!child.name.StartsWith("ui_zone_progress_cell_", StringComparison.Ordinal))
-                {
-                    if (child.name.StartsWith("ui_zone_progress_connector_", StringComparison.Ordinal))
-                    {
-                        Image connector = child.GetComponent<Image>();
-                        if (connector == null)
-                        {
-                            throw new InvalidOperationException("Zone connector " + child.name + " requires an Image component.");
-                        }
-
-                        connectors.Add(connector);
-                    }
-
-                    return;
-                }
-
-                Image image = child.GetComponent<Image>();
-                Image glow = null;
-                Image frame = null;
-                Image[] childImages = child.GetComponentsInChildren<Image>(true);
-                for (int i = 0; i < childImages.Length; i++)
-                {
-                    if (childImages[i].name.Contains("_glow"))
-                    {
-                        glow = childImages[i];
-                    }
-
-                    if (childImages[i].name.Contains("_frame"))
-                    {
-                        frame = childImages[i];
-                    }
-                }
-
-                TextMeshProUGUI label = child.GetComponentInChildren<TextMeshProUGUI>(true);
-                if (image == null || label == null)
-                {
-                    throw new InvalidOperationException(
-                        "Zone cell " + child.name + " requires Image on the cell and TextMeshProUGUI in descendants.");
-                }
-
-                bindings.Add(new ZoneProgressCellBinding { Root = (RectTransform)child, Image = image, Glow = glow, Frame = frame, Label = label });
-            });
-
-            ChildCollectionUtility.ApplySerializedStructArray(
-                view,
-                "_cells",
-                bindings.ToArray(),
-                WriteCellBinding);
-            ChildCollectionUtility.ApplySerializedArray(
-                view,
-                "_connectors",
-                connectors.ToArray());
-            ChildCollectionEditorUtility.FinalizeCollect(view);
-        }
-
-        private static void WriteCellBinding(SerializedProperty property, ZoneProgressCellBinding binding)
-        {
-            property.FindPropertyRelative("Root").objectReferenceValue = binding.Root;
-            property.FindPropertyRelative("Image").objectReferenceValue = binding.Image;
-            property.FindPropertyRelative("Glow").objectReferenceValue = binding.Glow;
-            property.FindPropertyRelative("Frame").objectReferenceValue = binding.Frame;
-            property.FindPropertyRelative("Label").objectReferenceValue = binding.Label;
-        }
-
-        private struct ZoneProgressCellBinding
-        {
-            public RectTransform Root;
-            public Image Image;
-            public Image Glow;
-            public Image Frame;
-            public TextMeshProUGUI Label;
+            EditorGUILayout.HelpBox(
+                "Legacy flat cells are rebuilt automatically before wiring.",
+                MessageType.Info);
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }

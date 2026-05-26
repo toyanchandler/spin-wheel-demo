@@ -26,9 +26,15 @@ namespace Vertigo.Wheel.Runtime
         public readonly bool CanLeave;
         public readonly bool CanRestart;
         public readonly bool IsOutcomePopupAllowed;
-        public readonly Sprite ZonePanelSprite;
-        public readonly Sprite ZoneMapFrameSprite;
-        public readonly Sprite RewardPanelFrameSprite;
+        public readonly string SpinButtonLabel;
+        public readonly string LeaveButtonLabel;
+        public readonly string RestartButtonLabel;
+        public readonly string RewardOpeningTitle;
+        public readonly string DefaultRewardTitle;
+        public readonly string ExitConfirmationTitle;
+        public readonly string ExitConfirmationBody;
+        public readonly string ExitCollectButtonLabel;
+        public readonly string ExitComeBackButtonLabel;
         public readonly Sprite RewardCardFrameSprite;
         public readonly int RewardCardCount;
         public readonly RewardInventoryEntry[] RewardCards;
@@ -55,9 +61,15 @@ namespace Vertigo.Wheel.Runtime
             bool canLeave,
             bool canRestart,
             bool isOutcomePopupAllowed,
-            Sprite zonePanelSprite,
-            Sprite zoneMapFrameSprite,
-            Sprite rewardPanelFrameSprite,
+            string spinButtonLabel,
+            string leaveButtonLabel,
+            string restartButtonLabel,
+            string rewardOpeningTitle,
+            string defaultRewardTitle,
+            string exitConfirmationTitle,
+            string exitConfirmationBody,
+            string exitCollectButtonLabel,
+            string exitComeBackButtonLabel,
             Sprite rewardCardFrameSprite,
             int rewardCardCount,
             RewardInventoryEntry[] rewardCards)
@@ -83,9 +95,15 @@ namespace Vertigo.Wheel.Runtime
             CanLeave = canLeave;
             CanRestart = canRestart;
             IsOutcomePopupAllowed = isOutcomePopupAllowed;
-            ZonePanelSprite = zonePanelSprite;
-            ZoneMapFrameSprite = zoneMapFrameSprite;
-            RewardPanelFrameSprite = rewardPanelFrameSprite;
+            SpinButtonLabel = spinButtonLabel;
+            LeaveButtonLabel = leaveButtonLabel;
+            RestartButtonLabel = restartButtonLabel;
+            RewardOpeningTitle = rewardOpeningTitle;
+            DefaultRewardTitle = defaultRewardTitle;
+            ExitConfirmationTitle = exitConfirmationTitle;
+            ExitConfirmationBody = exitConfirmationBody;
+            ExitCollectButtonLabel = exitCollectButtonLabel;
+            ExitComeBackButtonLabel = exitComeBackButtonLabel;
             RewardCardFrameSprite = rewardCardFrameSprite;
             RewardCardCount = rewardCardCount;
             RewardCards = rewardCards;
@@ -117,7 +135,6 @@ namespace Vertigo.Wheel.Runtime
         public readonly WheelGamePhase Phase;
         public readonly string Title;
         public readonly string ResultText;
-        public readonly string SummaryText;
         public readonly Color ResultColor;
         public readonly Sprite Icon;
         public readonly Color IconImageColor;
@@ -132,7 +149,6 @@ namespace Vertigo.Wheel.Runtime
             WheelGamePhase phase,
             string title,
             string resultText,
-            string summaryText,
             Color resultColor,
             Sprite icon,
             Color iconImageColor,
@@ -146,7 +162,6 @@ namespace Vertigo.Wheel.Runtime
             Phase = phase;
             Title = title;
             ResultText = resultText;
-            SummaryText = summaryText;
             ResultColor = resultColor;
             Icon = icon;
             IconImageColor = iconImageColor;
@@ -161,8 +176,6 @@ namespace Vertigo.Wheel.Runtime
 
     public static class WheelSnapshotFactory
     {
-        private static RewardInventoryEntry[] _rewardCardBuffer = new RewardInventoryEntry[16];
-
         public static WheelHudSnapshot CreateHud(WheelGameState state)
         {
             WheelGameSettings settings = state.Settings;
@@ -173,7 +186,7 @@ namespace Vertigo.Wheel.Runtime
             WheelZoneUiCopy zoneCopy = catalog.GetZoneCopy(zoneType);
             int hasWinLabel = System.Convert.ToInt32(state.HasLastResult);
             string[] winLabels = { null, state.LastResult.WinLabel };
-            int rewardCardCount = state.Inventory.CopyEntries(_rewardCardBuffer);
+            RewardInventoryEntry[] rewardCards = CopyRewardCards(state.Inventory, out int rewardCardCount);
             int nextSafeZone = ResolveNextZone(state.Zone, settings.SafeZoneInterval);
             int nextSuperZone = ResolveNextZone(state.Zone, settings.SuperZoneInterval);
 
@@ -199,12 +212,39 @@ namespace Vertigo.Wheel.Runtime
                 state.CanLeave,
                 state.CanRestart,
                 !catalog.ShouldHideOutcomePopup(state.Phase),
-                zoneCopy.PanelSprite,
-                zoneCopy.MapFrameSprite,
-                layout.RewardPanelFrameSprite,
+                catalog.SpinButtonLabel,
+                catalog.LeaveButtonLabel,
+                catalog.RestartButtonLabel,
+                catalog.RewardOpeningTitle,
+                catalog.DefaultRewardTitle,
+                catalog.ExitConfirmationTitle,
+                catalog.ExitConfirmationBody,
+                catalog.ExitCollectButtonLabel,
+                catalog.ExitComeBackButtonLabel,
                 layout.RewardCardFrameSprite,
                 rewardCardCount,
-                _rewardCardBuffer);
+                rewardCards);
+        }
+
+        private static RewardInventoryEntry[] CopyRewardCards(RewardInventory inventory, out int rewardCardCount)
+        {
+            int bufferSize = inventory.Count;
+            if (bufferSize <= 0)
+            {
+                rewardCardCount = 0;
+                return System.Array.Empty<RewardInventoryEntry>();
+            }
+
+            var buffer = new RewardInventoryEntry[bufferSize];
+            rewardCardCount = inventory.CopyEntries(buffer);
+            if (rewardCardCount == buffer.Length)
+            {
+                return buffer;
+            }
+
+            var rewardCards = new RewardInventoryEntry[rewardCardCount];
+            System.Array.Copy(buffer, rewardCards, rewardCardCount);
+            return rewardCards;
         }
 
         private static int ResolveNextZone(int currentZone, int interval)
@@ -240,10 +280,10 @@ namespace Vertigo.Wheel.Runtime
                 outcomeCopy.ResultFallback,
                 result,
                 hasResult,
-                inventory);
+                inventory,
+                settings.UiCopy);
             string title = outcomeCopy.Title;
-            string summary = outcomeCopy.Summary;
-            ApplyRewardOutcomeCopy(phase, result, hasResult, ref title, ref resultText, ref summary);
+            ApplyRewardOutcomeResultText(phase, result, hasResult, ref resultText);
             int iconVisible = System.Convert.ToInt32(outcomeCopy.ShowIcon && hasResult && result.Icon != null);
             Sprite[] icons = { null, result.Icon };
             Color[] iconColors = { Color.clear, ResolveOutcomeIconColor(result, hasResult) };
@@ -253,7 +293,6 @@ namespace Vertigo.Wheel.Runtime
                 phase,
                 title,
                 resultText,
-                summary,
                 settings.UiCopy.ResolveColor(outcomeCopy.ResultColorKey, settings.Theme),
                 icons[iconVisible],
                 iconColors[iconVisible],
@@ -282,13 +321,11 @@ namespace Vertigo.Wheel.Runtime
             return color;
         }
 
-        private static void ApplyRewardOutcomeCopy(
+        private static void ApplyRewardOutcomeResultText(
             WheelGamePhase phase,
             WheelSpinResult result,
             bool hasResult,
-            ref string title,
-            ref string resultText,
-            ref string summary)
+            ref string resultText)
         {
             if (phase != WheelGamePhase.Won || !hasResult || result.IsBomb)
             {
@@ -296,9 +333,7 @@ namespace Vertigo.Wheel.Runtime
             }
 
             string displayName = string.IsNullOrEmpty(result.DisplayName) ? resultText : result.DisplayName;
-            title = "YOU GOT";
             resultText = result.Amount > 1 ? string.Format("{0} x{1}", displayName, result.Amount) : displayName;
-            summary = "Added to your stash";
         }
 
         private static string ResolveOutcomeResultText(
@@ -306,13 +341,14 @@ namespace Vertigo.Wheel.Runtime
             string resultFallback,
             WheelSpinResult result,
             bool hasResult,
-            RewardInventory inventory)
+            RewardInventory inventory,
+            WheelUiCopyCatalog catalog)
         {
             int hasSpinResult = System.Convert.ToInt32(hasResult);
             string[] values =
             {
                 hasSpinResult == 1 ? result.WinLabel : resultFallback,
-                inventory.BuildSummary(),
+                inventory.BuildSummary(catalog.InventoryEmptySummary),
                 resultFallback
             };
 

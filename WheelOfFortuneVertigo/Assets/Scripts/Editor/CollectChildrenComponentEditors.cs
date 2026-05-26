@@ -111,8 +111,8 @@ namespace Vertigo.Wheel.EditorTools
     }
 
     [CanEditMultipleObjects]
-    [CustomEditor(typeof(WheelRewardOpeningView), true)]
-    public sealed class WheelRewardOpeningViewEditor : CollectChildrenComponentEditor
+    [CustomEditor(typeof(WheelRewardOpeningBindings), true)]
+    public sealed class WheelRewardOpeningBindingsEditor : CollectChildrenComponentEditor
     {
     }
 }

@@ -14,7 +14,7 @@ namespace Vertigo.Wheel.EditorTools
             PlayerSettings.companyName = "Vertigo";
             PlayerSettings.productName = "Vertigo Wheel Demo";
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.handleraigames.vertigowheeldemo");
-            PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel23;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel35;
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;

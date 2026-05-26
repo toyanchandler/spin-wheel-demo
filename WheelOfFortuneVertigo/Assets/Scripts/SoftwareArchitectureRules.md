@@ -6,6 +6,7 @@ This document is the single source of truth for how we structure code, scene hie
 
 Related deep dives:
 
+- `AdvancedSoftwareRules.md` — binding lifecycle, attributes, static helpers, aggregate bindings
 - `HIERARCHY_WIRING.md` — scene serialization detail
 - `Data/DATA_DEFINITIONS.md` — DTO encapsulation detail
 - `Collections/README.md` — `[CollectChildren]` tooling detail
@@ -22,6 +23,7 @@ Related deep dives:
 5. **Explicit boundaries** — cross-subtree communication uses locator, event bus, or shared SOs only.
 6. **One composition root** — `game_wheel_runtime` bootstraps session; no scattered `FindObjectOfType` gameplay graphs.
 7. **Fail loud** — missing wiring throws `InvalidOperationException` with a clear message.
+8. **Baked UI stays authored** — runtime may animate, show/hide, and apply snapshot data, but must not overwrite authored component settings such as `maskable`, raycast flags, image type, anchors, pivots, or baked chrome geometry.
 
 ---
 
@@ -29,21 +31,50 @@ Related deep dives:
 
 ```
 Assets/Config/          → ScriptableObject assets (designer data)
-Assets/Scripts/Data/    → SO classes, Definitions, Rules (no .asset files here)
-Assets/Scripts/Runtime/ → Play mode gameplay + bootstrap + publishing
-Assets/Scripts/Views/   → Scene UI MonoBehaviours (render snapshots, raise intents)
-Assets/Scripts/Editor/  → Menus, inspectors, asset tools (never referenced at runtime)
-Assets/Scripts/Collections/ → [CollectChildren] attribute (runtime) + editor collectors
+Assets/Scripts/Collections/ → [CollectChildren] runtime attribute + editor collectors
+Assets/Scripts/Data/        → SO classes, Definitions, Rules, SceneSettings (no .asset files here)
+Assets/Scripts/Diagnostics/ → Debug/performance monitoring only
+Assets/Scripts/Editor/      → Menus, inspectors, scene builders, asset tools (never referenced at runtime)
+Assets/Scripts/Runtime/     → Play mode gameplay, bootstrap, DI, events, publishing, spin
+Assets/Scripts/Views/       → Scene UI components, panel collaborators, wheel presentation
 ```
 
-| Namespace | Responsibility |
-|-----------|----------------|
-| `Vertigo.Wheel.Data` | Config, definitions, generators, static rules |
-| `Vertigo.Wheel.Runtime` | State, flow, bus, locator, publisher, spinner |
-| `Vertigo.Wheel.Views` | HUD / wheel / outcome views and canvas hosts |
-| `Vertigo.Wheel.EditorTools` | Scene rebuild, validation, asset pipeline |
-| `Vertigo.Collections` | Child-collection attribute (metadata only at runtime) |
-| `Vertigo.Collections.Editor` | Collect / reset / preprocess / property drawer |
+### 2.1 Runtime code folders
+
+| Folder | Namespace | Responsibility |
+|--------|-----------|----------------|
+| `Collections/` | `Vertigo.Collections` | Runtime metadata only: `CollectChildrenAttribute` and collection enums |
+| `Collections/Editor/` | `Vertigo.Collections.Editor` | Collect/reset/preprocess/property drawer tooling |
+| `Data/Definitions/` | `Vertigo.Wheel.Data` | Serializable DTOs, enums, profiles, content contracts |
+| `Data/Rules/` | `Vertigo.Wheel.Data` | Pure decision helpers: slice generation, slot catalog, zone tables, queries |
+| `Data/SceneSettings/` | `Vertigo.Wheel.Data` | Scene-authored data contracts when present |
+| `Data/ScriptableObjects/` | `Vertigo.Wheel.Data` | SO classes whose assets live under `Assets/Config/` |
+| `Diagnostics/` | `Vertigo.Wheel.Diagnostics` | Development/performance overlays and metric snapshots |
+| `Runtime/Bootstrap/` | `Vertigo.Wheel.Runtime` | Composition root, config source, runtime locator |
+| `Runtime/DI/` | `Vertigo.Wheel.Runtime` | `WheelViewScope`, same-scope container, injection attributes, lifecycle invocation |
+| `Runtime/Events/` | `Vertigo.Wheel.Runtime` | `WheelEventBus` and intent/snapshot event surface |
+| `Runtime/Flow/` | `Vertigo.Wheel.Runtime` | Spin/leave/restart flow controller |
+| `Runtime/Game/` | `Vertigo.Wheel.Runtime` | Mutable session state, reward inventory, spin result |
+| `Runtime/Publishing/` | `Vertigo.Wheel.Runtime` | Snapshot structs and `WheelStatePublisher` |
+| `Runtime/Spin/` | `Vertigo.Wheel.Runtime` | Wheel spin animation component |
+
+### 2.2 View folders
+
+`Vertigo.Wheel.Views` is organized by authored surface, not by old HUD/outcome buckets.
+
+| Folder | Responsibility |
+|--------|----------------|
+| `Views/Wheel/` | Wheel root, slice views, skin application, slice presentation |
+| `Views/Shared/` | Small shared view bases/utilities such as `WheelButtonAction`, `WheelHudTextView`, tween/graphic helpers |
+| `Views/Panels/Background/` | Background tint/presentation view |
+| `Views/Panels/CardReveal/` | Cashout/opening overlay, card bindings, deck renderer, scroller, burst animation |
+| `Views/Panels/ExitConfirmation/` | Exit confirmation overlay |
+| `Views/Panels/LootPanel/` | Current loot panel, loot cards, inventory buffer, renderer, layout, landing resolver |
+| `Views/Panels/RewardPopup/` | Outcome popup view, aggregate bindings, presenter, reveal sequence, reward flight, popup-local bindings |
+| `Views/Panels/WheelSpinPanel/` | Spin/leave/restart buttons and footer status text |
+| `Views/Panels/ZonePanel/` | Zone progress, zone cells, milestone badges, zone progress window |
+
+Legacy `Views/Buttons/`, `Views/Hud/`, `Views/Outcome/`, and `Views/Hosts/` folders are obsolete. Do not recreate them.
 
 ---
 
@@ -114,14 +145,22 @@ Code defaults are **bootstrap**, not hidden runtime magic. Example: `WheelOutcom
 - `Runtime Components` mega-lists on `game_wheel_runtime`.
 - Runtime `Transform.Find` / deep child search for production UI pools.
 
-### 4.3 Canvas hosts (exception, controlled)
+### 4.3 View scopes
 
-`WheelHudUiHost`, `WheelWheelUiHost`, `WheelStaticUiHost` resolve **one** child view per role by **stable GameObject name** in `Awake` (e.g. `ui_zone_milestone_badges_root`). They do **not** serialize cross-branch reference lists.
+Each UI canvas root owns exactly one `WheelViewScope`.
 
-Hosts only:
+At `Awake`, the scope builds a `WheelViewContainer` from every `MonoBehaviour` under the same canvas subtree. This makes same-scope components injectable by type.
+
+Separately, `WheelBindDiscovery` selects only `[WheelBind]` components for lifecycle. Only those lifecycle participants receive `[WheelInject]`, `[WheelAfterInject]`, and `[WheelBeforeUnbind]`.
+
+View scopes only:
 
 1. Subscribe to `WheelRuntimeLocator.RuntimeReady` / `RuntimeStopped`.
-2. Call `Bind` / `Unbind` on known child views.
+2. Build the same-scope component registry.
+3. Inject lifecycle participants.
+4. Call `[WheelAfterInject]` / `[WheelBeforeUnbind]` lifecycle methods.
+
+No legacy `*UiHost` scripts should remain in the scene or project.
 
 ### 4.4 Composition root
 
@@ -132,6 +171,60 @@ Hosts only:
 - `WheelGameState`, `WheelStatePublisher`, `WheelGameFlowController` on same GO.
 
 No legacy `game_wheel_settings` scene object.
+
+### 4.5 Aggregate bindings vs views
+
+Large authored UI surfaces should split scene references from runtime orchestration.
+
+| Class shape | Responsibility |
+|-------------|----------------|
+| `*View` | `[WheelBind]` lifecycle, event subscription, snapshot orchestration, public intent/landing APIs |
+| `*Bindings` | Serialized authored references, validation, listener hookup, home-state capture, collaborator factories |
+| Leaf binding (`*CardBinding`, `*RootBinding`) | Prepare/clear the component's own transient state only |
+| `*Animator` | Build DOTween timelines from explicit bindings and named motion values |
+| `*Motion` / `*Config` | Named timing, alpha, scale, offset, and fallback values |
+| State/renderer/layout collaborators | Buffers, diffing, card rendering, scroll/layout math, landing-position math |
+
+Aggregate `*Bindings` components are injectable because `WheelViewContainer` registers every `MonoBehaviour` under the same `WheelViewScope`. They do **not** need `[WheelBind]` unless they have their own event lifecycle. In the normal case, `[WheelBind]` belongs on the controller `*View`, not on the aggregate binding holder.
+
+Correct pattern:
+
+```csharp
+public sealed class WheelRewardOpeningBindings : MonoBehaviour
+{
+    [SerializeField] private Button _previousButton;
+    [SerializeField] private Button _nextButton;
+
+    public void Validate() { /* fail loud */ }
+    internal WheelRewardOpeningScroller CreateScroller(Object target) { /* pass explicit refs */ }
+}
+
+[WheelBind]
+public sealed class WheelRewardOpeningView : MonoBehaviour
+{
+    [WheelInject] private WheelEventBus _eventBus;
+    [WheelInject] private WheelRewardOpeningBindings _bindings;
+}
+```
+
+Do not mark an aggregate binding `[WheelBind]` just to make injection work. If injection fails with `No view binding for X`, the scene is missing that component under the same scope, or the scene serialization has not been migrated.
+
+### 4.6 Baked component settings
+
+Scene and prefab authorship owns stable UI configuration:
+
+- Image `type`, `preserveAspect`, `maskable`, raycast flags, materials, sprites used as static chrome.
+- TMP wrapping, overflow, font style, maskability, base color.
+- ScrollRect direction/movement settings, viewport/content assignment.
+- RectTransform anchors, pivots, base size, shadow/glow/shine authored geometry.
+
+Runtime view code may update:
+
+- Snapshot-driven content: text value, reward sprite, amount text, enabled/active state.
+- Transient presentation: alpha, scale, local rotation, anchored position used by animation/layout.
+- Dynamic sizes that are genuinely data-dependent, such as scroll content height for a reward count.
+
+If a baked setting is wrong, fix the scene/prefab/builder. Do not patch it every frame or every render call from a view.
 
 ---
 
@@ -199,7 +292,7 @@ Scene rebuild must also mark scene dirty before save.
 Holds for one play session:
 
 - `EventBus`, `Settings`, `State`, `Publisher`, `Spinner`
-- `RuntimeReady` / `RuntimeStopped` signals for UI hosts
+- `RuntimeReady` / `RuntimeStopped` signals for `WheelViewScope` instances
 
 Registration only from composition root / spinner `Awake`. Cleared on stop.
 
@@ -210,7 +303,7 @@ CompositionRoot.Start
   → Register settings + gameplay
   → State.InitializeRuntime()
   → Publisher.Bind(bus), Flow.Bind(bus), Spinner.Bind(bus)
-  → NotifyRuntimeReady()  → UI hosts bind child views
+  → NotifyRuntimeReady()  → view scopes inject lifecycle participants
   → State.Restart()
   → Publisher.PublishAll()
 
@@ -234,7 +327,7 @@ Locator is **session-scoped**, not a global grab-bag for new features. New syste
 | UI → gameplay | `SpinRequested`, `LeaveRequested`, `RestartRequested` |
 | Gameplay → UI | `ZoneChanged`, `HudStateChanged`, `OutcomeResolved` |
 
-Views **subscribe in `Bind`**, **unsubscribe in `Unbind`**. No orphaned delegates.
+Views subscribe from `[WheelAfterInject]` and unsubscribe from `[WheelBeforeUnbind]`. No orphaned delegates.
 
 ### 7.2 Snapshot types (readonly structs)
 
@@ -247,16 +340,28 @@ Built only in `WheelSnapshotFactory` from `WheelGameState` + `WheelGameSettings`
 ### 7.3 View contract
 
 ```csharp
-public void Bind(WheelEventBus eventBus)
+[WheelBind]
+public sealed class WheelStatusTextView : MonoBehaviour
 {
-    _eventBus = eventBus;
-    _eventBus.HudStateChanged += OnHudStateChanged;
-}
+    [WheelInject] private WheelEventBus _eventBus;
 
-private void OnHudStateChanged(WheelHudSnapshot snapshot)
-{
-    _titleText.SetText(snapshot.SuperMilestoneBadgeText);
-    _badgeImage.color = snapshot.SuperMilestoneBadgeColor;
+    [WheelAfterInject]
+    private void Connect()
+    {
+        _eventBus.HudStateChanged += OnHudStateChanged;
+    }
+
+    [WheelBeforeUnbind]
+    private void Disconnect()
+    {
+        _eventBus.HudStateChanged -= OnHudStateChanged;
+    }
+
+    private void OnHudStateChanged(WheelHudSnapshot snapshot)
+    {
+        _titleText.SetText(snapshot.SuperMilestoneBadgeText);
+        _badgeImage.color = snapshot.SuperMilestoneBadgeColor;
+    }
 }
 ```
 
@@ -265,16 +370,31 @@ Forbidden in views:
 - Reading `WheelGameSettings` for presentation strings/colors
 - Formatting `"SAFE\nZONE\n{0}"` locally
 - Hard-coded theme colors “just for this label”
+- Mixing event orchestration, serialized scene reference ownership, animation timeline construction, state diffing, and layout math in one large `MonoBehaviour`
+- Overwriting baked component settings (`maskable`, `preserveAspect`, raycast flags, Image type, TMP wrapping/style, anchors/pivots) while rendering snapshots
 
-### 7.4 Publishing
+### 7.4 Reward presentation split
+
+Reward presentation surfaces (`WheelRewardPanelView`, `WheelLootCardView`, `WheelRewardOpeningView`, `WheelRewardCardView`, outcome popup controllers) must stay single-purpose:
+
+- View classes own lifecycle and event flow only.
+- Binding classes own authored references and component-local prepare/clear state.
+- Animator classes only compose timelines; they do not discover objects or decide gameplay state.
+- Motion/config classes hold named values; avoid magic numbers inside view or animator method bodies.
+- Inventory/pending buffers, renderer loops, scroll layout, and landing target math belong in focused collaborators, not in the view.
+
+The reward flow is callback-driven. Popup-to-panel commits should stay tied to tween arrival/completion callbacks, not hardcoded timer guesses.
+
+### 7.5 Publishing
 
 Only `WheelStatePublisher` (and flow after spin) raises snapshot events. UI never pushes state back through snapshots.
 
-### 7.5 Buttons
+### 7.6 Buttons
 
 `WheelButtonAction` subclasses:
 
-- `Bind` → listen `HudStateChanged`, set `interactable` from snapshot flags
+- `[WheelAfterInject]` → listen `HudStateChanged`, set `interactable` from snapshot flags
+- `[WheelBeforeUnbind]` → remove listeners and kill transient tweens
 - `Execute` → `EventBus.RequestSpin()` / leave / restart only
 
 ---
@@ -301,7 +421,7 @@ Gameplay rules stay out of Views and Editor.
 | `WheelEditorWiring`, `CollectChildren` | Never referenced |
 | `#if UNITY_EDITOR` custom editors | Stripped or inactive in player |
 
-Menus (Vertigo Case): Android setup, project asset repair, play commands, designer windows.
+Menus (Vertigo Case): Android setup, project asset repair, and Wheel Designer.
 
 Editor assembly must not become a second runtime.
 
@@ -313,8 +433,12 @@ Editor assembly must not become a second runtime.
 - `FindObjectOfType` / `FindDeepChild` for UI pools at runtime
 - Extra `WheelXxxCollection` MonoBehaviours only to fill arrays
 - String-based child matching (`ui_slice_0_value`) in collectors
+- Sorting collected UI pools by GameObject name at runtime instead of using serialized sibling order
 - Cross-canvas `[SerializeField]` refs
 - Views reading `WheelGameSettings` or formatting milestone/badge strings
+- Views that become "god scripts" containing bindings, snapshot diffing, layout, animation, particle cleanup, and scroll math together
+- Runtime style repair such as setting `maskable`, `raycastTarget`, `preserveAspect`, `Image.type`, TMP overflow/wrapping, anchors, pivots, or authored shadow/glow geometry during render
+- `[WheelBind]` on pure aggregate binding holders just to make them injectable
 - Gameplay logic in `Editor` scripts calling runtime flow directly
 - Duplicate event systems (UnityEvents + bus for same intent)
 - Mega inspector lists on runtime root
@@ -328,7 +452,9 @@ Editor assembly must not become a second runtime.
 Before considering a feature done:
 
 1. Play mode: spin, bomb, cash out, restart — HUD/wheel/popup update
-2. Inspector: `[CollectChildren]` arrays populated, no missing refs on hosts
+2. Inspector: `[CollectChildren]` arrays populated, each UI canvas has exactly one `WheelViewScope`
+3. Console after entering play mode: no `No view binding for X`, compile, or lifecycle exceptions
+4. Architecture scan for touched views: no runtime `Find*`, no `new GameObject`, no name-parsed pool ordering, no baked UI setting overrides
 
 ---
 
@@ -336,10 +462,11 @@ Before considering a feature done:
 
 1. Create hierarchy under correct canvas; sibling order = index order.
 2. Add view with `[SerializeField]` pool root + `[CollectChildren]` array.
-3. Bind view from canvas host (or same-subtree ref) — **not** from other canvas.
+3. Add `[WheelBind]` only to lifecycle participants; keep pure aggregate `*Bindings` injectable-only.
 4. Extend `WheelSnapshotFactory` / catalog if new text or colors needed.
-5. Subscribe in view `Bind`; apply only snapshot fields in handler.
+5. Subscribe in `[WheelAfterInject]`; apply only snapshot fields in handlers.
 6. Editor wiring: wire root, `CollectChildren`, `FinalizeCollect` / mark dirty.
+7. If the pool view has more than a few serialized references, split `*Bindings`, `*View`, `*Animator`, `*Motion`, and focused state/layout collaborators before it grows.
 
 ---
 
@@ -357,7 +484,7 @@ Before considering a feature done:
 
 ```csharp
 [CollectChildren(
-    rootProperty: nameof(_slicePoolRoot),  // null = host.transform
+    rootProperty: nameof(_slicePoolRoot),  // null = target component transform
     scope: ChildCollectionScope.DirectChildren,
     includeInactive: true,
     collectOnPreprocessBuild: true)]
@@ -365,7 +492,7 @@ Before considering a feature done:
 
 | Parameter | Meaning |
 |-----------|---------|
-| `rootProperty` | Name of `Transform` field on same behaviour; empty = collect from host |
+| `rootProperty` | Name of `Transform` field on same behaviour; empty = collect from target component transform |
 | `scope` | `DirectChildren` (default) or `Descendants` |
 | `includeInactive` | Include inactive children when collecting |
 | `collectOnPreprocessBuild` | Auto-refresh in `ChildCollectionPreprocessBuildCollector` |
@@ -379,7 +506,7 @@ Implementation lives in `Assets/Scripts/Collections/Editor/` — not in play bui
 | Term | Meaning |
 |------|---------|
 | **Snapshot** | Immutable UI-facing read model for one frame of state |
-| **Host** | Canvas-level binder between locator ready and child views |
+| **View scope** | Canvas-level binder that builds same-scope DI registry and invokes `[WheelBind]` lifecycle |
 | **Definition** | Serializable DTO nested in SO (not an asset file) |
 | **Catalog** | Shared SO listing copy, motion, spin resolve, skins, etc. |
 | **Pool root** | Transform whose ordered children become array indices |

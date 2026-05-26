@@ -6,8 +6,20 @@ namespace Vertigo.Wheel.Data
     [Serializable]
     public struct WheelSkinTierSprites
     {
-        public Sprite wheelBase;
-        public Sprite indicator;
+        [SerializeField] private Sprite _wheelBase;
+        [SerializeField] private Sprite _indicator;
+
+        public Sprite WheelBase { get { return _wheelBase; } }
+        public Sprite Indicator { get { return _indicator; } }
+
+        public static WheelSkinTierSprites Create(Sprite wheelBase, Sprite indicator)
+        {
+            return new WheelSkinTierSprites
+            {
+                _wheelBase = wheelBase,
+                _indicator = indicator
+            };
+        }
     }
 
     [CreateAssetMenu(fileName = "WheelSkinCatalog", menuName = "Vertigo/Wheel Skin Catalog")]
@@ -17,12 +29,12 @@ namespace Vertigo.Wheel.Data
 
         public Sprite GetWheelBase(WheelSkinTier tier)
         {
-            return _spritesByTier[(int)tier].wheelBase;
+            return _spritesByTier[(int)tier].WheelBase;
         }
 
         public Sprite GetIndicator(WheelSkinTier tier)
         {
-            return _spritesByTier[(int)tier].indicator;
+            return _spritesByTier[(int)tier].Indicator;
         }
 
         public void Configure(WheelSkinTierSprites bronze, WheelSkinTierSprites silver, WheelSkinTierSprites golden)

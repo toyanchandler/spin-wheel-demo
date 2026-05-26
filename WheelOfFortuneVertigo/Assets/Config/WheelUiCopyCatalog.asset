@@ -23,34 +23,34 @@ MonoBehaviour:
     ZONE
 
     {0}'
+  _spinButtonLabel: SPIN
+  _leaveButtonLabel: EXIT
+  _restartButtonLabel: RETRY RUN
+  _rewardOpeningTitle: 'YOUR REWARDS:'
+  _defaultRewardTitle: REWARD
+  _inventoryEmptySummary: No rewards
+  _inventoryFallbackRewardName: Reward
+  _exitConfirmationTitle: COLLECT REWARDS?
+  _exitConfirmationBody: Are you sure you want to go out and collect your rewards? We
+    have saved the best rewards for last!
+  _exitCollectButtonLabel: COLLECT REWARDS
+  _exitComeBackButtonLabel: COME BACK
   _zones:
   - _zoneType: 0
     _label: STANDARD
     _statusHint: Risk your loot. Reach the safe zone.
     _labelColorKey: 2
     _skinTier: 0
-    _panelSpriteName: ui_card_panel_zone_current
-    _mapFrameSpriteName: ui_card_zone_map_frame
-    _panelSprite: {fileID: 21300000, guid: fb1bcb75db84741f6bf5efee16fd98ad, type: 3}
-    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
   - _zoneType: 1
     _label: SAFE
     _statusHint: Safe zone. Spin without a bomb or leave with your loot.
     _labelColorKey: 3
     _skinTier: 1
-    _panelSpriteName: ui_card_panel_zone_current_white
-    _mapFrameSpriteName: ui_card_zone_map_frame
-    _panelSprite: {fileID: 21300000, guid: 32a0d709d578d4bb2b0ab5fe22a63aa4, type: 3}
-    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
   - _zoneType: 2
     _label: SUPER
     _statusHint: Super zone. Spin for premium rewards or leave with your loot.
     _labelColorKey: 4
     _skinTier: 2
-    _panelSpriteName: ui_card_panel_zone_super
-    _mapFrameSpriteName: ui_card_zone_map_frame
-    _panelSprite: {fileID: 21300000, guid: 20751ebbf4f2c4cd79743531fc6f8bfa, type: 3}
-    _mapFrameSprite: {fileID: 21300000, guid: 83183020c6e2b46c6926436440cc4970, type: 3}
   _phases:
   - _phase: 0
     _statusMessage: 
@@ -106,21 +106,18 @@ MonoBehaviour:
   - _phase: 2
     _title: YOU GOT
     _resultFallback: Reward
-    _summary: Added to your stash
     _resultColorKey: 0
     _showIcon: 1
     _resultSource: 0
   - _phase: 3
     _title: RUN LOST
     _resultFallback: BOOM! BUSTED
-    _summary: Retry or leave the run.
     _resultColorKey: 5
     _showIcon: 1
     _resultSource: 2
   - _phase: 4
     _title: CASHED OUT
     _resultFallback: Cashed out
-    _summary: Rewards secured
     _resultColorKey: 6
     _showIcon: 0
     _resultSource: 1

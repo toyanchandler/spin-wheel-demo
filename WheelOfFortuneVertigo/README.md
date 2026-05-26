@@ -19,7 +19,7 @@ Implemented:
 - TextMeshPro UI and provided UI assets
 - Pre-baked slice pool, no runtime child lookup or object destruction
 - Split static, wheel, and HUD canvases with one HUD raycaster
-- Android setup: API 35 target, IL2CPP, ARM64, App Bundle, portrait
+- Android setup: API 35 target, IL2CPP, ARM64, App Bundle, landscape
 - Sprite Atlas and shared UI material for first-pass batching
 - DOTween initialized with recyclable tween policy and fixed capacity
 

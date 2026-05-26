@@ -13,10 +13,17 @@
 Use one of:
 
 1. `WheelRuntimeLocator` — gameplay session (settings, state, publisher, spinner, event bus)
-2. `WheelEventBus` — UI binds on `RuntimeReady`, unbinds on `RuntimeStopped`
+2. `WheelEventBus` — `WheelViewScope` reacts to runtime ready/stop; views subscribe through lifecycle callbacks
 3. Shared SO catalogs — `WheelGameSettings`, skin, UI copy, layout, resolve profiles (`Assets/Config/`)
 
 `game_wheel_runtime` holds only `WheelGameConfigSource` → `WheelGameSettings.asset` (same GameObject, SO asset reference).
+
+## View scopes
+
+Each UI canvas root (`StaticCanvas`, `WheelCanvas`, `HudCanvas`) has one `WheelViewScope`.
+Views that need lifecycle use `[WheelBind]`; same-scope dependencies use `[WheelInject]`.
+Pure aggregate `*Bindings` components stay injectable-only unless they have their own event lifecycle.
+Legacy `WheelHudUiHost`, `WheelWheelUiHost`, `WheelStaticUiHost`, and `WheelUiHostBase` scripts should not exist in the active hierarchy.
 
 ## Child collection (`Vertigo.Collections`)
 

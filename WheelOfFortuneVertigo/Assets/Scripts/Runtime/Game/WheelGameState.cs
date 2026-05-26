@@ -144,10 +144,10 @@ namespace Vertigo.Wheel.Runtime
                 inventory => inventory.Clear()
             };
 
-            private static readonly Action<RewardInventory, WheelSpinResult>[] AddResultActions =
+            private static readonly Action<WheelGameState, RewardInventory, WheelSpinResult>[] AddResultActions =
             {
-                (inventory, result) => { },
-                (inventory, result) => inventory.Add(result)
+                (state, inventory, result) => { },
+                (state, inventory, result) => inventory.Add(result, state.Settings.UiCopy.InventoryFallbackRewardName)
             };
 
             private static readonly Action<WheelGameState>[] AdvanceZoneActions =
@@ -169,7 +169,7 @@ namespace Vertigo.Wheel.Runtime
                 WheelSpinResolveProfile profile)
             {
                 ClearInventoryActions[Convert.ToInt32(profile.ClearInventory)](inventory);
-                AddResultActions[Convert.ToInt32(profile.AddResultToInventory)](inventory, result);
+                AddResultActions[Convert.ToInt32(profile.AddResultToInventory)](state, inventory, result);
                 AdvanceZoneActions[Convert.ToInt32(profile.AdvanceZone)](state);
                 RefreshSliceActions[Convert.ToInt32(profile.MarkSlicesDirty)](state);
             }

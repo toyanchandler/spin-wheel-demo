@@ -5,24 +5,26 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
+    [WheelBind]
     [RequireComponent(typeof(TextMeshProUGUI))]
     public abstract class WheelHudTextView : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _text;
-        private WheelEventBus _eventBus;
+
+        [WheelInject] private WheelEventBus _eventBus;
 
         protected TextMeshProUGUI Text { get { return _text; } }
 
-        public void Bind(WheelEventBus eventBus)
+        [WheelAfterInject]
+        private void Connect()
         {
-            _eventBus = eventBus;
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
-        public void Unbind()
+        [WheelBeforeUnbind]
+        private void Disconnect()
         {
             _eventBus.HudStateChanged -= OnHudStateChanged;
-            _eventBus = null;
         }
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)

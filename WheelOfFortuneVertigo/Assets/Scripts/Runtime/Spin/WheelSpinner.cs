@@ -82,12 +82,12 @@ namespace Vertigo.Wheel.Runtime
         private void LateUpdate()
         {
             WheelView wheelView = WheelRuntimeLocator.WheelView;
-            if (wheelView == null)
+            if (wheelView == null || _wheelTransform == null)
             {
                 return;
             }
 
-            wheelView.ApplyUprightSlicePresentations();
+            wheelView.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
         }
 
         public void Bind(WheelEventBus eventBus)

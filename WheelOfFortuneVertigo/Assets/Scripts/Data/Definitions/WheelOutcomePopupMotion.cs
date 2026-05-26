@@ -21,7 +21,7 @@ namespace Vertigo.Wheel.Data
         {
             return new WheelOutcomePopupMotion
             {
-                _fadeDuration = 0.18f,
+                _fadeDuration = 0.09f,
                 _scaleDuration = 0.26f,
                 _startScale = 0.92f,
                 _scaleEase = Ease.OutBack

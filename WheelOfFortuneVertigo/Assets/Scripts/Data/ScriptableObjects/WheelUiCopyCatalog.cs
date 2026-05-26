@@ -30,6 +30,17 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private string _winLabelFormat = "Won {0}";
         [SerializeField] private string _safeMilestoneBadgeFormat = "SAFE\nZONE\n{0}";
         [SerializeField] private string _superMilestoneBadgeFormat = "SUPER\nZONE\n{0}";
+        [SerializeField] private string _spinButtonLabel = "SPIN";
+        [SerializeField] private string _leaveButtonLabel = "EXIT";
+        [SerializeField] private string _restartButtonLabel = "RETRY RUN";
+        [SerializeField] private string _rewardOpeningTitle = "YOUR REWARDS:";
+        [SerializeField] private string _defaultRewardTitle = "REWARD";
+        [SerializeField] private string _inventoryEmptySummary = "No rewards";
+        [SerializeField] private string _inventoryFallbackRewardName = "Reward";
+        [SerializeField] private string _exitConfirmationTitle = "COLLECT REWARDS?";
+        [SerializeField] private string _exitConfirmationBody = "Are you sure you want to go out and collect your rewards? We have saved the best rewards for last!";
+        [SerializeField] private string _exitCollectButtonLabel = "COLLECT REWARDS";
+        [SerializeField] private string _exitComeBackButtonLabel = "COME BACK";
         [SerializeField] private WheelZoneUiCopy[] _zones = CreateDefaultZones();
         [SerializeField] private WheelPhaseUiCopy[] _phases = CreateDefaultPhases();
         [SerializeField] private WheelOutcomeUiCopy[] _outcomes = CreateDefaultOutcomes();
@@ -41,6 +52,17 @@ namespace Vertigo.Wheel.Data
         public string WinLabelFormat { get { return _winLabelFormat; } }
         public string SafeMilestoneBadgeFormat { get { return _safeMilestoneBadgeFormat; } }
         public string SuperMilestoneBadgeFormat { get { return _superMilestoneBadgeFormat; } }
+        public string SpinButtonLabel { get { return _spinButtonLabel; } }
+        public string LeaveButtonLabel { get { return _leaveButtonLabel; } }
+        public string RestartButtonLabel { get { return _restartButtonLabel; } }
+        public string RewardOpeningTitle { get { return _rewardOpeningTitle; } }
+        public string DefaultRewardTitle { get { return _defaultRewardTitle; } }
+        public string InventoryEmptySummary { get { return _inventoryEmptySummary; } }
+        public string InventoryFallbackRewardName { get { return _inventoryFallbackRewardName; } }
+        public string ExitConfirmationTitle { get { return _exitConfirmationTitle; } }
+        public string ExitConfirmationBody { get { return _exitConfirmationBody; } }
+        public string ExitCollectButtonLabel { get { return _exitCollectButtonLabel; } }
+        public string ExitComeBackButtonLabel { get { return _exitComeBackButtonLabel; } }
 
         private void OnEnable()
         {
@@ -97,6 +119,19 @@ namespace Vertigo.Wheel.Data
         public void ResetToDefaults()
         {
             _winLabelFormat = "Won {0}";
+            _safeMilestoneBadgeFormat = "SAFE\nZONE\n{0}";
+            _superMilestoneBadgeFormat = "SUPER\nZONE\n{0}";
+            _spinButtonLabel = "SPIN";
+            _leaveButtonLabel = "EXIT";
+            _restartButtonLabel = "RETRY RUN";
+            _rewardOpeningTitle = "YOUR REWARDS:";
+            _defaultRewardTitle = "REWARD";
+            _inventoryEmptySummary = "No rewards";
+            _inventoryFallbackRewardName = "Reward";
+            _exitConfirmationTitle = "COLLECT REWARDS?";
+            _exitConfirmationBody = "Are you sure you want to go out and collect your rewards? We have saved the best rewards for last!";
+            _exitCollectButtonLabel = "COLLECT REWARDS";
+            _exitComeBackButtonLabel = "COME BACK";
             _zones = CreateDefaultZones();
             _phases = CreateDefaultPhases();
             _outcomes = CreateDefaultOutcomes();
@@ -124,25 +159,19 @@ namespace Vertigo.Wheel.Data
                     "STANDARD",
                     "Risk your loot. Reach the safe zone.",
                     WheelUiColorKey.StandardZone,
-                    WheelSkinTier.Bronze,
-                    "ui_card_panel_zone_current",
-                    "ui_card_zone_map_frame"),
+                    WheelSkinTier.Bronze),
                 WheelZoneUiCopy.Create(
                     ZoneType.Safe,
                     "SAFE",
                     "Safe zone. Spin without a bomb or leave with your loot.",
                     WheelUiColorKey.SafeZone,
-                    WheelSkinTier.Silver,
-                    "ui_card_panel_zone_current_white",
-                    "ui_card_zone_map_frame"),
+                    WheelSkinTier.Silver),
                 WheelZoneUiCopy.Create(
                     ZoneType.Super,
                     "SUPER",
                     "Super zone. Spin for premium rewards or leave with your loot.",
                     WheelUiColorKey.SuperZone,
-                    WheelSkinTier.Golden,
-                    "ui_card_panel_zone_super",
-                    "ui_card_zone_map_frame")
+                    WheelSkinTier.Golden)
             };
         }
 
@@ -182,7 +211,6 @@ namespace Vertigo.Wheel.Data
                     WheelGamePhase.Won,
                     "YOU GOT",
                     "Reward",
-                    "Added to your stash",
                     WheelUiColorKey.PrimaryText,
                     true,
                     WheelOutcomeResultSource.SpinResultLabel),
@@ -190,7 +218,6 @@ namespace Vertigo.Wheel.Data
                     WheelGamePhase.Bombed,
                     "RUN LOST",
                     "BOOM! BUSTED",
-                    "Retry or leave the run.",
                     WheelUiColorKey.Danger,
                     true,
                     WheelOutcomeResultSource.StaticFallback),
@@ -198,7 +225,6 @@ namespace Vertigo.Wheel.Data
                     WheelGamePhase.CashedOut,
                     "CASHED OUT",
                     "Cashed out",
-                    "Rewards secured",
                     WheelUiColorKey.Success,
                     false,
                     WheelOutcomeResultSource.InventorySummary)

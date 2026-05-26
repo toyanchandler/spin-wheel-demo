@@ -16,7 +16,6 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private Color _superMilestoneBadgeBackground = new Color(0.18f, 0.58f, 0.02f, 0.9f);
         [SerializeField] private Color _dangerColor = new Color(0.9f, 0.22f, 0.16f, 1f);
         [SerializeField] private Color _successColor = new Color(0.28f, 0.84f, 0.48f, 1f);
-        [SerializeField] private Color[] _uiColorPalette = CreateDefaultPalette();
 
         public Color BackgroundColor { get { return _backgroundColor; } }
         public Color PrimaryTextColor { get { return _primaryTextColor; } }
@@ -31,33 +30,30 @@ namespace Vertigo.Wheel.Data
 
         public Color GetUiColor(WheelUiColorKey colorKey)
         {
-            return _uiColorPalette[(int)colorKey];
-        }
-
-        public void SyncUiColorPalette()
-        {
-            _uiColorPalette = CreateDefaultPalette();
+            switch (colorKey)
+            {
+                case WheelUiColorKey.PrimaryText:
+                    return _primaryTextColor;
+                case WheelUiColorKey.SecondaryText:
+                    return _secondaryTextColor;
+                case WheelUiColorKey.StandardZone:
+                    return _standardZoneColor;
+                case WheelUiColorKey.SafeZone:
+                    return _safeZoneColor;
+                case WheelUiColorKey.SuperZone:
+                    return _superZoneColor;
+                case WheelUiColorKey.Danger:
+                    return _dangerColor;
+                case WheelUiColorKey.Success:
+                    return _successColor;
+                default:
+                    return _primaryTextColor;
+            }
         }
 
         public static WheelThemeSettings Default()
         {
-            var theme = new WheelThemeSettings();
-            theme.SyncUiColorPalette();
-            return theme;
-        }
-
-        private static Color[] CreateDefaultPalette()
-        {
-            return new[]
-            {
-                Color.white,
-                new Color(0.76f, 0.80f, 0.88f, 1f),
-                new Color(0.78f, 0.48f, 0.18f, 1f),
-                new Color(0.44f, 0.88f, 1f, 1f),
-                new Color(0.58f, 1f, 0.18f, 1f),
-                new Color(0.9f, 0.22f, 0.16f, 1f),
-                new Color(0.28f, 0.84f, 0.48f, 1f)
-            };
+            return new WheelThemeSettings();
         }
     }
 }
