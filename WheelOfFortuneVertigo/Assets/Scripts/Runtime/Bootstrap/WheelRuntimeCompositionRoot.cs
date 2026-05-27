@@ -8,12 +8,47 @@ namespace Vertigo.Wheel.Runtime
     [DefaultExecutionOrder(-100)]
     public sealed class WheelRuntimeCompositionRoot : MonoBehaviour
     {
+        private static WheelRuntimeCompositionRoot _active;
+
         private readonly WheelEventBus _eventBus = new WheelEventBus();
+        private WheelGameSettings _settings;
         private WheelGameState _state;
         private WheelStatePublisher _publisher;
         private WheelGameFlowController _flow;
+        private WheelSpinner _spinner;
         private bool _isRunning;
         private bool _hasConfiguredTween;
+
+        public static WheelRuntimeCompositionRoot Active { get { return _active; } }
+        public bool IsRunning { get { return _isRunning; } }
+        public WheelEventBus SessionEventBus { get { return _eventBus; } }
+        public WheelGameSettings GameSettings { get { return _settings; } }
+        public WheelGameState GameState { get { return _state; } }
+        public WheelStatePublisher StatePublisher { get { return _publisher; } }
+        public WheelSpinner Spinner { get { return _spinner; } }
+
+        private void Awake()
+        {
+            _active = this;
+        }
+
+        private void OnDestroy()
+        {
+            if (_active == this)
+            {
+                _active = null;
+            }
+        }
+
+        public void RegisterSpinner(WheelSpinner spinner)
+        {
+            if (spinner == null)
+            {
+                return;
+            }
+
+            _spinner = spinner;
+        }
 
         private void EnsureGameplayComponents()
         {
@@ -38,8 +73,7 @@ namespace Vertigo.Wheel.Runtime
                 throw new InvalidOperationException("game_wheel_runtime requires WheelGameConfigSource with WheelGameSettings assigned.");
             }
 
-            WheelRuntimeLocator.RegisterSettings(configSource.Settings);
-            WheelRuntimeLocator.RegisterGameplay(_eventBus, _state, _publisher);
+            _settings = configSource.Settings;
         }
 
         private void Start()
@@ -102,19 +136,20 @@ namespace Vertigo.Wheel.Runtime
             _isRunning = true;
             EnsureGameplayComponents();
             ConfigureTweenOnce();
-            _state.InitializeRuntime();
-            _publisher.Bind(_eventBus);
-            _flow.Bind(_eventBus, _state, _publisher, WheelRuntimeLocator.Spinner);
-            WheelRuntimeLocator.NotifyRuntimeReady();
+            _state.InitializeRuntime(_settings);
+            _publisher.Bind(_eventBus, _state);
+            _spinner?.Bind(_settings);
+            _flow.Bind(_eventBus, _state, _publisher, _spinner);
+            WheelRuntimeLocator.NotifyRuntimeReady(_eventBus);
             _state.Restart();
             _publisher.PublishAll();
         }
 
         private void EndRuntime()
         {
-            if (WheelRuntimeLocator.Spinner != null)
+            if (_spinner != null)
             {
-                WheelRuntimeLocator.Spinner.Unbind();
+                _spinner.Unbind();
             }
 
             if (_flow != null)
@@ -129,6 +164,7 @@ namespace Vertigo.Wheel.Runtime
 
             WheelRuntimeLocator.Clear();
             _eventBus.Clear();
+            _settings = null;
             _isRunning = false;
         }
 

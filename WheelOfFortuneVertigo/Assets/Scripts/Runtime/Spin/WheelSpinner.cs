@@ -36,6 +36,9 @@ namespace Vertigo.Wheel.Runtime
         private const float PostLandingHoldDuration = 0.04f;
 
         private RectTransform _wheelTransform;
+        private WheelGameSettings _settings;
+        private WheelView _wheelView;
+        private WheelSliceDefinition[] _sliceBuffer = EmptySlices;
         private WheelSliceDefinition[] _currentSlices = EmptySlices;
         private Tween _activeTween;
         private WheelSpinResult _pendingResult;
@@ -69,7 +72,10 @@ namespace Vertigo.Wheel.Runtime
                 _baseScale = _wheelTransform.localScale;
             }
 
-            WheelRuntimeLocator.RegisterSpinner(this);
+            if (WheelRuntimeCompositionRoot.Active != null)
+            {
+                WheelRuntimeCompositionRoot.Active.RegisterSpinner(this);
+            }
         }
 
         private void OnDisable()
@@ -81,13 +87,30 @@ namespace Vertigo.Wheel.Runtime
 
         private void LateUpdate()
         {
-            WheelView wheelView = WheelRuntimeLocator.WheelView;
-            if (wheelView == null || _wheelTransform == null)
+            if (_wheelView == null || _wheelTransform == null)
             {
                 return;
             }
 
-            wheelView.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
+            _wheelView.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
+        }
+
+        public void Bind(WheelGameSettings settings)
+        {
+            _settings = settings;
+        }
+
+        public void SetWheelView(WheelView wheelView)
+        {
+            _wheelView = wheelView;
+        }
+
+        public void ClearWheelView(WheelView wheelView)
+        {
+            if (_wheelView == wheelView)
+            {
+                _wheelView = null;
+            }
         }
 
         public void Unbind()
@@ -97,6 +120,8 @@ namespace Vertigo.Wheel.Runtime
             _spinning = false;
             _pendingResult = default;
             _lastTargetAngle = 0f;
+            _settings = null;
+            _wheelView = null;
 
             SpinStarted = null;
             SuspenseTicked = null;
@@ -106,20 +131,26 @@ namespace Vertigo.Wheel.Runtime
             RestoreBaseScale();
         }
 
-        public void SetSlices(WheelSliceDefinition[] slices, int sliceCount)
+        public void AcceptSlicesFrom(WheelGameState state)
         {
-            _currentSlices = slices ?? EmptySlices;
-            _currentSliceCount = Mathf.Clamp(sliceCount, 0, _currentSlices.Length);
+            if (state == null)
+            {
+                throw new ArgumentNullException(nameof(state));
+            }
+
+            EnsureSliceBuffer(state.SliceCount);
+            _currentSliceCount = state.CopySliceDefinitions(_sliceBuffer);
+            _currentSlices = _sliceBuffer;
         }
 
-        public void Spin()
+        public void Spin(int selectedIndex)
         {
-            if (!CanSpin())
+            if (!CanSpin(selectedIndex))
             {
                 return;
             }
 
-            BeginSpin();
+            PlaySpin(selectedIndex);
         }
 
 #if UNITY_EDITOR
@@ -143,20 +174,16 @@ namespace Vertigo.Wheel.Runtime
         }
 #endif
 
-        private bool CanSpin()
+        private bool CanSpin(int selectedIndex)
         {
             return !_spinning
                 && _wheelTransform != null
                 && _currentSlices != null
                 && _currentSliceCount > 0
+                && selectedIndex >= 0
+                && selectedIndex < _currentSliceCount
                 && _currentSliceCount <= _currentSlices.Length
-                && WheelRuntimeLocator.Settings != null;
-        }
-
-        private void BeginSpin()
-        {
-            int selectedIndex = UnityEngine.Random.Range(0, _currentSliceCount);
-            PlaySpin(selectedIndex);
+                && _settings != null;
         }
 
         private void PlaySpin(int selectedIndex)
@@ -169,7 +196,7 @@ namespace Vertigo.Wheel.Runtime
             StopActiveTween(false);
             RestoreBaseScale();
 
-            WheelGameSettings settings = WheelRuntimeLocator.Settings;
+            WheelGameSettings settings = _settings;
             if (settings == null)
             {
                 return;
@@ -226,7 +253,7 @@ namespace Vertigo.Wheel.Runtime
                     launchAngle,
                     suspenseStartAngle,
                     fastSpinDuration,
-                    Ease.Linear))
+                    settings.SpinEase))
                 .Append(CreateSmoothSuspenseRotation(
                     suspenseStartAngle,
                     targetAngle,
@@ -295,14 +322,13 @@ namespace Vertigo.Wheel.Runtime
 
         private float[] ResolveSlicePointerAngles()
         {
-            WheelView wheelView = WheelRuntimeLocator.WheelView;
-            if (wheelView == null || _currentSliceCount <= 0)
+            if (_wheelView == null || _currentSliceCount <= 0)
             {
                 return EmptyAngles;
             }
 
             float[] pointerAngles = new float[_currentSliceCount];
-            return wheelView.TryCopySlicePointerAngles(_currentSliceCount, pointerAngles) ? pointerAngles : EmptyAngles;
+            return _wheelView.TryCopySlicePointerAngles(_currentSliceCount, pointerAngles) ? pointerAngles : EmptyAngles;
         }
 
         private Tween CreateRotationTween(float fromAngle, float toAngle, float duration, Ease ease)
@@ -480,6 +506,20 @@ namespace Vertigo.Wheel.Runtime
             }
 
             _activeTween = null;
+        }
+
+        private void EnsureSliceBuffer(int capacity)
+        {
+            if (_sliceBuffer.Length == capacity && _sliceBuffer.Length > 0 && _sliceBuffer[0] != null)
+            {
+                return;
+            }
+
+            _sliceBuffer = new WheelSliceDefinition[capacity];
+            for (int i = 0; i < capacity; i++)
+            {
+                _sliceBuffer[i] = new WheelSliceDefinition();
+            }
         }
     }
 }

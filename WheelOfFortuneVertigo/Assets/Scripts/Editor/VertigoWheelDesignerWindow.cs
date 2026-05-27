@@ -222,7 +222,7 @@ namespace Vertigo.Wheel.EditorTools
                 {
                     EditorGUILayout.HelpBox("Enter Play Mode to use reward-panel and force-outcome commands.", MessageType.Info);
                 }
-                else if (!WheelRuntimeLocator.IsReady)
+                else if (WheelRuntimeCompositionRoot.Active == null || !WheelRuntimeCompositionRoot.Active.IsRunning)
                 {
                     EditorGUILayout.HelpBox("Wheel runtime is not ready yet.", MessageType.Warning);
                 }
@@ -587,13 +587,15 @@ namespace Vertigo.Wheel.EditorTools
 
         private static bool CanRunPlayModeCommand()
         {
+            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
             return Application.isPlaying
-                && WheelRuntimeLocator.IsReady
-                && WheelRuntimeLocator.State != null
-                && WheelRuntimeLocator.Publisher != null
-                && WheelRuntimeLocator.Settings != null
-                && WheelRuntimeLocator.Spinner != null
-                && WheelRuntimeLocator.EventBus != null;
+                && root != null
+                && root.IsRunning
+                && root.GameState != null
+                && root.StatePublisher != null
+                && root.GameSettings != null
+                && root.Spinner != null
+                && root.SessionEventBus != null;
         }
 
         private static void AddFifteenLootToRewardPanel()
@@ -670,11 +672,11 @@ namespace Vertigo.Wheel.EditorTools
                 return;
             }
 
-            spinner.SetSlices(state.Slices, state.SliceCount);
+            spinner.AcceptSlicesFrom(state);
             spinner.SnapToSelectionForDebug(sliceIndex);
 
-            var result = new WheelSpinResult(sliceIndex, state.Slices[sliceIndex]);
-            WheelRuntimeLocator.EventBus.RaiseSpinLanded(result);
+            WheelSpinResult result = state.CreateSpinResult(sliceIndex);
+            WheelRuntimeCompositionRoot.Active.SessionEventBus.RaiseSpinLanded(result);
             state.Resolve(result);
             publisher.PublishZone();
             publisher.PublishOutcome(result, true);
@@ -689,11 +691,18 @@ namespace Vertigo.Wheel.EditorTools
             out WheelGameSettings settings,
             out WheelSpinner spinner)
         {
-            state = WheelRuntimeLocator.State;
-            publisher = WheelRuntimeLocator.Publisher;
-            settings = WheelRuntimeLocator.Settings;
-            spinner = WheelRuntimeLocator.Spinner;
-            if (state != null && publisher != null && settings != null && spinner != null && WheelRuntimeLocator.EventBus != null)
+            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
+            state = root != null ? root.GameState : null;
+            publisher = root != null ? root.StatePublisher : null;
+            settings = root != null ? root.GameSettings : null;
+            spinner = root != null ? root.Spinner : null;
+            if (root != null
+                && root.IsRunning
+                && state != null
+                && publisher != null
+                && settings != null
+                && spinner != null
+                && root.SessionEventBus != null)
             {
                 return true;
             }
@@ -707,9 +716,9 @@ namespace Vertigo.Wheel.EditorTools
             state.Inventory.Clear();
 
             var rewardPool = new List<RewardDefinition>();
-            AddRewardsToPool(rewardPool, settings.StandardRewards);
-            AddRewardsToPool(rewardPool, settings.SafeRewards);
-            AddRewardsToPool(rewardPool, settings.SuperRewards);
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Standard));
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Safe));
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Super));
             if (rewardPool.Count == 0)
             {
                 Debug.LogWarning("No rewards are configured for debug loot commands.");
@@ -752,7 +761,7 @@ namespace Vertigo.Wheel.EditorTools
             return added;
         }
 
-        private static void AddRewardsToPool(List<RewardDefinition> target, List<RewardDefinition> source)
+        private static void AddRewardsToPool(List<RewardDefinition> target, IReadOnlyList<RewardDefinition> source)
         {
             if (source == null)
             {
@@ -770,31 +779,12 @@ namespace Vertigo.Wheel.EditorTools
 
         private static int FindBombSliceIndex(WheelGameState state)
         {
-            for (int i = 0; i < state.SliceCount; i++)
-            {
-                if (state.Slices[i].IsBomb)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
+            return state.FindFirstSliceIndex(true);
         }
 
         private static int FindRandomRewardSliceIndex(WheelGameState state)
         {
-            var rewardIndices = new List<int>();
-            for (int i = 0; i < state.SliceCount; i++)
-            {
-                if (!state.Slices[i].IsBomb)
-                {
-                    rewardIndices.Add(i);
-                }
-            }
-
-            return rewardIndices.Count == 0
-                ? -1
-                : rewardIndices[UnityEngine.Random.Range(0, rewardIndices.Count)];
+            return state.SelectRandomRewardSliceIndex();
         }
 
         private void DrawMetric(string label, string value, Color accent)

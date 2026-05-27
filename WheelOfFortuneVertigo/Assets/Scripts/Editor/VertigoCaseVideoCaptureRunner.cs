@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using Vertigo.Wheel.Data;
@@ -19,7 +18,6 @@ namespace Vertigo.Wheel.EditorTools
         private const string DoneFile = FrameRoot + "/capture_done.txt";
 
         private static Coroutine _activeRoutine;
-        private static MethodInfo _playSpinMethod;
 
         [MenuItem("Vertigo Case/Video Capture/Record All Case Videos", true)]
         private static bool ValidateRecordAll()
@@ -30,10 +28,11 @@ namespace Vertigo.Wheel.EditorTools
         [MenuItem("Vertigo Case/Video Capture/Record All Case Videos")]
         private static void RecordAll()
         {
-            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
+            WheelStatePublisher publisher = root != null ? root.StatePublisher : null;
             if (publisher == null)
             {
-                Debug.LogWarning("Video capture requires Play Mode with WheelRuntimeLocator ready.");
+                Debug.LogWarning("Video capture requires Play Mode with wheel runtime ready.");
                 return;
             }
 
@@ -128,33 +127,15 @@ namespace Vertigo.Wheel.EditorTools
             publisher.PublishZone();
             state.BeginSpin();
             publisher.PublishHud();
-            spinner.SetSlices(state.Slices, state.SliceCount);
+            spinner.AcceptSlicesFrom(state);
 
-            int sliceIndex = bomb ? FindBombSliceIndex(state) : FindRewardSliceIndex(state);
+            int sliceIndex = bomb ? state.FindFirstSliceIndex(true) : state.FindFirstSliceIndex(false);
             if (sliceIndex < 0)
             {
                 sliceIndex = 0;
             }
 
-            PlaySpin(spinner, sliceIndex);
-        }
-
-        private static void PlaySpin(WheelSpinner spinner, int sliceIndex)
-        {
-            MethodInfo method = _playSpinMethod;
-            if (method == null)
-            {
-                method = typeof(WheelSpinner).GetMethod("PlaySpin", BindingFlags.Instance | BindingFlags.NonPublic);
-                _playSpinMethod = method;
-            }
-
-            if (method == null)
-            {
-                Debug.LogWarning("Could not resolve WheelSpinner.PlaySpin for directed video capture.");
-                return;
-            }
-
-            method.Invoke(spinner, new object[] { sliceIndex });
+            spinner.Spin(sliceIndex);
         }
 
         private static IEnumerator WaitForSpinToResolve(FrameCapture capture, WheelGameState state, WheelSpinner spinner)
@@ -197,11 +178,12 @@ namespace Vertigo.Wheel.EditorTools
             out WheelGameSettings settings,
             out WheelSpinner spinner)
         {
-            state = WheelRuntimeLocator.State;
-            publisher = WheelRuntimeLocator.Publisher;
-            settings = WheelRuntimeLocator.Settings;
-            spinner = WheelRuntimeLocator.Spinner;
-            if (state != null && publisher != null && settings != null && spinner != null)
+            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
+            state = root != null ? root.GameState : null;
+            publisher = root != null ? root.StatePublisher : null;
+            settings = root != null ? root.GameSettings : null;
+            spinner = root != null ? root.Spinner : null;
+            if (root != null && root.IsRunning && state != null && publisher != null && settings != null && spinner != null)
             {
                 return true;
             }
@@ -210,40 +192,14 @@ namespace Vertigo.Wheel.EditorTools
             return false;
         }
 
-        private static int FindBombSliceIndex(WheelGameState state)
-        {
-            for (int i = 0; i < state.SliceCount; i++)
-            {
-                if (state.Slices[i].IsBomb)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static int FindRewardSliceIndex(WheelGameState state)
-        {
-            for (int i = 0; i < state.SliceCount; i++)
-            {
-                if (!state.Slices[i].IsBomb)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
         private static int AddDebugRewards(WheelGameState state, WheelGameSettings settings, int targetCount)
         {
             state.Inventory.Clear();
 
             var rewardPool = new List<RewardDefinition>();
-            AddRewardsToPool(rewardPool, settings.StandardRewards);
-            AddRewardsToPool(rewardPool, settings.SafeRewards);
-            AddRewardsToPool(rewardPool, settings.SuperRewards);
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Standard));
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Safe));
+            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Super));
             if (rewardPool.Count == 0)
             {
                 return 0;
@@ -285,7 +241,7 @@ namespace Vertigo.Wheel.EditorTools
             return added;
         }
 
-        private static void AddRewardsToPool(List<RewardDefinition> target, List<RewardDefinition> source)
+        private static void AddRewardsToPool(List<RewardDefinition> target, IReadOnlyList<RewardDefinition> source)
         {
             if (source == null)
             {

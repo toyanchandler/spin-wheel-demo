@@ -27,7 +27,7 @@ namespace Vertigo.Wheel.Views
             _presentationResolver = new WheelSlicePresentationResolver(_sliceViews);
             _impactAnimator = new WheelViewImpactAnimator(_spinner);
             _visualState = new WheelSliceVisualState(_sliceViews, _impactAnimator.PlayBombShake);
-            WheelRuntimeLocator.RegisterWheelView(this);
+            _spinner.SetWheelView(this);
             _eventBus.ZoneChanged += OnZoneChanged;
             _eventBus.SpinLanded += OnSpinLanded;
             _eventBus.OutcomeResolved += OnOutcomeResolved;
@@ -36,10 +36,7 @@ namespace Vertigo.Wheel.Views
         [WheelBeforeUnbind]
         private void Disconnect()
         {
-            if (WheelRuntimeLocator.WheelView == this)
-            {
-                WheelRuntimeLocator.RegisterWheelView(null);
-            }
+            _spinner.ClearWheelView(this);
 
             _eventBus.ZoneChanged -= OnZoneChanged;
             _eventBus.SpinLanded -= OnSpinLanded;

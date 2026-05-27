@@ -10,9 +10,15 @@ namespace Vertigo.Wheel.Data
             return zoneGameplay.IncludesBombSlot ? sliceCount - 1 : sliceCount;
         }
 
-        public static int BombIndexForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
+        public static int BombIndexForZone(int sliceCount, int zone, WheelZoneGameplayProfile zoneGameplay)
         {
-            return zoneGameplay.IncludesBombSlot ? Random.Range(0, sliceCount) : -1;
+            if (!zoneGameplay.IncludesBombSlot || sliceCount <= 0)
+            {
+                return -1;
+            }
+
+            int safeZone = Mathf.Max(1, zone);
+            return (safeZone - 1) % sliceCount;
         }
 
         public static void ApplySlot(

@@ -89,13 +89,28 @@ namespace Vertigo.Wheel.Tests
         {
             var zoneGameplay = WheelZoneGameplayProfile.Create(includesBombSlot: false, allowLeave: true);
 
-            Assert.AreEqual(-1, WheelSliceSlotCatalog.BombIndexForZone(8, zoneGameplay));
+            Assert.AreEqual(-1, WheelSliceSlotCatalog.BombIndexForZone(8, 3, zoneGameplay));
+        }
+
+        [Test]
+        public void BombIndexForZone_IsDeterministic_ForSameZoneAndSliceCount()
+        {
+            var zoneGameplay = WheelZoneGameplayProfile.Create(includesBombSlot: true, allowLeave: false);
+
+            Assert.AreEqual(0, WheelSliceSlotCatalog.BombIndexForZone(8, 1, zoneGameplay));
+            Assert.AreEqual(1, WheelSliceSlotCatalog.BombIndexForZone(8, 2, zoneGameplay));
+            Assert.AreEqual(7, WheelSliceSlotCatalog.BombIndexForZone(8, 8, zoneGameplay));
+            Assert.AreEqual(0, WheelSliceSlotCatalog.BombIndexForZone(8, 9, zoneGameplay));
+            Assert.AreEqual(
+                WheelSliceSlotCatalog.BombIndexForZone(8, 4, zoneGameplay),
+                WheelSliceSlotCatalog.BombIndexForZone(8, 4, zoneGameplay));
         }
 
         [Test]
         public void CreateRewardProfile_ShowsAmountLabel_WhenAmountGreaterThanOne()
         {
             var reward = RewardDefinition.Create("coins", "Coins", null, 3, RewardTier.Common, Color.yellow);
+            reward.CacheRuntimeText("Won {0}");
 
             WheelSliceSlotProfile profile = WheelSliceSlotCatalog.CreateRewardProfile(reward);
 
@@ -106,6 +121,7 @@ namespace Vertigo.Wheel.Tests
         public void CreateRewardProfile_HidesAmountLabel_WhenAmountIsOne()
         {
             var reward = RewardDefinition.Create("coins", "Coins", null, 1, RewardTier.Common, Color.yellow);
+            reward.CacheRuntimeText("Won {0}");
 
             WheelSliceSlotProfile profile = WheelSliceSlotCatalog.CreateRewardProfile(reward);
 

@@ -53,9 +53,9 @@ namespace Vertigo.Wheel.Data
             return _zoneGameplayProfiles[(int)zoneType];
         }
 
-        public List<RewardDefinition> GetRewardPool(ZoneType zoneType)
+        public IReadOnlyList<RewardDefinition> GetRewardPool(ZoneType zoneType)
         {
-            return _rewardPoolsByZone[(int)zoneType];
+            return ResolveRewardPool(zoneType);
         }
 
         public int SliceCount { get { return Mathf.Max(4, _sliceCount); } }
@@ -67,9 +67,15 @@ namespace Vertigo.Wheel.Data
         {
             _bombReward = bombReward;
         }
-        public List<RewardDefinition> StandardRewards { get { return _standardRewards; } }
-        public List<RewardDefinition> SafeRewards { get { return _safeRewards; } }
-        public List<RewardDefinition> SuperRewards { get { return _superRewards; } }
+        public void ReplaceRewardPool(ZoneType zoneType, RewardDefinition reward)
+        {
+            List<RewardDefinition> pool = ResolveMutableRewardPool(zoneType);
+            pool.Clear();
+            if (reward != null)
+            {
+                pool.Add(reward);
+            }
+        }
 
         public ZoneType GetZoneType(int zone)
         {
@@ -224,6 +230,31 @@ namespace Vertigo.Wheel.Data
         private static void CacheRewardText(RewardDefinition reward, string winLabelFormat)
         {
             reward.CacheRuntimeText(winLabelFormat);
+        }
+
+        private IReadOnlyList<RewardDefinition> ResolveRewardPool(ZoneType zoneType)
+        {
+            if (_rewardPoolsByZone == null)
+            {
+                return ResolveMutableRewardPool(zoneType);
+            }
+
+            return _rewardPoolsByZone[(int)zoneType];
+        }
+
+        private List<RewardDefinition> ResolveMutableRewardPool(ZoneType zoneType)
+        {
+            switch (zoneType)
+            {
+                case ZoneType.Standard:
+                    return _standardRewards;
+                case ZoneType.Safe:
+                    return _safeRewards;
+                case ZoneType.Super:
+                    return _superRewards;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(zoneType), zoneType, "Unsupported zone type.");
+            }
         }
     }
 }

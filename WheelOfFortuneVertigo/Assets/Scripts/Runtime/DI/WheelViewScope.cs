@@ -6,6 +6,7 @@ namespace Vertigo.Wheel.Runtime
     {
         private MonoBehaviour[] _bindables = System.Array.Empty<MonoBehaviour>();
         private WheelViewContainer _views;
+        private WheelEventBus _eventBus;
         private bool _isBound;
 
         private void Awake()
@@ -47,23 +48,25 @@ namespace Vertigo.Wheel.Runtime
 
         private void OnRuntimeStopped()
         {
+            _eventBus = null;
             ReleaseBinding();
         }
 
         private void OnRuntimeReady(WheelEventBus eventBus)
         {
+            _eventBus = eventBus;
             TryBind();
         }
 
         private void TryBind()
         {
-            if (_isBound || !WheelRuntimeLocator.IsReady)
+            if (_isBound || !WheelRuntimeLocator.IsReady || _eventBus == null)
             {
                 return;
             }
 
             EnsureDiscovered();
-            BindAll(WheelRuntimeLocator.EventBus);
+            BindAll(_eventBus);
             _isBound = true;
         }
 

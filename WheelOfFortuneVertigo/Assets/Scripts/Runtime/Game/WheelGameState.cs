@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Vertigo.Wheel.Data;
 
@@ -17,7 +18,6 @@ namespace Vertigo.Wheel.Runtime
 
         public WheelGameSettings Settings { get { return _settings; } }
         public RewardInventory Inventory { get { return _inventory; } }
-        public WheelSliceDefinition[] Slices { get { return _sliceBuffer; } }
         public WheelSpinResult LastResult { get { return _lastResult; } }
         public bool HasLastResult { get { return _hasLastResult; } }
         public int SliceCount { get { return _sliceCount; } }
@@ -41,9 +41,14 @@ namespace Vertigo.Wheel.Runtime
 
         public bool CanRestart { get { return Settings != null && PhaseGameplay.AllowRestart; } }
 
-        public void InitializeRuntime()
+        public void InitializeRuntime(WheelGameSettings settings)
         {
-            _settings = WheelRuntimeLocator.Settings;
+            if (settings == null)
+            {
+                throw new InvalidOperationException("WheelGameState requires WheelGameSettings to initialize runtime.");
+            }
+
+            _settings = settings;
             Settings.InitializeRuntime();
             EnsureSliceBuffer();
         }
@@ -67,6 +72,97 @@ namespace Vertigo.Wheel.Runtime
         public void CashOut()
         {
             _phase = WheelGamePhase.CashedOut;
+        }
+
+        public int SelectSpinSliceIndex()
+        {
+            PrepareCurrentZone();
+            return WheelSpinOutcomeSelector.SelectSliceIndex(_sliceCount);
+        }
+
+        public WheelSpinResult CreateSpinResult(int sliceIndex)
+        {
+            PrepareCurrentZone();
+            if (sliceIndex < 0 || sliceIndex >= _sliceCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sliceIndex), "Slice index is outside the current wheel slice count.");
+            }
+
+            return new WheelSpinResult(sliceIndex, _sliceBuffer[sliceIndex]);
+        }
+
+        public int FindFirstSliceIndex(bool isBomb)
+        {
+            PrepareCurrentZone();
+            return WheelSliceQueries.FindFirst(_sliceBuffer, _sliceCount, isBomb);
+        }
+
+        public int SelectRandomRewardSliceIndex()
+        {
+            PrepareCurrentZone();
+
+            int rewardCount = 0;
+            for (int i = 0; i < _sliceCount; i++)
+            {
+                if (!_sliceBuffer[i].IsBomb)
+                {
+                    rewardCount++;
+                }
+            }
+
+            if (rewardCount <= 0)
+            {
+                return -1;
+            }
+
+            int selectedReward = UnityEngine.Random.Range(0, rewardCount);
+            for (int i = 0; i < _sliceCount; i++)
+            {
+                if (_sliceBuffer[i].IsBomb)
+                {
+                    continue;
+                }
+
+                if (selectedReward == 0)
+                {
+                    return i;
+                }
+
+                selectedReward--;
+            }
+
+            return -1;
+        }
+
+        public int CopySliceDefinitions(WheelSliceDefinition[] destination)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            PrepareCurrentZone();
+
+            int count = Mathf.Min(_sliceCount, destination.Length);
+            for (int i = 0; i < count; i++)
+            {
+                WheelSliceCopyUtility.CopyInto(_sliceBuffer[i], destination[i]);
+            }
+
+            return count;
+        }
+
+        public WheelSliceDefinition[] CreateSliceSnapshot()
+        {
+            PrepareCurrentZone();
+
+            var copies = new WheelSliceDefinition[_sliceCount];
+            for (int i = 0; i < _sliceCount; i++)
+            {
+                copies[i] = WheelSliceCopyUtility.CreateCopy(_sliceBuffer[i]);
+            }
+
+            return copies;
         }
 
         public void Resolve(WheelSpinResult result)

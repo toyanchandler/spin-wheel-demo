@@ -1,6 +1,4 @@
 using System;
-using Vertigo.Wheel.Data;
-using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.Runtime
 {
@@ -9,54 +7,18 @@ namespace Vertigo.Wheel.Runtime
         public static event Action<WheelEventBus> RuntimeReady;
         public static event Action RuntimeStopped;
 
-        public static WheelEventBus EventBus { get; private set; }
-        public static WheelGameSettings Settings { get; private set; }
-        public static WheelGameState State { get; private set; }
-        public static WheelStatePublisher Publisher { get; private set; }
-        public static WheelSpinner Spinner { get; private set; }
-        public static WheelView WheelView { get; private set; }
         public static bool IsReady { get; private set; }
 
-        public static void RegisterWheelView(WheelView wheelView)
-        {
-            WheelView = wheelView;
-        }
-
-        public static void RegisterSettings(WheelGameSettings settings)
-        {
-            Settings = settings;
-        }
-
-        public static void RegisterSpinner(WheelSpinner spinner)
-        {
-            Spinner = spinner;
-        }
-
-        public static void RegisterGameplay(WheelEventBus eventBus, WheelGameState state, WheelStatePublisher publisher)
-        {
-            EventBus = eventBus;
-            State = state;
-            Publisher = publisher;
-        }
-
-        public static void NotifyRuntimeReady()
+        public static void NotifyRuntimeReady(WheelEventBus eventBus)
         {
             IsReady = true;
-            RuntimeReady?.Invoke(EventBus);
+            RuntimeReady?.Invoke(eventBus);
         }
 
         public static void Clear()
         {
             IsReady = false;
             RuntimeStopped?.Invoke();
-            RuntimeReady = null;
-            RuntimeStopped = null;
-            EventBus = null;
-            Settings = null;
-            State = null;
-            Publisher = null;
-            Spinner = null;
-            WheelView = null;
         }
     }
 }

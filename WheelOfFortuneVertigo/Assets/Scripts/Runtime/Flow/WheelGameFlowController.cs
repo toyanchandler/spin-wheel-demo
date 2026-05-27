@@ -107,10 +107,11 @@ namespace Vertigo.Wheel.Runtime
         {
             _state.PrepareCurrentZone();
             _publisher.PublishZone();
+            int sliceIndex = _state.SelectSpinSliceIndex();
             _state.BeginSpin();
             _publisher.PublishHud();
-            _spinner.SetSlices(_state.Slices, _state.SliceCount);
-            _spinner.Spin();
+            _spinner.AcceptSlicesFrom(_state);
+            _spinner.Spin(sliceIndex);
         }
 
         private void ExecuteLeave()

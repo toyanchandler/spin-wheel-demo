@@ -37,8 +37,8 @@ namespace Vertigo.Wheel.Views
         private bool _hasTickSample;
         private bool _hasIndicatorBaseRotation;
 
-        private const float IndicatorTickAngle = 30f;
-        private const float IndicatorTickReturnSpeed = 260f;
+        private const float IndicatorTickAngle = 18f;
+        private const float IndicatorTickReturnSpeed = 420f;
 
         [WheelAfterInject]
         private void Connect()
@@ -46,12 +46,20 @@ namespace Vertigo.Wheel.Views
             ValidateWiring();
             ConfigureIndicatorTransform();
             _eventBus.ZoneChanged += OnZoneChanged;
+            if (_spinner != null)
+            {
+                _spinner.LandingStarted += OnLandingStarted;
+            }
         }
 
         [WheelBeforeUnbind]
         private void Disconnect()
         {
             _eventBus.ZoneChanged -= OnZoneChanged;
+            if (_spinner != null)
+            {
+                _spinner.LandingStarted -= OnLandingStarted;
+            }
         }
 
         private void LateUpdate()
@@ -102,6 +110,23 @@ namespace Vertigo.Wheel.Views
         {
             ConfigureIndicatorTransform();
             _image.sprite = SpriteResolvers[(int)_slot](_catalog, snapshot.SkinTier);
+        }
+
+        private void OnLandingStarted(WheelSpinResult result)
+        {
+            if (_slot != WheelSkinSlot.Indicator || _spinner == null || _spinner.WheelTransform == null)
+            {
+                return;
+            }
+
+            float wheelAngle = Mathf.Repeat(_spinner.WheelTransform.eulerAngles.z, 360f);
+            float spinDirection = Mathf.Sign(Mathf.DeltaAngle(_lastWheelAngle, wheelAngle));
+            if (Mathf.Approximately(spinDirection, 0f))
+            {
+                spinDirection = 1f;
+            }
+
+            SetIndicatorTickOffset(spinDirection * IndicatorTickAngle);
         }
 
         private void ValidateWiring()

@@ -6,15 +6,18 @@ namespace Vertigo.Wheel.Runtime
     public sealed class WheelStatePublisher : MonoBehaviour
     {
         private WheelEventBus _eventBus;
+        private WheelGameState _state;
 
-        public void Bind(WheelEventBus eventBus)
+        public void Bind(WheelEventBus eventBus, WheelGameState state)
         {
             _eventBus = eventBus;
+            _state = state;
         }
 
         public void Unbind()
         {
             _eventBus = null;
+            _state = null;
         }
 
         public void PublishAll()
@@ -25,23 +28,22 @@ namespace Vertigo.Wheel.Runtime
 
         public void PublishZone()
         {
-            _eventBus.RaiseZoneChanged(WheelSnapshotFactory.CreateZone(WheelRuntimeLocator.State));
+            _eventBus.RaiseZoneChanged(WheelSnapshotFactory.CreateZone(_state));
         }
 
         public void PublishHud()
         {
-            _eventBus.RaiseHudState(WheelSnapshotFactory.CreateHud(WheelRuntimeLocator.State));
+            _eventBus.RaiseHudState(WheelSnapshotFactory.CreateHud(_state));
         }
 
         public void PublishOutcome(WheelSpinResult result, bool hasResult)
         {
-            WheelGameState state = WheelRuntimeLocator.State;
             _eventBus.RaiseOutcome(WheelSnapshotFactory.CreateOutcome(
-                state.Phase,
+                _state.Phase,
                 result,
                 hasResult,
-                state.Inventory,
-                state.Settings));
+                _state.Inventory,
+                _state.Settings));
         }
     }
 }

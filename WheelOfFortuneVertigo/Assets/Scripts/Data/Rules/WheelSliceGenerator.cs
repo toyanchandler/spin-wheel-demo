@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace Vertigo.Wheel.Data
 {
@@ -9,9 +10,13 @@ namespace Vertigo.Wheel.Data
         {
             ZoneType zoneType = settings.GetZoneType(zone);
             WheelZoneGameplayProfile zoneGameplay = settings.GetZoneGameplay(zoneType);
-            List<RewardDefinition> source = settings.GetRewardPool(zoneType);
+            IReadOnlyList<RewardDefinition> source = settings.GetRewardPool(zoneType);
+            if (source == null || source.Count == 0)
+            {
+                throw new InvalidOperationException("WheelGameSettings requires at least one reward for " + zoneType + " zones.");
+            }
             int sliceCount = settings.SliceCount;
-            int bombIndex = WheelSliceSlotCatalog.BombIndexForZone(sliceCount, zoneGameplay);
+            int bombIndex = WheelSliceSlotCatalog.BombIndexForZone(sliceCount, zone, zoneGameplay);
             WheelSliceSlotProfile bombProfile = WheelSliceSlotCatalog.CreateBombProfile();
 
             int rewardIndex = 0;

@@ -198,7 +198,7 @@ namespace Vertigo.Wheel.Runtime
             WheelZoneUiCopy zoneCopy = settings.UiCopy.GetZoneCopy(state.ZoneType);
 
             return new WheelZoneSnapshot(
-                state.Slices,
+                state.CreateSliceSnapshot(),
                 state.SliceCount,
                 zoneCopy.SkinTier,
                 settings.Theme.BackgroundColor);
