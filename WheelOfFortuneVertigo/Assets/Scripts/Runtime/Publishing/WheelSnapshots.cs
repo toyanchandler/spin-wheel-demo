@@ -40,7 +40,6 @@ namespace Vertigo.Wheel.Runtime
 
     public readonly struct WheelZoneSnapshot
     {
-        public readonly WheelSliceDefinition[] Slices;
         public readonly WheelSlicePresentation[] SlicePresentations;
         public readonly int SliceCount;
         public readonly WheelSkinTier SkinTier;
@@ -49,7 +48,6 @@ namespace Vertigo.Wheel.Runtime
         public readonly Color BackgroundColor;
 
         public WheelZoneSnapshot(
-            WheelSliceDefinition[] slices,
             WheelSlicePresentation[] slicePresentations,
             int sliceCount,
             WheelSkinTier skinTier,
@@ -57,7 +55,6 @@ namespace Vertigo.Wheel.Runtime
             Sprite indicatorSprite,
             Color backgroundColor)
         {
-            Slices = slices;
             SlicePresentations = slicePresentations;
             SliceCount = sliceCount;
             SkinTier = skinTier;
@@ -65,7 +62,6 @@ namespace Vertigo.Wheel.Runtime
             IndicatorSprite = indicatorSprite;
             BackgroundColor = backgroundColor;
         }
-
     }
 
     public readonly struct WheelOutcomeSnapshot

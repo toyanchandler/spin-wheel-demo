@@ -29,7 +29,6 @@ namespace Vertigo.Wheel.EditorTools
             VertigoWheelAssetPipeline.EnsureSpinResolveCatalog();
             VertigoWheelAssetPipeline.EnsureAtlas();
             VertigoWheelProjectSetup.EnsureGameViewSizes();
-            VertigoWheelProjectSetup.ConfigureAndroidProject();
         }
     }
 }

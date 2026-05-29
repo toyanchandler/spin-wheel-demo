@@ -128,13 +128,24 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void SelectSpinSliceIndex_UsesInjectedRandomSource()
         {
-            var random = new SeededRandomSource(7);
-            _state.InitializeRuntime(_settings, random);
-
+            // Two states seeded with the same deterministic source must agree on the
+            // first selected slice. Calling twice on a single source advances its
+            // internal LCG state and would (correctly) return different indices.
+            _state.InitializeRuntime(_settings, new SeededRandomSource(7));
             int first = _state.SelectSpinSliceIndex();
-            int second = _state.SelectSpinSliceIndex();
 
-            Assert.AreEqual(first, second);
+            var stateObject = new GameObject("WheelGameStateDeterminismTest");
+            try
+            {
+                WheelGameState other = stateObject.AddComponent<WheelGameState>();
+                other.InitializeRuntime(_settings, new SeededRandomSource(7));
+                int second = other.SelectSpinSliceIndex();
+                Assert.AreEqual(first, second);
+            }
+            finally
+            {
+                Object.DestroyImmediate(stateObject);
+            }
         }
     }
 }

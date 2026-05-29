@@ -144,7 +144,7 @@ namespace Vertigo.Wheel.EditorTools
         {
             WheelSliceDefinition[] slices = session.State.CreateSliceSnapshot();
             spinner.AcceptSlices(slices, slices.Length);
-            spinner.SnapToSelectionForDebug(sliceIndex);
+            spinner.SnapToSelection(sliceIndex);
             WheelSpinResult result = session.State.CreateSpinResult(sliceIndex);
             session.Flow.ForceResolveOutcome(result);
             session.Publisher.PublishZone();

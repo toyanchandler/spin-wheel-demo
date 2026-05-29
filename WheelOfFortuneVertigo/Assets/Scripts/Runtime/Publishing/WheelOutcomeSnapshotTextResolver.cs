@@ -55,9 +55,7 @@ namespace Vertigo.Wheel.Runtime
             }
 
             string displayName = string.IsNullOrEmpty(result.DisplayName) ? resultText : result.DisplayName;
-            resultText = result.Amount > 1
-                ? string.Format("{0} x{1}", displayName, result.Amount)
-                : displayName;
+            resultText = WheelRewardLabelFormat.Format(displayName, result.Amount, alwaysShowAmount: false);
         }
     }
 }

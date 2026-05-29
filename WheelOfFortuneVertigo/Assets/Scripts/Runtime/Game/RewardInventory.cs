@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
@@ -97,9 +98,7 @@ namespace Vertigo.Wheel.Runtime
                 RewardStack stack;
                 if (!_rewards.TryGetValue(rewardId, out stack)) continue;
                 if (index > 0) _builder.Append("  ");
-                _builder.Append(stack.DisplayName);
-                _builder.Append(" x");
-                _builder.Append(stack.Amount);
+                WheelRewardLabelFormat.AppendTo(_builder, stack.DisplayName, stack.Amount, alwaysShowAmount: true);
                 index++;
             }
 

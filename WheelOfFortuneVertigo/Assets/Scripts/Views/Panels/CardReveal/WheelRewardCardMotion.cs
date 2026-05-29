@@ -4,9 +4,9 @@ namespace Vertigo.Wheel.Views
 {
     internal static class WheelRewardCardMotion
     {
-        public const float OpeningBackHold = 0.34f;
+        public const float OpeningBackHold = 1.00f;
         public const float OpeningFeaturedRevealStep = 0.14f;
-        public const float OpeningFeaturedRevealMaxDelay = 2.44f;
+        public const float OpeningFeaturedRevealMaxDelay = 3.10f;
 
         public const float StandardFoldDuration = 0.20f;
         public const float FeaturedFoldDuration = 0.24f;

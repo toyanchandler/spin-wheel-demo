@@ -44,6 +44,9 @@ namespace Vertigo.Wheel.Data
                 reward.Amount > 1);
         }
 
-        public static WheelSliceSlotProfile CreateBombProfile() => WheelSliceSlotProfile.CreateBomb("Bomb", Color.white);
+        public static WheelSliceSlotProfile CreateBombProfile(string bombLabel)
+        {
+            return WheelSliceSlotProfile.CreateBomb(string.IsNullOrEmpty(bombLabel) ? "Bomb" : bombLabel, Color.white);
+        }
     }
 }

@@ -37,6 +37,7 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private string _defaultRewardTitle = "REWARD";
         [SerializeField] private string _inventoryEmptySummary = "No rewards";
         [SerializeField] private string _inventoryFallbackRewardName = "Reward";
+        [SerializeField] private string _bombSliceLabel = "Bomb";
         [SerializeField] private string _exitConfirmationTitle = "COLLECT REWARDS?";
         [SerializeField] private string _exitConfirmationBody = "Are you sure you want to go out and collect your rewards? We have saved the best rewards for last!";
         [SerializeField] private string _exitCollectButtonLabel = "COLLECT REWARDS";
@@ -59,6 +60,7 @@ namespace Vertigo.Wheel.Data
         public string DefaultRewardTitle => _defaultRewardTitle;
         public string InventoryEmptySummary => _inventoryEmptySummary;
         public string InventoryFallbackRewardName => _inventoryFallbackRewardName;
+        public string BombSliceLabel => _bombSliceLabel;
         public string ExitConfirmationTitle => _exitConfirmationTitle;
         public string ExitConfirmationBody => _exitConfirmationBody;
         public string ExitCollectButtonLabel => _exitCollectButtonLabel;
@@ -102,6 +104,7 @@ namespace Vertigo.Wheel.Data
             _defaultRewardTitle = "REWARD";
             _inventoryEmptySummary = "No rewards";
             _inventoryFallbackRewardName = "Reward";
+            _bombSliceLabel = "Bomb";
             _exitConfirmationTitle = "COLLECT REWARDS?";
             _exitConfirmationBody = "Are you sure you want to go out and collect your rewards? We have saved the best rewards for last!";
             _exitCollectButtonLabel = "COLLECT REWARDS";

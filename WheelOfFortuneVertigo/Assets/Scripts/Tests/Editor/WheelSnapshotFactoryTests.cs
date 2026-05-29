@@ -26,27 +26,23 @@ namespace Vertigo.Wheel.Tests
         }
 
         [Test]
-        public void CreateZone_ReturnsDefensiveCopy_OfRuntimeSliceBuffer()
+        public void CreateZone_ReturnsIndependentPresentationArray_PerCall()
         {
             _state.PrepareCurrentZone();
 
-            WheelZoneSnapshot snapshot = WheelSnapshotFactory.CreateZone(_state);
-            bool originalBombFlag = snapshot.Slices[0].IsBomb;
+            WheelZoneSnapshot first = WheelSnapshotFactory.CreateZone(_state);
+            Assert.IsNotNull(first.SlicePresentations);
+            Assert.AreEqual(first.SliceCount, first.SlicePresentations.Length);
 
-            snapshot.Slices[0].ApplySlot(
-                !originalBombFlag,
-                snapshot.Slices[0].Reward,
-                null,
-                99,
-                Color.magenta,
-                "Mutated",
-                true);
+            WheelSlicePresentation original = first.SlicePresentations[0];
+            first.SlicePresentations[0] = default;
 
-            WheelZoneSnapshot refreshedSnapshot = WheelSnapshotFactory.CreateZone(_state);
+            WheelZoneSnapshot refreshed = WheelSnapshotFactory.CreateZone(_state);
 
-            Assert.AreEqual(originalBombFlag, refreshedSnapshot.Slices[0].IsBomb);
-            Assert.AreNotEqual("Mutated", refreshedSnapshot.Slices[0].DisplayLabel);
-            Assert.AreNotEqual(99, refreshedSnapshot.Slices[0].DisplayAmount);
+            Assert.AreNotSame(first.SlicePresentations, refreshed.SlicePresentations);
+            Assert.AreEqual(original.AmountText, refreshed.SlicePresentations[0].AmountText);
+            Assert.AreEqual(original.ShowAmountLabel, refreshed.SlicePresentations[0].ShowAmountLabel);
+            Assert.AreEqual(original.AmountColor, refreshed.SlicePresentations[0].AmountColor);
         }
 
         [Test]

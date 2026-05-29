@@ -15,7 +15,6 @@ namespace Vertigo.Wheel.Runtime
             WheelSliceDefinition[] slices = state.CreateSliceSnapshot();
             int sliceCount = state.SliceCount;
             return new WheelZoneSnapshot(
-                slices,
                 WheelSlicePresentationBuilder.Build(slices, sliceCount),
                 sliceCount,
                 skinTier,

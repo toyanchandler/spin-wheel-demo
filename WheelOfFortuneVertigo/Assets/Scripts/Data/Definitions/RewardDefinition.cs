@@ -79,7 +79,7 @@ namespace Vertigo.Wheel.Data
 
         public void CacheRuntimeText(string winLabelFormat)
         {
-            _label = _amount > 1 ? _displayName + " x" + _amount : _displayName;
+            _label = WheelRewardLabelFormat.Format(_displayName, _amount, alwaysShowAmount: false);
             _winLabel = string.Format(winLabelFormat, _label);
         }
     }

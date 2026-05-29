@@ -50,8 +50,8 @@ namespace Vertigo.Wheel.Tests
         {
             WheelSpinResult result = WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 1);
 
-            _spinner.RaiseLandingStartedForTests(result);
-            _spinner.RaiseSpinCompletedForTests(result);
+            _spinner.RaiseLandingStarted(result);
+            _spinner.RaiseSpinCompleted(result);
 
             Assert.AreEqual(1, _landedResults.Count);
             Assert.AreEqual(result, _landedResults[0]);

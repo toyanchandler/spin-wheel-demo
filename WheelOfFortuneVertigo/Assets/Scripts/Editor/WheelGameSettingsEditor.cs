@@ -31,12 +31,13 @@ namespace Vertigo.Wheel.EditorTools
             _skinCatalog = serializedObject.FindProperty("_skinCatalog");
             _outcomePopupMotionCatalog = serializedObject.FindProperty("_outcomePopupMotionCatalog");
             _spinResolveCatalog = serializedObject.FindProperty("_spinResolveCatalog");
+
+            EnsureCatalogReferences();
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            EnsureCatalogReferences();
 
             EditorGUILayout.LabelField("Vertigo Wheel Settings", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox("Use Wheel Designer as the main editing surface. This inspector is intentionally kept as a compact summary.", MessageType.Info);

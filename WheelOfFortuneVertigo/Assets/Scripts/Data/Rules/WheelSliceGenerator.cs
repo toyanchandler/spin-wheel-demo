@@ -17,7 +17,7 @@ namespace Vertigo.Wheel.Data
 
             int sliceCount = settings.SliceCount;
             int bombIndex = WheelSliceSlotCatalog.BombIndexForZone(sliceCount, zone, zoneGameplay);
-            WheelSliceSlotProfile bombProfile = WheelSliceSlotCatalog.CreateBombProfile();
+            WheelSliceSlotProfile bombProfile = WheelSliceSlotCatalog.CreateBombProfile(settings.UiCopy.BombSliceLabel);
             int rewardIndex = 0;
 
             for (int i = 0; i < sliceCount; i++)

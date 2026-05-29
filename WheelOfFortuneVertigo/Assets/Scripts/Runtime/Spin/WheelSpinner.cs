@@ -6,7 +6,11 @@ using Vertigo.Wheel.Data;
 namespace Vertigo.Wheel.Runtime
 {
     /// <summary>
-    /// Plays the wheel spin DOTween sequence. Angle targets come from <see cref="WheelSpinAnglePlanner"/>.
+    /// MonoBehaviour orchestrator for the wheel spin animation.
+    /// Owns the wheel <see cref="RectTransform"/>, the slice/pointer-angle buffers,
+    /// and the spin state machine. Plan creation lives in <see cref="WheelSpinAnglePlanner"/>,
+    /// tween creation in <see cref="WheelSpinTweenFactory"/>, and DOTween sequence
+    /// assembly in <see cref="WheelSpinSequenceBuilder"/>.
     /// </summary>
     public sealed class WheelSpinner : MonoBehaviour, IWheelSpinDriver
     {
@@ -22,6 +26,7 @@ namespace Vertigo.Wheel.Runtime
         private WheelGameSettings _settings;
         private WheelSpinPresentationChannel _spinPresentation;
         private IRandomSource _randomSource = UnityRandomSource.Shared;
+        private WheelSpinTweenFactory _tweenFactory;
         private WheelSliceDefinition[] _sliceBuffer = EmptySlices;
         private WheelSliceDefinition[] _currentSlices = EmptySlices;
         private float[] _pointerAngleBuffer = EmptyAngles;
@@ -42,6 +47,7 @@ namespace Vertigo.Wheel.Runtime
         private void Awake()
         {
             _wheelTransform = GetComponent<RectTransform>();
+            _tweenFactory = new WheelSpinTweenFactory(_wheelTransform);
 
             if (_wheelTransform != null)
             {
@@ -129,17 +135,19 @@ namespace Vertigo.Wheel.Runtime
         }
 
 #if UNITY_EDITOR
-        public void RaiseLandingStartedForTests(WheelSpinResult result)
+        // Editor-only seams. Visible to Assembly-CSharp-Editor (tests + designer tools)
+        // via [InternalsVisibleTo("Assembly-CSharp-Editor")] in WheelAssemblyInfo.cs.
+        internal void RaiseLandingStarted(WheelSpinResult result)
         {
             LandingStarted?.Invoke(result);
         }
 
-        public void RaiseSpinCompletedForTests(WheelSpinResult result)
+        internal void RaiseSpinCompleted(WheelSpinResult result)
         {
             SpinCompleted?.Invoke(result);
         }
 
-        public void SnapToSelectionForDebug(int selectedIndex)
+        internal void SnapToSelection(int selectedIndex)
         {
             if (_wheelTransform == null || selectedIndex < 0 || selectedIndex >= _currentSliceCount) return;
             if (!TryResolveSlicePointerAngles(out int pointerAngleCount)) return;
@@ -147,7 +155,7 @@ namespace Vertigo.Wheel.Runtime
 
             float startAngle = GetCurrentWheelAngle();
             float targetAngle = startAngle + Mathf.DeltaAngle(startAngle, _pointerAngleBuffer[selectedIndex]);
-            ApplyWheelAngle(targetAngle);
+            _tweenFactory.ApplyAngle(targetAngle);
         }
 #endif
 
@@ -209,7 +217,21 @@ namespace Vertigo.Wheel.Runtime
 
             WheelSpinPlan plan = CreateSpinPlan(selectedIndex, _pointerAngleBuffer, _settings);
             _lastTargetAngle = plan.TargetAngle;
-            _activeTween = BuildSpinSequence(plan, _pointerAngleBuffer, _settings.SpinEase);
+
+            var callbacks = new WheelSpinSequenceBuilder.Callbacks(
+                onSpinStarted: DispatchSpinStarted,
+                onSuspenseTick: DispatchSuspenseTick,
+                onLandingStarted: DispatchLandingStarted,
+                onComplete: CompleteSpin,
+                onKilled: RestoreBaseScale);
+
+            _activeTween = WheelSpinSequenceBuilder.Build(
+                gameObject,
+                plan,
+                _pointerAngleBuffer,
+                _settings.SpinEase,
+                _tweenFactory,
+                callbacks);
         }
 
         private WheelSpinPlan CreateSpinPlan(int selectedIndex, float[] pointerAngles, WheelGameSettings settings)
@@ -228,75 +250,6 @@ namespace Vertigo.Wheel.Runtime
                 suspenseSlotCount);
         }
 
-        private Sequence BuildSpinSequence(WheelSpinPlan plan, float[] pointerAngles, Ease spinEase)
-        {
-            Sequence sequence = DOTween.Sequence()
-                .SetRecyclable(true)
-                .SetLink(gameObject, LinkBehaviour.KillOnDisable);
-
-            AppendAnticipationPhase(sequence, plan);
-            AppendFastSpinPhase(sequence, plan, spinEase);
-            AppendSuspensePhase(sequence, plan, pointerAngles);
-            AppendLandingPhase(sequence);
-
-            Tween activeSequence = sequence;
-            sequence
-                .OnComplete(CompleteSpin)
-                .OnKill(() =>
-                {
-                    if (activeSequence != null && !activeSequence.IsComplete())
-                    {
-                        RestoreBaseScale();
-                    }
-                });
-
-            return sequence;
-        }
-
-        private void AppendAnticipationPhase(Sequence sequence, WheelSpinPlan plan)
-        {
-            sequence
-                .AppendCallback(DispatchSpinStarted)
-                .AppendInterval(WheelSpinTiming.AnticipationDelay)
-                .Append(CreateRotationTween(
-                    plan.StartAngle,
-                    plan.StartAngle + WheelSpinTiming.AnticipationPullDegrees,
-                    WheelSpinTiming.AnticipationPullDuration,
-                    Ease.OutQuad))
-                .AppendInterval(WheelSpinTiming.AnticipationChargeDuration)
-                .Append(CreateRotationTween(
-                    plan.StartAngle + WheelSpinTiming.AnticipationPullDegrees,
-                    plan.LaunchAngle,
-                    WheelSpinTiming.AnticipationReleaseDuration,
-                    Ease.InQuad));
-        }
-
-        private void AppendFastSpinPhase(Sequence sequence, WheelSpinPlan plan, Ease spinEase)
-        {
-            sequence.Append(CreateRotationTween(
-                plan.LaunchAngle,
-                plan.SuspenseStartAngle,
-                plan.FastSpinDuration,
-                spinEase));
-        }
-
-        private void AppendSuspensePhase(Sequence sequence, WheelSpinPlan plan, float[] pointerAngles)
-        {
-            sequence.Append(CreateSmoothSuspenseRotation(
-                plan.SuspenseStartAngle,
-                plan.TargetAngle,
-                plan.SuspenseDuration,
-                pointerAngles));
-        }
-
-        private void AppendLandingPhase(Sequence sequence)
-        {
-            sequence
-                .AppendCallback(DispatchLandingStarted)
-                .Append(CreateLandingPunchTween())
-                .AppendInterval(WheelSpinTiming.PostLandingHoldDuration);
-        }
-
         private bool TryResolveSlicePointerAngles(out int count)
         {
             count = 0;
@@ -312,53 +265,6 @@ namespace Vertigo.Wheel.Runtime
             return true;
         }
 
-        private Tween CreateRotationTween(float fromAngle, float toAngle, float duration, Ease ease)
-        {
-            return DOVirtual
-                .Float(fromAngle, toAngle, duration, ApplyWheelAngle)
-                .SetEase(ease)
-                .SetTarget(_wheelTransform);
-        }
-
-        private Tween CreateSmoothSuspenseRotation(
-            float fromAngle,
-            float toAngle,
-            float duration,
-            float[] pointerAngles)
-        {
-            var sliceTracker = new WheelSpinSuspenseSliceTracker();
-            sliceTracker.Reset(fromAngle, pointerAngles);
-
-            return DOVirtual
-                .Float(0f, 1f, duration, normalizedTime =>
-                {
-                    float easedProgress = WheelSpinAnglePlanner.EvaluateSuspenseProgress(normalizedTime);
-                    float currentAngle = Mathf.LerpUnclamped(fromAngle, toAngle, easedProgress);
-                    ApplyWheelAngle(currentAngle);
-                    WheelSliceCrossingResult crossing = sliceTracker.ConsumeCrossing(currentAngle, pointerAngles);
-                    if (crossing.DidCross)
-                    {
-                        DispatchSuspenseTick(crossing.SliceIndex);
-                    }
-                })
-                .SetEase(Ease.Linear)
-                .SetTarget(_wheelTransform);
-        }
-
-        private Tween CreateLandingPunchTween()
-        {
-            if (_wheelTransform == null) return DOVirtual.DelayedCall(0f, () => { });
-
-            return _wheelTransform
-                .DOPunchScale(
-                    new Vector3(WheelSpinTiming.LandingPunchScale, WheelSpinTiming.LandingPunchScale, 0f),
-                    WheelSpinTiming.LandingPunchDuration,
-                    8,
-                    0.45f)
-                .SetEase(Ease.OutQuad)
-                .SetTarget(_wheelTransform);
-        }
-
         private void DispatchSpinStarted()
         {
             SpinStarted?.Invoke();
@@ -371,7 +277,7 @@ namespace Vertigo.Wheel.Runtime
 
         private void DispatchLandingStarted()
         {
-            ApplyWheelAngle(_lastTargetAngle);
+            _tweenFactory.ApplyAngle(_lastTargetAngle);
             LandingStarted?.Invoke(_pendingResult);
         }
 
@@ -379,7 +285,7 @@ namespace Vertigo.Wheel.Runtime
         {
             _activeTween = null;
 
-            ApplyWheelAngle(_lastTargetAngle);
+            _tweenFactory.ApplyAngle(_lastTargetAngle);
             RestoreBaseScale();
 
             _spinning = false;
@@ -391,13 +297,6 @@ namespace Vertigo.Wheel.Runtime
             if (_wheelTransform == null) return 0f;
 
             return WheelSpinAnglePlanner.NormalizeAngle(_wheelTransform.eulerAngles.z);
-        }
-
-        private void ApplyWheelAngle(float angle)
-        {
-            if (_wheelTransform == null) return;
-
-            _wheelTransform.eulerAngles = new Vector3(0f, 0f, angle);
         }
 
         private void RestoreBaseScale()

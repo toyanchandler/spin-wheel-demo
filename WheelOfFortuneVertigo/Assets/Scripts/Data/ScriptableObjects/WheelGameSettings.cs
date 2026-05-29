@@ -68,7 +68,13 @@ namespace Vertigo.Wheel.Data
             if (reward != null) pool.Add(reward);
         }
 
-        public ZoneType GetZoneType(int zone) => WheelZoneTypeTable.Resolve(zone, _zoneIntervalRules, ZoneType.Standard);
+        public ZoneType GetZoneType(int zone) => WheelZoneTypeTable.Resolve(zone, RequireZoneIntervalRules(), ZoneType.Standard);
+
+        private WheelZoneIntervalRule[] RequireZoneIntervalRules()
+        {
+            if (_zoneIntervalRules == null) _zoneIntervalRules = CreateZoneIntervalRules();
+            return _zoneIntervalRules;
+        }
 
 #if UNITY_EDITOR
         public void ConfigureSkinCatalog(WheelSkinCatalog skinCatalog)
@@ -198,7 +204,17 @@ namespace Vertigo.Wheel.Data
 
         private List<RewardDefinition> ResolveMutableRewardPool(ZoneType zoneType)
         {
-            return RequireZoneCatalog().GetMutableRewardPool(zoneType);
+            // Resolve through the serialized lists so seeding callers (tests, editor tools)
+            // can call ReplaceRewardPool before InitializeRuntime. The runtime zone catalog
+            // is built from these same list references in InitializeRuntime, so any pre-init
+            // mutations are visible after init through RequireZoneCatalog as well.
+            switch (zoneType)
+            {
+                case ZoneType.Standard: return _standardRewards;
+                case ZoneType.Safe: return _safeRewards;
+                case ZoneType.Super: return _superRewards;
+                default: throw new ArgumentOutOfRangeException(nameof(zoneType), zoneType, "Unsupported zone type.");
+            }
         }
 
         private WheelZoneTypeCatalog RequireZoneCatalog()

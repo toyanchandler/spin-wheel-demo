@@ -44,8 +44,10 @@ namespace Vertigo.Wheel.Views
         {
             _visibleCardCount = visibleCount;
 
-            float boundedWidth = Mathf.Max(_viewportRect.rect.width, ResolveVisibleContentWidth(visibleCount));
-            _contentRect.sizeDelta = new Vector2(boundedWidth, _contentRect.sizeDelta.y);
+            float viewportWidth = _viewportRect.rect.width;
+            float visibleWidth = ResolveVisibleContentWidth(visibleCount);
+            float contentWidth = Mathf.Max(viewportWidth, visibleWidth);
+            _contentRect.sizeDelta = new Vector2(contentWidth - viewportWidth, _contentRect.sizeDelta.y);
             SetNormalizedScroll(_scrollRect.horizontalNormalizedPosition);
         }
 
@@ -139,8 +141,8 @@ namespace Vertigo.Wheel.Views
 
         private float ResolveMaxScrollX()
         {
-            float contentWidth = Mathf.Min(_contentRect.rect.width, ResolveVisibleContentWidth());
-            return Mathf.Max(0f, contentWidth - _viewportRect.rect.width);
+            float visibleWidth = ResolveVisibleContentWidth();
+            return Mathf.Max(0f, visibleWidth - _viewportRect.rect.width);
         }
 
         private float ResolveCardScrollStep()

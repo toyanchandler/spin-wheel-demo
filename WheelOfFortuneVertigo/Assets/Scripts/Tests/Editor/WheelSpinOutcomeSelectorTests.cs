@@ -8,10 +8,11 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void SelectSliceIndex_UsesDeterministicRandomSource()
         {
-            var random = new SeededRandomSource(42);
+            var randomA = new SeededRandomSource(42);
+            var randomB = new SeededRandomSource(42);
 
-            int first = WheelSpinOutcomeSelector.SelectSliceIndex(8, random);
-            int second = WheelSpinOutcomeSelector.SelectSliceIndex(8, random);
+            int first = WheelSpinOutcomeSelector.SelectSliceIndex(8, randomA);
+            int second = WheelSpinOutcomeSelector.SelectSliceIndex(8, randomB);
 
             Assert.AreEqual(first, second);
             Assert.GreaterOrEqual(first, 0);
