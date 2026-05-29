@@ -1,7 +1,10 @@
 # Wheel Scripts — klasör rehberi
 
+**Architecture & game logic (start here):** [`ARCHITECTURE_AND_LOGIC.md`](ARCHITECTURE_AND_LOGIC.md) — layers, phases, player journeys, publish rules
+
 **Architecture constitution:** [`SoftwareArchitectureRules.md`](SoftwareArchitectureRules.md)
 **Advanced rules:** [`AdvancedSoftwareRules.md`](AdvancedSoftwareRules.md)
+**File naming index:** [`CODE_READABILITY.md`](CODE_READABILITY.md)
 
 ## İki farklı “config”
 
@@ -27,8 +30,8 @@ Oyun açıkken çalışan mantık (MonoBehaviour + saf C#).
 | `Events/` | `WheelEventBus` |
 | `Flow/` | Spin / leave / restart akışı |
 | `Game/` | `WheelGameState`, envanter, spin sonucu |
-| `Publishing/` | Snapshot üretimi ve event publish |
-| `Spin/` | Çark animasyonu (`WheelSpinner`) |
+| `Publishing/` | Snapshot structs, `*SnapshotBuilder`, `WheelStatePublisher` |
+| `Spin/` | `IWheelSpinDriver`, `WheelSpinner`, `WheelSpinAnglePlanner` (pure math) |
 
 See `HIERARCHY_WIRING.md` for serialization rules.
 
@@ -41,7 +44,7 @@ Sahnedeki UI `MonoBehaviour` bileşenleri (eski `UI/`).
 | `Panels/ZonePanel/` | Zone progress ve milestone badge |
 | `Panels/LootPanel/` | Current loot panel ve loot card |
 | `Panels/WheelSpinPanel/` | Spin / leave / restart butonları ve footer status |
-| `Panels/RewardPopup/` | Sonuç popup |
+| `Panels/RewardPopup/` | Sonuç popup — [`Panels/RewardPopup/README.md`](Views/Panels/RewardPopup/README.md) |
 | `Panels/CardReveal/` | Cashout card reveal |
 | `Panels/Background/` | Arka plan tint view |
 | `Panels/ExitConfirmation/` | Exit confirmation overlay |

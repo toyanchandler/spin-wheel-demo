@@ -2,11 +2,13 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Data;
-using Vertigo.Wheel.Views;
 
 namespace Vertigo.Wheel.Runtime
 {
-    public sealed class WheelSpinner : MonoBehaviour
+    /// <summary>
+    /// Plays the wheel spin DOTween sequence. Angle targets come from <see cref="WheelSpinAnglePlanner"/>.
+    /// </summary>
+    public sealed class WheelSpinner : MonoBehaviour, IWheelSpinDriver
     {
         public event Action SpinStarted;
         public event Action<int> SuspenseTicked;
@@ -16,30 +18,13 @@ namespace Vertigo.Wheel.Runtime
         private static readonly WheelSliceDefinition[] EmptySlices = new WheelSliceDefinition[0];
         private static readonly float[] EmptyAngles = new float[0];
 
-        private const float AnticipationDelay = 0.03f;
-        private const float AnticipationPullDuration = 0.14f;
-        private const float AnticipationChargeDuration = 0.08f;
-        private const float AnticipationReleaseDuration = 0.07f;
-        private const float AnticipationPullDegrees = -14f;
-        private const float AnticipationLaunchKickDegrees = 7f;
-
-        private const float MinimumFastSpinDuration = 0.70f;
-        private const float MinimumFastRotationBeforeSuspenseDegrees = 540f;
-
-        private const int MinimumSuspenseSlots = 22;
-        private const int ExtraRandomSuspenseSlots = 7;
-        private const float SuspenseDuration = 3.90f;
-        private const float SuspenseEasePower = 1.95f;
-
-        private const float LandingPunchDuration = 0.18f;
-        private const float LandingPunchScale = 0.045f;
-        private const float PostLandingHoldDuration = 0.04f;
-
         private RectTransform _wheelTransform;
         private WheelGameSettings _settings;
-        private WheelView _wheelView;
+        private WheelSpinPresentationChannel _spinPresentation;
+        private IRandomSource _randomSource = UnityRandomSource.Shared;
         private WheelSliceDefinition[] _sliceBuffer = EmptySlices;
         private WheelSliceDefinition[] _currentSlices = EmptySlices;
+        private float[] _pointerAngleBuffer = EmptyAngles;
         private Tween _activeTween;
         private WheelSpinResult _pendingResult;
         private Vector3 _baseScale = Vector3.one;
@@ -48,20 +33,11 @@ namespace Vertigo.Wheel.Runtime
         private bool _spinning;
         private float _lastTargetAngle;
 
-        public bool IsSpinning
-        {
-            get { return _spinning; }
-        }
+        public bool IsSpinning => _spinning;
 
-        public int CurrentSliceCount
-        {
-            get { return _currentSliceCount; }
-        }
+        public int CurrentSliceCount => _currentSliceCount;
 
-        public RectTransform WheelTransform
-        {
-            get { return _wheelTransform; }
-        }
+        public RectTransform WheelTransform => _wheelTransform;
 
         private void Awake()
         {
@@ -70,11 +46,6 @@ namespace Vertigo.Wheel.Runtime
             if (_wheelTransform != null)
             {
                 _baseScale = _wheelTransform.localScale;
-            }
-
-            if (WheelRuntimeCompositionRoot.Active != null)
-            {
-                WheelRuntimeCompositionRoot.Active.RegisterSpinner(this);
             }
         }
 
@@ -87,30 +58,21 @@ namespace Vertigo.Wheel.Runtime
 
         private void LateUpdate()
         {
-            if (_wheelView == null || _wheelTransform == null)
-            {
-                return;
-            }
+            if (_spinPresentation == null || _wheelTransform == null) return;
 
-            _wheelView.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
+            _spinPresentation.ApplyUprightSlicePresentations(_wheelTransform.localEulerAngles.z);
         }
 
-        public void Bind(WheelGameSettings settings)
+        public void Bind(WheelGameSettings settings, WheelSpinPresentationChannel spinPresentation)
+        {
+            Bind(settings, spinPresentation, UnityRandomSource.Shared);
+        }
+
+        public void Bind(WheelGameSettings settings, WheelSpinPresentationChannel spinPresentation, IRandomSource randomSource)
         {
             _settings = settings;
-        }
-
-        public void SetWheelView(WheelView wheelView)
-        {
-            _wheelView = wheelView;
-        }
-
-        public void ClearWheelView(WheelView wheelView)
-        {
-            if (_wheelView == wheelView)
-            {
-                _wheelView = null;
-            }
+            _spinPresentation = spinPresentation;
+            _randomSource = randomSource ?? UnityRandomSource.Shared;
         }
 
         public void Unbind()
@@ -121,7 +83,8 @@ namespace Vertigo.Wheel.Runtime
             _pendingResult = default;
             _lastTargetAngle = 0f;
             _settings = null;
-            _wheelView = null;
+            _spinPresentation = null;
+            _randomSource = UnityRandomSource.Shared;
 
             SpinStarted = null;
             SuspenseTicked = null;
@@ -131,22 +94,34 @@ namespace Vertigo.Wheel.Runtime
             RestoreBaseScale();
         }
 
-        public void AcceptSlicesFrom(WheelGameState state)
+        public void AcceptSlices(WheelSliceDefinition[] slices, int count)
         {
-            if (state == null)
+            if (slices == null) throw new ArgumentNullException(nameof(slices));
+            if (count < 0 || count > slices.Length)
             {
-                throw new ArgumentNullException(nameof(state));
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
 
-            EnsureSliceBuffer(state.SliceCount);
-            _currentSliceCount = state.CopySliceDefinitions(_sliceBuffer);
+            EnsureSliceBuffer(count);
+            _currentSliceCount = count;
+            for (int i = 0; i < count; i++)
+            {
+                WheelSliceCopyUtility.CopyInto(slices[i], _sliceBuffer[i]);
+            }
+
             _currentSlices = _sliceBuffer;
         }
 
         public void Spin(int selectedIndex)
         {
-            if (!CanSpin(selectedIndex))
+            if (!TryBeginSpin(selectedIndex, out string failureReason))
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (failureReason != null)
+                {
+                    Debug.LogWarning($"Cannot spin: {failureReason}");
+                }
+#endif
                 return;
             }
 
@@ -154,181 +129,187 @@ namespace Vertigo.Wheel.Runtime
         }
 
 #if UNITY_EDITOR
+        public void RaiseLandingStartedForTests(WheelSpinResult result)
+        {
+            LandingStarted?.Invoke(result);
+        }
+
+        public void RaiseSpinCompletedForTests(WheelSpinResult result)
+        {
+            SpinCompleted?.Invoke(result);
+        }
+
         public void SnapToSelectionForDebug(int selectedIndex)
         {
-            if (_wheelTransform == null || selectedIndex < 0 || selectedIndex >= _currentSliceCount)
-            {
-                return;
-            }
-
-            float[] pointerAngles = ResolveSlicePointerAngles();
-            if (pointerAngles.Length <= selectedIndex)
-            {
-                return;
-            }
+            if (_wheelTransform == null || selectedIndex < 0 || selectedIndex >= _currentSliceCount) return;
+            if (!TryResolveSlicePointerAngles(out int pointerAngleCount)) return;
+            if (pointerAngleCount <= selectedIndex) return;
 
             float startAngle = GetCurrentWheelAngle();
-            float targetAngle = startAngle + Mathf.DeltaAngle(startAngle, pointerAngles[selectedIndex]);
-
+            float targetAngle = startAngle + Mathf.DeltaAngle(startAngle, _pointerAngleBuffer[selectedIndex]);
             ApplyWheelAngle(targetAngle);
         }
 #endif
 
-        private bool CanSpin(int selectedIndex)
+        private bool TryBeginSpin(int selectedIndex, out string failureReason)
         {
-            return !_spinning
-                && _wheelTransform != null
-                && _currentSlices != null
-                && _currentSliceCount > 0
-                && selectedIndex >= 0
-                && selectedIndex < _currentSliceCount
-                && _currentSliceCount <= _currentSlices.Length
-                && _settings != null;
+            if (_spinning)
+            {
+                failureReason = "already spinning";
+                return false;
+            }
+
+            if (_wheelTransform == null)
+            {
+                failureReason = "missing wheel transform";
+                return false;
+            }
+
+            if (_currentSlices == null || _currentSliceCount <= 0)
+            {
+                failureReason = "no slices accepted";
+                return false;
+            }
+
+            if (selectedIndex < 0 || selectedIndex >= _currentSliceCount)
+            {
+                failureReason = "invalid selectedIndex";
+                return false;
+            }
+
+            if (_currentSliceCount > _currentSlices.Length)
+            {
+                failureReason = "slice buffer mismatch";
+                return false;
+            }
+
+            if (_settings == null)
+            {
+                failureReason = "missing settings";
+                return false;
+            }
+
+            failureReason = null;
+            return true;
         }
 
         private void PlaySpin(int selectedIndex)
         {
-            if (selectedIndex < 0 || selectedIndex >= _currentSliceCount)
-            {
-                return;
-            }
+            if (selectedIndex < 0 || selectedIndex >= _currentSliceCount) return;
 
             StopActiveTween(false);
             RestoreBaseScale();
 
-            WheelGameSettings settings = _settings;
-            if (settings == null)
-            {
-                return;
-            }
-
-            float[] pointerAngles = ResolveSlicePointerAngles();
-            if (pointerAngles.Length <= selectedIndex)
-            {
-                return;
-            }
+            if (_settings == null) return;
+            if (!TryResolveSlicePointerAngles(out int pointerAngleCount)) return;
+            if (pointerAngleCount <= selectedIndex) return;
 
             _spinning = true;
             _pendingResult = new WheelSpinResult(selectedIndex, _currentSlices[selectedIndex]);
 
+            WheelSpinPlan plan = CreateSpinPlan(selectedIndex, _pointerAngleBuffer, _settings);
+            _lastTargetAngle = plan.TargetAngle;
+            _activeTween = BuildSpinSequence(plan, _pointerAngleBuffer, _settings.SpinEase);
+        }
+
+        private WheelSpinPlan CreateSpinPlan(int selectedIndex, float[] pointerAngles, WheelGameSettings settings)
+        {
             float startAngle = GetCurrentWheelAngle();
-            float launchAngle = startAngle + AnticipationLaunchKickDegrees;
-            float slotAngle = 360f / _currentSliceCount;
+            int suspenseSlotCount = WheelSpinAnglePlanner.ResolveSuspenseSlotCount(
+                _currentSliceCount,
+                _randomSource.Range(0, WheelSpinTiming.ExtraRandomSuspenseSlots + 1));
 
-            int suspenseSlotCount = ResolveSuspenseSlotCount();
-            float suspenseDegrees = slotAngle * suspenseSlotCount;
-
-            float targetAngle = ResolveFinalTargetAngle(
+            return WheelSpinAnglePlanner.PlanSpin(
                 selectedIndex,
+                _currentSliceCount,
                 startAngle,
-                launchAngle,
-                suspenseDegrees,
                 pointerAngles,
-                settings);
+                settings,
+                suspenseSlotCount);
+        }
 
-            float suspenseStartAngle = targetAngle - suspenseDegrees;
-            float fastSpinDuration = ResolveFastSpinDuration(settings);
-
-            _lastTargetAngle = targetAngle;
-
-            Sequence spinSequence = DOTween.Sequence()
+        private Sequence BuildSpinSequence(WheelSpinPlan plan, float[] pointerAngles, Ease spinEase)
+        {
+            Sequence sequence = DOTween.Sequence()
                 .SetRecyclable(true)
                 .SetLink(gameObject, LinkBehaviour.KillOnDisable);
 
-            spinSequence
+            AppendAnticipationPhase(sequence, plan);
+            AppendFastSpinPhase(sequence, plan, spinEase);
+            AppendSuspensePhase(sequence, plan, pointerAngles);
+            AppendLandingPhase(sequence);
+
+            Tween activeSequence = sequence;
+            sequence
+                .OnComplete(CompleteSpin)
+                .OnKill(() =>
+                {
+                    if (activeSequence != null && !activeSequence.IsComplete())
+                    {
+                        RestoreBaseScale();
+                    }
+                });
+
+            return sequence;
+        }
+
+        private void AppendAnticipationPhase(Sequence sequence, WheelSpinPlan plan)
+        {
+            sequence
                 .AppendCallback(DispatchSpinStarted)
-                .AppendInterval(AnticipationDelay)
+                .AppendInterval(WheelSpinTiming.AnticipationDelay)
                 .Append(CreateRotationTween(
-                    startAngle,
-                    startAngle + AnticipationPullDegrees,
-                    AnticipationPullDuration,
+                    plan.StartAngle,
+                    plan.StartAngle + WheelSpinTiming.AnticipationPullDegrees,
+                    WheelSpinTiming.AnticipationPullDuration,
                     Ease.OutQuad))
-                .AppendInterval(AnticipationChargeDuration)
+                .AppendInterval(WheelSpinTiming.AnticipationChargeDuration)
                 .Append(CreateRotationTween(
-                    startAngle + AnticipationPullDegrees,
-                    launchAngle,
-                    AnticipationReleaseDuration,
-                    Ease.InQuad))
-                .Append(CreateRotationTween(
-                    launchAngle,
-                    suspenseStartAngle,
-                    fastSpinDuration,
-                    settings.SpinEase))
-                .Append(CreateSmoothSuspenseRotation(
-                    suspenseStartAngle,
-                    targetAngle,
-                    SuspenseDuration,
-                    pointerAngles))
+                    plan.StartAngle + WheelSpinTiming.AnticipationPullDegrees,
+                    plan.LaunchAngle,
+                    WheelSpinTiming.AnticipationReleaseDuration,
+                    Ease.InQuad));
+        }
+
+        private void AppendFastSpinPhase(Sequence sequence, WheelSpinPlan plan, Ease spinEase)
+        {
+            sequence.Append(CreateRotationTween(
+                plan.LaunchAngle,
+                plan.SuspenseStartAngle,
+                plan.FastSpinDuration,
+                spinEase));
+        }
+
+        private void AppendSuspensePhase(Sequence sequence, WheelSpinPlan plan, float[] pointerAngles)
+        {
+            sequence.Append(CreateSmoothSuspenseRotation(
+                plan.SuspenseStartAngle,
+                plan.TargetAngle,
+                plan.SuspenseDuration,
+                pointerAngles));
+        }
+
+        private void AppendLandingPhase(Sequence sequence)
+        {
+            sequence
                 .AppendCallback(DispatchLandingStarted)
                 .Append(CreateLandingPunchTween())
-                .AppendInterval(PostLandingHoldDuration)
-                .OnComplete(CompleteSpin)
-                .OnKill(HandleActiveTweenKilled);
-
-            _activeTween = spinSequence;
+                .AppendInterval(WheelSpinTiming.PostLandingHoldDuration);
         }
 
-        private int ResolveSuspenseSlotCount()
+        private bool TryResolveSlicePointerAngles(out int count)
         {
-            int minimumBySliceCount = _currentSliceCount * 2 + 8;
-            int minimum = Mathf.Max(MinimumSuspenseSlots, minimumBySliceCount);
-            int extra = UnityEngine.Random.Range(0, ExtraRandomSuspenseSlots + 1);
+            count = 0;
+            if (_spinPresentation == null || _currentSliceCount <= 0) return false;
 
-            return minimum + extra;
-        }
-
-        private float ResolveFastSpinDuration(WheelGameSettings settings)
-        {
-            float configuredDuration = Mathf.Max(0f, settings.SpinDuration);
-
-            float anticipationDuration =
-                AnticipationDelay
-                + AnticipationPullDuration
-                + AnticipationChargeDuration
-                + AnticipationReleaseDuration;
-
-            float remainingDuration = configuredDuration - anticipationDuration - SuspenseDuration;
-
-            return Mathf.Max(MinimumFastSpinDuration, remainingDuration);
-        }
-
-        private float ResolveFinalTargetAngle(
-            int selectedIndex,
-            float startAngle,
-            float launchAngle,
-            float suspenseDegrees,
-            float[] pointerAngles,
-            WheelGameSettings settings)
-        {
-            float selectedPointerAngle = pointerAngles[selectedIndex];
-
-            float targetDelta =
-                360f * Mathf.Max(1, settings.MinimumSpinRounds)
-                + Mathf.DeltaAngle(NormalizeAngle(startAngle), NormalizeAngle(selectedPointerAngle));
-
-            float targetAngle = startAngle + targetDelta;
-
-            float requiredDeltaFromLaunch =
-                MinimumFastRotationBeforeSuspenseDegrees
-                + suspenseDegrees;
-
-            while (targetAngle - launchAngle < requiredDeltaFromLaunch)
+            EnsurePointerAngleBuffer(_currentSliceCount);
+            if (!_spinPresentation.CopySlicePointerAngles(_currentSliceCount, _pointerAngleBuffer).Succeeded)
             {
-                targetAngle += 360f;
+                return false;
             }
 
-            return targetAngle;
-        }
-
-        private float[] ResolveSlicePointerAngles()
-        {
-            if (_wheelView == null || _currentSliceCount <= 0)
-            {
-                return EmptyAngles;
-            }
-
-            float[] pointerAngles = new float[_currentSliceCount];
-            return _wheelView.TryCopySlicePointerAngles(_currentSliceCount, pointerAngles) ? pointerAngles : EmptyAngles;
+            count = _currentSliceCount;
+            return true;
         }
 
         private Tween CreateRotationTween(float fromAngle, float toAngle, float duration, Ease ease)
@@ -345,78 +326,33 @@ namespace Vertigo.Wheel.Runtime
             float duration,
             float[] pointerAngles)
         {
-            int lastSliceIndex = ResolveNearestSliceIndex(fromAngle, pointerAngles);
-            bool hasInitializedTickState = false;
+            var sliceTracker = new WheelSpinSuspenseSliceTracker();
+            sliceTracker.Reset(fromAngle, pointerAngles);
 
             return DOVirtual
                 .Float(0f, 1f, duration, normalizedTime =>
                 {
-                    float easedProgress = EvaluateSuspenseProgress(normalizedTime);
+                    float easedProgress = WheelSpinAnglePlanner.EvaluateSuspenseProgress(normalizedTime);
                     float currentAngle = Mathf.LerpUnclamped(fromAngle, toAngle, easedProgress);
-
                     ApplyWheelAngle(currentAngle);
-
-                    int currentSliceIndex = ResolveNearestSliceIndex(currentAngle, pointerAngles);
-                    if (!hasInitializedTickState)
+                    WheelSliceCrossingResult crossing = sliceTracker.ConsumeCrossing(currentAngle, pointerAngles);
+                    if (crossing.DidCross)
                     {
-                        lastSliceIndex = currentSliceIndex;
-                        hasInitializedTickState = true;
-                        return;
-                    }
-
-                    if (currentSliceIndex != lastSliceIndex)
-                    {
-                        lastSliceIndex = currentSliceIndex;
-                        DispatchSuspenseTick(currentSliceIndex);
+                        DispatchSuspenseTick(crossing.SliceIndex);
                     }
                 })
                 .SetEase(Ease.Linear)
                 .SetTarget(_wheelTransform);
         }
 
-        private float EvaluateSuspenseProgress(float normalizedTime)
-        {
-            float clampedTime = Mathf.Clamp01(normalizedTime);
-            float inverse = 1f - clampedTime;
-
-            return 1f - Mathf.Pow(inverse, SuspenseEasePower);
-        }
-
-        private int ResolveNearestSliceIndex(float wheelAngle, float[] pointerAngles)
-        {
-            if (pointerAngles == null || pointerAngles.Length == 0)
-            {
-                return -1;
-            }
-
-            float normalizedWheelAngle = NormalizeAngle(wheelAngle);
-            int nearestIndex = 0;
-            float nearestDistance = float.MaxValue;
-
-            for (int i = 0; i < pointerAngles.Length; i++)
-            {
-                float distance = Mathf.Abs(Mathf.DeltaAngle(normalizedWheelAngle, pointerAngles[i]));
-                if (distance < nearestDistance)
-                {
-                    nearestDistance = distance;
-                    nearestIndex = i;
-                }
-            }
-
-            return nearestIndex;
-        }
-
         private Tween CreateLandingPunchTween()
         {
-            if (_wheelTransform == null)
-            {
-                return DOVirtual.DelayedCall(0f, () => { });
-            }
+            if (_wheelTransform == null) return DOVirtual.DelayedCall(0f, () => { });
 
             return _wheelTransform
                 .DOPunchScale(
-                    new Vector3(LandingPunchScale, LandingPunchScale, 0f),
-                    LandingPunchDuration,
+                    new Vector3(WheelSpinTiming.LandingPunchScale, WheelSpinTiming.LandingPunchScale, 0f),
+                    WheelSpinTiming.LandingPunchDuration,
                     8,
                     0.45f)
                 .SetEase(Ease.OutQuad)
@@ -450,76 +386,50 @@ namespace Vertigo.Wheel.Runtime
             SpinCompleted?.Invoke(_pendingResult);
         }
 
-        private void HandleActiveTweenKilled()
-        {
-            if (_activeTween == null)
-            {
-                return;
-            }
-
-            if (!_activeTween.IsComplete())
-            {
-                RestoreBaseScale();
-            }
-        }
-
         private float GetCurrentWheelAngle()
         {
-            if (_wheelTransform == null)
-            {
-                return 0f;
-            }
+            if (_wheelTransform == null) return 0f;
 
-            return NormalizeAngle(_wheelTransform.eulerAngles.z);
+            return WheelSpinAnglePlanner.NormalizeAngle(_wheelTransform.eulerAngles.z);
         }
 
         private void ApplyWheelAngle(float angle)
         {
-            if (_wheelTransform == null)
-            {
-                return;
-            }
+            if (_wheelTransform == null) return;
 
             _wheelTransform.eulerAngles = new Vector3(0f, 0f, angle);
         }
 
-        private float NormalizeAngle(float angle)
-        {
-            return Mathf.Repeat(angle, 360f);
-        }
-
         private void RestoreBaseScale()
         {
-            if (_wheelTransform == null)
-            {
-                return;
-            }
+            if (_wheelTransform == null) return;
 
             _wheelTransform.localScale = _baseScale;
         }
 
         private void StopActiveTween(bool complete)
         {
-            if (_activeTween != null && _activeTween.IsActive())
-            {
-                _activeTween.Kill(complete);
-            }
+            if (_activeTween != null && _activeTween.IsActive()) _activeTween.Kill(complete);
 
             _activeTween = null;
         }
 
         private void EnsureSliceBuffer(int capacity)
         {
-            if (_sliceBuffer.Length == capacity && _sliceBuffer.Length > 0 && _sliceBuffer[0] != null)
-            {
-                return;
-            }
+            if (_sliceBuffer.Length == capacity && _sliceBuffer.Length > 0 && _sliceBuffer[0] != null) return;
 
             _sliceBuffer = new WheelSliceDefinition[capacity];
             for (int i = 0; i < capacity; i++)
             {
                 _sliceBuffer[i] = new WheelSliceDefinition();
             }
+        }
+
+        private void EnsurePointerAngleBuffer(int capacity)
+        {
+            if (_pointerAngleBuffer.Length >= capacity) return;
+
+            _pointerAngleBuffer = new float[capacity];
         }
     }
 }

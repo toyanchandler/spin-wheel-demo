@@ -14,7 +14,7 @@ namespace Vertigo.Wheel.Views
             Color accentColor)
         {
             DOTween.Kill(tweenTarget);
-            binding.RootTransform.DOKill();
+            DOTween.Kill(binding.RootTransform);
 
             float foldDuration = featured ? WheelRewardCardMotion.FeaturedFoldDuration : WheelRewardCardMotion.StandardFoldDuration;
             float revealDuration = featured ? WheelRewardCardMotion.FeaturedRevealDuration : WheelRewardCardMotion.StandardRevealDuration;

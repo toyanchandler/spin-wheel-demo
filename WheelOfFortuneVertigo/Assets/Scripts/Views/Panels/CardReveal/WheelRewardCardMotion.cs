@@ -64,10 +64,7 @@ namespace Vertigo.Wheel.Views
         public static readonly Color LostFrontColor = new Color(0.17f, 0.075f, 0.058f, 0.70f);
         public static readonly Color LostHaloColor = new Color(1f, 0.22f, 0.06f, 0.12f);
 
-        public static float RevealDelay(int displayIndex)
-        {
-            return Mathf.Min(OpeningFeaturedRevealMaxDelay, OpeningBackHold + (displayIndex * OpeningFeaturedRevealStep));
-        }
+        public static float RevealDelay(int displayIndex) => Mathf.Min(OpeningFeaturedRevealMaxDelay, OpeningBackHold + (displayIndex * OpeningFeaturedRevealStep));
 
         public static float RevealIdleDelay(int displayIndex, int visibleCardCount)
         {

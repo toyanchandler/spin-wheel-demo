@@ -49,71 +49,46 @@ namespace Vertigo.Wheel.Data
         private WheelPhaseUiCopy[] _phaseByType;
         private WheelOutcomeUiCopy[] _outcomeByPhase;
 
-        public string WinLabelFormat { get { return _winLabelFormat; } }
-        public string SafeMilestoneBadgeFormat { get { return _safeMilestoneBadgeFormat; } }
-        public string SuperMilestoneBadgeFormat { get { return _superMilestoneBadgeFormat; } }
-        public string SpinButtonLabel { get { return _spinButtonLabel; } }
-        public string LeaveButtonLabel { get { return _leaveButtonLabel; } }
-        public string RestartButtonLabel { get { return _restartButtonLabel; } }
-        public string RewardOpeningTitle { get { return _rewardOpeningTitle; } }
-        public string DefaultRewardTitle { get { return _defaultRewardTitle; } }
-        public string InventoryEmptySummary { get { return _inventoryEmptySummary; } }
-        public string InventoryFallbackRewardName { get { return _inventoryFallbackRewardName; } }
-        public string ExitConfirmationTitle { get { return _exitConfirmationTitle; } }
-        public string ExitConfirmationBody { get { return _exitConfirmationBody; } }
-        public string ExitCollectButtonLabel { get { return _exitCollectButtonLabel; } }
-        public string ExitComeBackButtonLabel { get { return _exitComeBackButtonLabel; } }
+        public string WinLabelFormat => _winLabelFormat;
+        public string SafeMilestoneBadgeFormat => _safeMilestoneBadgeFormat;
+        public string SuperMilestoneBadgeFormat => _superMilestoneBadgeFormat;
+        public string SpinButtonLabel => _spinButtonLabel;
+        public string LeaveButtonLabel => _leaveButtonLabel;
+        public string RestartButtonLabel => _restartButtonLabel;
+        public string RewardOpeningTitle => _rewardOpeningTitle;
+        public string DefaultRewardTitle => _defaultRewardTitle;
+        public string InventoryEmptySummary => _inventoryEmptySummary;
+        public string InventoryFallbackRewardName => _inventoryFallbackRewardName;
+        public string ExitConfirmationTitle => _exitConfirmationTitle;
+        public string ExitConfirmationBody => _exitConfirmationBody;
+        public string ExitCollectButtonLabel => _exitCollectButtonLabel;
+        public string ExitComeBackButtonLabel => _exitComeBackButtonLabel;
 
         private void OnEnable()
         {
             RebuildLookups();
         }
 
-        public WheelZoneUiCopy GetZoneCopy(ZoneType zoneType)
-        {
-            return _zoneByType[(int)zoneType];
-        }
+        public WheelZoneUiCopy GetZoneCopy(ZoneType zoneType) => _zoneByType[(int)zoneType];
 
-        public WheelPhaseUiCopy GetPhaseCopy(WheelGamePhase phase)
-        {
-            return _phaseByType[(int)phase];
-        }
+        public WheelPhaseUiCopy GetPhaseCopy(WheelGamePhase phase) => _phaseByType[(int)phase];
 
-        public WheelOutcomeUiCopy GetOutcomeCopy(WheelGamePhase phase)
-        {
-            return _outcomeByPhase[(int)phase];
-        }
+        public WheelOutcomeUiCopy GetOutcomeCopy(WheelGamePhase phase) => _outcomeByPhase[(int)phase];
 
-        public bool ShouldHideStatusBar(WheelGamePhase phase)
-        {
-            return GetPhaseCopy(phase).HideStatusBar;
-        }
+        public bool ShouldHideStatusBar(WheelGamePhase phase) => GetPhaseCopy(phase).HideStatusBar;
 
-        public bool ShouldHideOutcomePopup(WheelGamePhase phase)
-        {
-            return GetPhaseCopy(phase).HideOutcomePopup;
-        }
+        public bool ShouldHideOutcomePopup(WheelGamePhase phase) => GetPhaseCopy(phase).HideOutcomePopup;
 
         public string ResolveStatusMessage(WheelGamePhase phase, ZoneType zoneType, string winLabel)
         {
             WheelPhaseUiCopy phaseCopy = GetPhaseCopy(phase);
-            if (!string.IsNullOrEmpty(phaseCopy.StatusMessage))
-            {
-                return phaseCopy.Gameplay.UseWinLabelForStatus ? winLabel : phaseCopy.StatusMessage;
-            }
-
+            if (!string.IsNullOrEmpty(phaseCopy.StatusMessage)) return phaseCopy.Gameplay.UseWinLabelForStatus ? winLabel : phaseCopy.StatusMessage;
             return GetZoneCopy(zoneType).StatusHint;
         }
 
-        public Color ResolveColor(WheelUiColorKey colorKey, WheelThemeSettings theme)
-        {
-            return theme == null ? Color.white : theme.GetUiColor(colorKey);
-        }
+        public Color ResolveColor(WheelUiColorKey colorKey, WheelThemeSettings theme) => theme == null ? Color.white : theme.GetUiColor(colorKey);
 
-        public string FormatWinLabel(string label)
-        {
-            return string.Format(_winLabelFormat, label);
-        }
+        public string FormatWinLabel(string label) => string.Format(_winLabelFormat, label);
 
         public void ResetToDefaults()
         {

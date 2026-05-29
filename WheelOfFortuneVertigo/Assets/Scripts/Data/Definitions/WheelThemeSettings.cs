@@ -17,16 +17,33 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private Color _dangerColor = new Color(0.9f, 0.22f, 0.16f, 1f);
         [SerializeField] private Color _successColor = new Color(0.28f, 0.84f, 0.48f, 1f);
 
-        public Color BackgroundColor { get { return _backgroundColor; } }
-        public Color PrimaryTextColor { get { return _primaryTextColor; } }
-        public Color SecondaryTextColor { get { return _secondaryTextColor; } }
-        public Color StandardZoneColor { get { return _standardZoneColor; } }
-        public Color SafeZoneColor { get { return _safeZoneColor; } }
-        public Color SuperZoneColor { get { return _superZoneColor; } }
-        public Color SafeMilestoneBadgeBackground { get { return _safeMilestoneBadgeBackground; } }
-        public Color SuperMilestoneBadgeBackground { get { return _superMilestoneBadgeBackground; } }
-        public Color DangerColor { get { return _dangerColor; } }
-        public Color SuccessColor { get { return _successColor; } }
+        [Header("HUD Background Tint")]
+        [SerializeField] private float _hudBackgroundRedBoost = 0.02f;
+        [SerializeField] private float _hudBackgroundGreenBoost = 0.025f;
+        [SerializeField] private float _hudBackgroundBlueBoost = 0.035f;
+        [SerializeField, Range(0f, 1f)] private float _hudBackgroundAlpha = 0.32f;
+
+        public Color BackgroundColor => _backgroundColor;
+        public Color PrimaryTextColor => _primaryTextColor;
+        public Color SecondaryTextColor => _secondaryTextColor;
+        public Color StandardZoneColor => _standardZoneColor;
+        public Color SafeZoneColor => _safeZoneColor;
+        public Color SuperZoneColor => _superZoneColor;
+        public Color SafeMilestoneBadgeBackground => _safeMilestoneBadgeBackground;
+        public Color SuperMilestoneBadgeBackground => _superMilestoneBadgeBackground;
+        public Color DangerColor => _dangerColor;
+        public Color SuccessColor => _successColor;
+
+        /// <summary>Applies the authored HUD panel tint over the scene background color.</summary>
+        public Color ResolveHudBackgroundColor(Color themeBackground)
+        {
+            Color tint = themeBackground;
+            tint.r = Mathf.Min(1f, tint.r + _hudBackgroundRedBoost);
+            tint.g = Mathf.Min(1f, tint.g + _hudBackgroundGreenBoost);
+            tint.b = Mathf.Min(1f, tint.b + _hudBackgroundBlueBoost);
+            tint.a = _hudBackgroundAlpha;
+            return tint;
+        }
 
         public Color GetUiColor(WheelUiColorKey colorKey)
         {
@@ -51,9 +68,6 @@ namespace Vertigo.Wheel.Data
             }
         }
 
-        public static WheelThemeSettings Default()
-        {
-            return new WheelThemeSettings();
-        }
+        public static WheelThemeSettings Default() => new WheelThemeSettings();
     }
 }

@@ -9,8 +9,8 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private Sprite _wheelBase;
         [SerializeField] private Sprite _indicator;
 
-        public Sprite WheelBase { get { return _wheelBase; } }
-        public Sprite Indicator { get { return _indicator; } }
+        public Sprite WheelBase => _wheelBase;
+        public Sprite Indicator => _indicator;
 
         public static WheelSkinTierSprites Create(Sprite wheelBase, Sprite indicator)
         {
@@ -27,15 +27,9 @@ namespace Vertigo.Wheel.Data
     {
         [SerializeField] private WheelSkinTierSprites[] _spritesByTier = CreateDefaultSprites();
 
-        public Sprite GetWheelBase(WheelSkinTier tier)
-        {
-            return _spritesByTier[(int)tier].WheelBase;
-        }
+        public Sprite GetWheelBase(WheelSkinTier tier) => _spritesByTier[(int)tier].WheelBase;
 
-        public Sprite GetIndicator(WheelSkinTier tier)
-        {
-            return _spritesByTier[(int)tier].Indicator;
-        }
+        public Sprite GetIndicator(WheelSkinTier tier) => _spritesByTier[(int)tier].Indicator;
 
         public void Configure(WheelSkinTierSprites bronze, WheelSkinTierSprites silver, WheelSkinTierSprites golden)
         {
@@ -47,9 +41,6 @@ namespace Vertigo.Wheel.Data
             };
         }
 
-        private static WheelSkinTierSprites[] CreateDefaultSprites()
-        {
-            return new WheelSkinTierSprites[3];
-        }
+        private static WheelSkinTierSprites[] CreateDefaultSprites() => new WheelSkinTierSprites[3];
     }
 }

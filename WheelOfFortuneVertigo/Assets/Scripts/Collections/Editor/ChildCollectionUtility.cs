@@ -55,10 +55,7 @@ namespace Vertigo.Collections.Editor
             for (int i = 0; i < root.childCount; i++)
             {
                 Transform child = root.GetChild(i);
-                if (!ShouldInclude(child, settings))
-                {
-                    continue;
-                }
+                if (!ShouldInclude(child, settings)) continue;
 
                 onChild(child);
             }
@@ -75,10 +72,7 @@ namespace Vertigo.Collections.Editor
 
         private static void VisitDescendant(Transform node, ChildCollectionSettings settings, Action<Transform> onChild)
         {
-            if (!ShouldInclude(node, settings))
-            {
-                return;
-            }
+            if (!ShouldInclude(node, settings)) return;
 
             onChild(node);
 
@@ -88,10 +82,7 @@ namespace Vertigo.Collections.Editor
             }
         }
 
-        private static bool ShouldInclude(Transform child, ChildCollectionSettings settings)
-        {
-            return settings.IncludeInactive || child.gameObject.activeInHierarchy;
-        }
+        private static bool ShouldInclude(Transform child, ChildCollectionSettings settings) => settings.IncludeInactive || child.gameObject.activeInHierarchy;
     }
 }
 #endif

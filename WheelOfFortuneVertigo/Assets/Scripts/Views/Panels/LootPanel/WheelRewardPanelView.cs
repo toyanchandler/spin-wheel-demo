@@ -1,15 +1,17 @@
 using System;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using Vertigo.Collections;
-using Vertigo.Wheel.Data;
 using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
+    /// <summary>
+    /// Loot strip lifecycle. HUD logic: <see cref="WheelRewardPanelHudCoordinator"/>.
+    /// Registers <see cref="IWheelLootFlightHandler"/> on the bus for outcome-popup flight.
+    /// </summary>
     [WheelBind]
-    public sealed class WheelRewardPanelView : MonoBehaviour
+    public sealed class WheelRewardPanelView : MonoBehaviour, IWheelLootFlightHandler
     {
         [SerializeField] private Transform _cardPoolRoot;
 
@@ -18,118 +20,57 @@ namespace Vertigo.Wheel.Views
 
         [WheelInject] private WheelEventBus _eventBus;
 
-        private WheelRewardPanelInventoryState _inventory;
-        private WheelRewardPanelRenderer _renderer;
-        private WheelRewardPanelLayout _layout;
+        private WheelRewardPanelHudCoordinator _hudCoordinator;
         private WheelRewardPanelLandingResolver _landingResolver;
-        private Tween _pendingFallbackTween;
 
         [WheelAfterInject]
         private void Connect()
         {
             RequireSceneWiring();
             BuildRuntimeParts();
-            _layout.LayoutReservedCards(0, false);
+            _eventBus.Presentation.Loot.Register(this);
+            _hudCoordinator.RefreshLayout();
             _eventBus.HudStateChanged += OnHudStateChanged;
         }
 
         [WheelBeforeUnbind]
         private void Disconnect()
         {
+            _eventBus.Presentation.Loot.Clear();
             _eventBus.HudStateChanged -= OnHudStateChanged;
-            StopTweens();
+            _hudCoordinator.Stop();
         }
 
         private void OnDisable()
         {
-            StopTweens();
+            _hudCoordinator?.Stop();
         }
 
         public void RefreshResponsiveLayout()
         {
-            _layout.LayoutReservedCards(Mathf.Max(_inventory.RenderedCount, _inventory.PendingCount), false);
-            _layout.ScrollToNewest(false);
+            _hudCoordinator?.RefreshLayout();
         }
 
-        public void HoldPendingRewardsForArrival()
+        public void HoldForArrival()
         {
-            KillFallbackCommit();
+            _hudCoordinator?.HoldForArrival();
         }
 
-        public void CommitPendingRewardsNow()
+        public void CommitPendingNow()
         {
-            KillFallbackCommit();
-            CommitPendingNow();
+            _hudCoordinator?.CommitPendingNow();
         }
 
         public Vector3 ResolveLandingWorldPosition(string rewardId, int burstIndex, int burstCount)
         {
-            int index = _inventory.ResolveLandingIndex(rewardId);
-            _layout.LayoutReservedCards(Mathf.Max(_inventory.RenderedCount, _inventory.PendingCount), false);
-            _layout.ScrollToNewest(false);
+            int index = _hudCoordinator.ResolveLandingIndex(rewardId);
+            _hudCoordinator.RefreshLayout();
             return _landingResolver.Resolve(index, burstIndex, burstCount, transform.position);
         }
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
-            WheelHudRewardCardsSnapshot rewards = snapshot.Rewards;
-            _renderer.SetPresentation(rewards.RewardCardFrameSprite, rewards.DefaultRewardTitle);
-            if (_inventory.ShouldDeferRewardGain(snapshot))
-            {
-                _inventory.StorePending(snapshot);
-                RenderStoredCards(_inventory.RenderedCards, _inventory.RenderedCount);
-                PreparePendingLandingSpace();
-                ScheduleFallbackCommit();
-                return;
-            }
-
-            ApplySnapshotImmediately(snapshot);
-        }
-
-        private void ApplySnapshotImmediately(WheelHudSnapshot snapshot)
-        {
-            KillFallbackCommit();
-            _inventory.ApplySnapshotImmediately(snapshot);
-            RenderStoredCards(_inventory.RenderedCards, _inventory.RenderedCount);
-        }
-
-        private void ScheduleFallbackCommit()
-        {
-            KillFallbackCommit();
-            _pendingFallbackTween = DOVirtual.DelayedCall(
-                    WheelRewardPanelMotion.PendingFallbackCommitDelay,
-                    CommitPendingNow,
-                    false)
-                .SetTarget(this)
-                .SetUpdate(true);
-        }
-
-        private void CommitPendingNow()
-        {
-            if (!_inventory.CommitPending(out WheelRewardPanelCommit commit))
-            {
-                return;
-            }
-
-            _renderer.Render(_inventory.RenderedCards, _inventory.RenderedCount, false, -1);
-            _renderer.PulseChangedCards(commit.OldCount, commit.ChangedIndex);
-            _layout.LayoutReservedCards(_inventory.RenderedCount, false);
-            _layout.ScrollToNewest(false);
-        }
-
-        private void RenderStoredCards(RewardInventoryEntry[] cards, int count)
-        {
-            _layout.LayoutReservedCards(count, false);
-            _renderer.Render(cards, count, false, -1);
-            _layout.ScrollToNewest(false);
-        }
-
-        private void PreparePendingLandingSpace()
-        {
-            int reservedCount = Mathf.Max(_inventory.RenderedCount, _inventory.PendingCount);
-            _layout.LayoutReservedCards(reservedCount, true);
-            _renderer.HideRange(_inventory.RenderedCount, reservedCount);
-            _layout.ScrollToNewest(true);
+            _hudCoordinator.HandleHudSnapshot(snapshot);
         }
 
         private void BuildRuntimeParts()
@@ -143,13 +84,14 @@ namespace Vertigo.Wheel.Views
                     name + " reward panel scroll wiring is incomplete. Rebuild the baked hierarchy and collect children.");
             }
 
-            _inventory = new WheelRewardPanelInventoryState(_cardViews.Length);
-            _renderer = new WheelRewardPanelRenderer(_cardViews);
-            _layout = new WheelRewardPanelLayout(_cardViews, scrollRect, contentRect, viewportRect, this);
+            var inventory = new WheelRewardPanelInventoryState(_cardViews.Length);
+            var renderer = new WheelRewardPanelRenderer(_cardViews);
+            var layout = new WheelRewardPanelLayout(_cardViews, scrollRect, contentRect, viewportRect, this);
+            _hudCoordinator = new WheelRewardPanelHudCoordinator(inventory, renderer, layout, this);
             _landingResolver = new WheelRewardPanelLandingResolver(_cardViews);
         }
 
-        private RectTransform ResolveViewport(ScrollRect scrollRect, RectTransform contentRect)
+        private static RectTransform ResolveViewport(ScrollRect scrollRect, RectTransform contentRect)
         {
             if (scrollRect != null && scrollRect.viewport != null)
             {
@@ -157,18 +99,6 @@ namespace Vertigo.Wheel.Views
             }
 
             return contentRect != null ? contentRect.parent as RectTransform : null;
-        }
-
-        private void KillFallbackCommit()
-        {
-            _pendingFallbackTween?.Kill();
-            _pendingFallbackTween = null;
-        }
-
-        private void StopTweens()
-        {
-            KillFallbackCommit();
-            _layout?.StopScroll();
         }
 
         private void RequireSceneWiring()

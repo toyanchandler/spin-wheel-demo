@@ -17,12 +17,8 @@ namespace Vertigo.Wheel.EditorTools
         {
             Transform cellRoot = RequireChild(view.transform, WheelZoneProgressHierarchy.CellsGroup);
 
-            if (NeedsHierarchyRebuild(cellRoot))
-            {
-                throw new InvalidOperationException(
+            if (NeedsHierarchyRebuild(cellRoot)) throw new InvalidOperationException(
                     view.name + " zone progress hierarchy is outdated. Fix the scene hierarchy before collecting bindings.");
-            }
-
             WireChildComponents(cellRoot, WireCellView);
 
             SerializedObject serializedObject = new SerializedObject(view);
@@ -49,10 +45,7 @@ namespace Vertigo.Wheel.EditorTools
             {
                 Transform child = root.GetChild(i);
                 WheelZoneProgressCellView component = child.GetComponent<WheelZoneProgressCellView>();
-                if (component == null)
-                {
-                    component = child.gameObject.AddComponent<WheelZoneProgressCellView>();
-                }
+                component ??= child.gameObject.AddComponent<WheelZoneProgressCellView>();
 
                 wire(component);
             }
@@ -60,10 +53,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static bool NeedsHierarchyRebuild(Transform cellRoot)
         {
-            if (cellRoot.childCount == 0)
-            {
-                return true;
-            }
+            if (cellRoot.childCount == 0) return true;
 
             Transform firstCell = cellRoot.GetChild(0);
             return firstCell.Find(Frame) == null
@@ -76,10 +66,7 @@ namespace Vertigo.Wheel.EditorTools
         private static Transform RequireChild(Transform parent, string childName)
         {
             Transform child = parent.Find(childName);
-            if (child == null)
-            {
-                throw new InvalidOperationException(parent.name + " requires child " + childName + ".");
-            }
+            if (child == null) throw new InvalidOperationException(parent.name + " requires child " + childName + ".");
 
             return child;
         }

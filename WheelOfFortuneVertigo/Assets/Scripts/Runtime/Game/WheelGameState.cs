@@ -4,10 +4,16 @@ using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
+    /// <summary>
+    /// Mutable play-session model: zone, phase, inventory, and wheel slice buffer.
+    /// Does not publish UI events — <see cref="WheelGameFlowController"/> and
+    /// <see cref="WheelStatePublisher"/> read this after changes.
+    /// </summary>
     public sealed class WheelGameState : MonoBehaviour
     {
         private readonly RewardInventory _inventory = new RewardInventory();
         private WheelGameSettings _settings;
+        private IRandomSource _randomSource = UnityRandomSource.Shared;
         private WheelSliceDefinition[] _sliceBuffer;
         private WheelSpinResult _lastResult;
         private bool _hasLastResult;
@@ -16,39 +22,58 @@ namespace Vertigo.Wheel.Runtime
         private WheelGamePhase _phase = WheelGamePhase.Ready;
         private bool _slicesDirty = true;
 
-        public WheelGameSettings Settings { get { return _settings; } }
-        public RewardInventory Inventory { get { return _inventory; } }
-        public WheelSpinResult LastResult { get { return _lastResult; } }
-        public bool HasLastResult { get { return _hasLastResult; } }
-        public int SliceCount { get { return _sliceCount; } }
-        public int Zone { get { return _zone; } }
-        public WheelGamePhase Phase { get { return _phase; } }
-        public ZoneType ZoneType { get { return Settings.GetZoneType(_zone); } }
+        public WheelGameSettings Settings => _settings;
+        public RewardInventory Inventory => _inventory;
+        public WheelSpinResult LastResult => _lastResult;
+        public bool HasLastResult => _hasLastResult;
+        public int SliceCount => _sliceCount;
+        public int Zone => _zone;
+        public WheelGamePhase Phase => _phase;
 
-        public WheelPhaseGameplayProfile PhaseGameplay { get { return Settings.UiCopy.GetPhaseCopy(_phase).Gameplay; } }
-
-        public bool CanSpin { get { return Settings != null && PhaseGameplay.AllowSpin; } }
-
-        public bool CanLeave
+        public ZoneType ZoneType
         {
             get
             {
-                return Settings != null
-                    && (Settings.GetZoneGameplay(ZoneType).AllowLeave || _inventory.Count > 0)
-                    && PhaseGameplay.AllowLeave;
+                if (_settings == null)
+                {
+                    throw new InvalidOperationException(
+                        "WheelGameState.ZoneType requires InitializeRuntime before access.");
+                }
+
+                return _settings.GetZoneType(_zone);
             }
         }
 
-        public bool CanRestart { get { return Settings != null && PhaseGameplay.AllowRestart; } }
+        public WheelPhaseGameplayProfile PhaseGameplay => Settings.UiCopy.GetPhaseCopy(_phase).Gameplay;
+
+        public bool CanSpin => Settings != null && PhaseGameplay.AllowSpin;
+
+        public bool CanLeave =>
+            Settings != null
+            && (Settings.GetZoneGameplay(ZoneType).AllowLeave || _inventory.Count > 0)
+            && PhaseGameplay.AllowLeave;
+
+        public bool CanRestart => Settings != null && PhaseGameplay.AllowRestart;
 
         public void InitializeRuntime(WheelGameSettings settings)
+        {
+            InitializeRuntime(settings, UnityRandomSource.Shared);
+        }
+
+        public void InitializeRuntime(WheelGameSettings settings, IRandomSource randomSource)
         {
             if (settings == null)
             {
                 throw new InvalidOperationException("WheelGameState requires WheelGameSettings to initialize runtime.");
             }
 
+            if (randomSource == null)
+            {
+                throw new ArgumentNullException(nameof(randomSource));
+            }
+
             _settings = settings;
+            _randomSource = randomSource;
             Settings.InitializeRuntime();
             EnsureSliceBuffer();
         }
@@ -57,7 +82,7 @@ namespace Vertigo.Wheel.Runtime
         {
             _zone = 1;
             _phase = WheelGamePhase.Ready;
-            _lastResult = default(WheelSpinResult);
+            _lastResult = default;
             _hasLastResult = false;
             _inventory.Clear();
             _slicesDirty = true;
@@ -77,7 +102,7 @@ namespace Vertigo.Wheel.Runtime
         public int SelectSpinSliceIndex()
         {
             PrepareCurrentZone();
-            return WheelSpinOutcomeSelector.SelectSliceIndex(_sliceCount);
+            return WheelSpinOutcomeSelector.SelectSliceIndex(_sliceCount, _randomSource);
         }
 
         public WheelSpinResult CreateSpinResult(int sliceIndex)
@@ -85,7 +110,9 @@ namespace Vertigo.Wheel.Runtime
             PrepareCurrentZone();
             if (sliceIndex < 0 || sliceIndex >= _sliceCount)
             {
-                throw new ArgumentOutOfRangeException(nameof(sliceIndex), "Slice index is outside the current wheel slice count.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(sliceIndex),
+                    "Slice index is outside the current wheel slice count.");
             }
 
             return new WheelSpinResult(sliceIndex, _sliceBuffer[sliceIndex]);
@@ -100,38 +127,14 @@ namespace Vertigo.Wheel.Runtime
         public int SelectRandomRewardSliceIndex()
         {
             PrepareCurrentZone();
-
-            int rewardCount = 0;
-            for (int i = 0; i < _sliceCount; i++)
-            {
-                if (!_sliceBuffer[i].IsBomb)
-                {
-                    rewardCount++;
-                }
-            }
-
+            int rewardCount = WheelSliceQueries.CountNonBomb(_sliceBuffer, _sliceCount);
             if (rewardCount <= 0)
             {
                 return -1;
             }
 
-            int selectedReward = UnityEngine.Random.Range(0, rewardCount);
-            for (int i = 0; i < _sliceCount; i++)
-            {
-                if (_sliceBuffer[i].IsBomb)
-                {
-                    continue;
-                }
-
-                if (selectedReward == 0)
-                {
-                    return i;
-                }
-
-                selectedReward--;
-            }
-
-            return -1;
+            int pick = _randomSource.Range(0, rewardCount);
+            return WheelSliceQueries.SelectRandomRewardIndex(_sliceBuffer, _sliceCount, pick);
         }
 
         public int CopySliceDefinitions(WheelSliceDefinition[] destination)
@@ -165,25 +168,19 @@ namespace Vertigo.Wheel.Runtime
             return copies;
         }
 
+        /// <summary>Applies win/bomb rules from <see cref="WheelSpinResolveCatalog"/> via <see cref="WheelSpinResolvePipeline"/>.</summary>
         public void Resolve(WheelSpinResult result)
+        {
+            WheelSpinResolvePipeline.Apply(this, result);
+        }
+
+        internal void RecordSpinResult(WheelSpinResult result)
         {
             _lastResult = result;
             _hasLastResult = true;
-            WheelSpinResolveProfile profile = Settings.SpinResolveCatalog.GetProfile(result.IsBomb);
-            ApplyResolveProfile(result, profile);
         }
 
-        public void PrepareCurrentZone()
-        {
-            if (!_slicesDirty)
-            {
-                return;
-            }
-
-            RefreshSlicesForCurrentZone();
-        }
-
-        private void ApplyResolveProfile(WheelSpinResult result, WheelSpinResolveProfile profile)
+        internal void ApplyResolveProfile(WheelSpinResult result, WheelSpinResolveProfile profile)
         {
             _phase = profile.TargetPhase;
 
@@ -207,6 +204,16 @@ namespace Vertigo.Wheel.Runtime
                 _slicesDirty = true;
                 PrepareCurrentZone();
             }
+        }
+
+        public void PrepareCurrentZone()
+        {
+            if (!_slicesDirty)
+            {
+                return;
+            }
+
+            RefreshSlicesForCurrentZone();
         }
 
         private void RefreshSlicesForCurrentZone()

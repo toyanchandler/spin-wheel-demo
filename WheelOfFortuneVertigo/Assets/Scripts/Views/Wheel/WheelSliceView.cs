@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
@@ -16,22 +17,27 @@ namespace Vertigo.Wheel.Views
 
         private bool _showsAmountBadge;
 
-        public RectTransform IconRect { get { return _icon.rectTransform; } }
-        public Sprite IconSprite { get { return _icon != null ? _icon.sprite : null; } }
-        public Color IconColor { get { return _icon != null ? _icon.color : Color.white; } }
+        public RectTransform IconRect => _icon.rectTransform;
+        public Sprite IconSprite => _icon.sprite;
+        public Color IconColor => _icon.color;
         public float PointerAngle
         {
             get
             {
-                Vector2 position = _root != null ? _root.anchoredPosition : Vector2.zero;
+                Vector2 position = _root.anchoredPosition;
+                // UI wheel convention: 0° points up, positive angle follows wheel layout (Atan2(x, y), not Atan2(y, x)).
                 return Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
             }
         }
 
-        public void Apply(WheelSlicePresentation presentation)
+        private void Awake()
         {
             RequireReferences();
-            Vector2 maxIconSize = _root != null ? _root.sizeDelta : Vector2.zero;
+        }
+
+        public void Apply(WheelSlicePresentation presentation)
+        {
+            Vector2 maxIconSize = _root.sizeDelta;
             _iconRoot.sizeDelta = WheelSliceIconFitter.FitWithinBounds(maxIconSize, presentation.Icon);
             _icon.sprite = presentation.Icon;
             _icon.color = Color.white;
@@ -45,26 +51,17 @@ namespace Vertigo.Wheel.Views
 
         public void SetRewardVisualVisible(bool isVisible)
         {
-            if (_icon != null)
-            {
-                _icon.enabled = isVisible && _icon.sprite != null;
-            }
-
-            if (_amountBadge != null)
-            {
-                _amountBadge.SetActive(isVisible && _showsAmountBadge);
-            }
+            _icon.enabled = isVisible && _icon.sprite != null;
+            _amountBadge.SetActive(isVisible && _showsAmountBadge);
         }
 
         public void PlayBombHitPulse()
         {
-            RequireReferences();
             WheelSliceImpactAnimator.PlayBombHitPulse(this, _root);
         }
 
         public void PlayRewardHitPulse(Color accentColor)
         {
-            RequireReferences();
             WheelSliceImpactAnimator.PlayRewardHitPulse(this, _root);
         }
 
@@ -75,47 +72,24 @@ namespace Vertigo.Wheel.Views
 
         public void Hide()
         {
-            if (gameObject.activeSelf)
-            {
-                gameObject.SetActive(false);
-            }
+            if (gameObject.activeSelf) gameObject.SetActive(false);
         }
 
-        public void ApplyUprightPresentation(float wheelLocalEulerZ)
+        /// <summary>
+        /// Counter-rotates icon and amount badge so they stay upright while the wheel root spins.
+        /// Assumes slice prefab hierarchy: wheel root → slice root → icon/badge transforms.
+        /// </summary>
+        public void ApplyCounterRotationForWheelRoot(float wheelRootLocalEulerZ)
         {
-            float counterZ = -NormalizeSignedAngle(wheelLocalEulerZ);
+            float counterZ = -WheelAngleUtility.NormalizeSignedAngle(wheelRootLocalEulerZ);
             ApplyUprightLocalZ(_iconRoot, counterZ);
-            if (_amountBadge != null)
-            {
-                ApplyUprightLocalZ(_amountBadge.transform, counterZ);
-            }
+            ApplyUprightLocalZ(_amountBadge.transform, counterZ);
         }
 
         private static void ApplyUprightLocalZ(Transform target, float localZ)
         {
-            if (target == null)
-            {
-                return;
-            }
-
             Vector3 euler = target.localEulerAngles;
             target.localEulerAngles = new Vector3(euler.x, euler.y, localZ);
-        }
-
-        private static float NormalizeSignedAngle(float angle)
-        {
-            angle %= 360f;
-            if (angle > 180f)
-            {
-                angle -= 360f;
-            }
-
-            if (angle < -180f)
-            {
-                angle += 360f;
-            }
-
-            return angle;
         }
 
         private void ApplyMedallionColors(WheelSlicePresentation presentation)
@@ -134,11 +108,8 @@ namespace Vertigo.Wheel.Views
                 _amountBadge == null ||
                 _amountBadgeBackground == null ||
                 _amountBadgeRim == null ||
-                _amount == null)
-            {
-                throw new System.InvalidOperationException(
+                _amount == null) throw new System.InvalidOperationException(
                     name + " wheel slice prefab has missing serialized references. Rebuild the wheel slice hierarchy.");
-            }
         }
 
         private static void ApplyAmountLabel(TextMeshProUGUI amountLabel, WheelSlicePresentation presentation)
@@ -150,7 +121,7 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
-            amountLabel.SetText("{0}", presentation.Amount);
+            amountLabel.SetText(presentation.AmountText);
             amountLabel.color = Color.white;
             amountLabel.enabled = true;
         }

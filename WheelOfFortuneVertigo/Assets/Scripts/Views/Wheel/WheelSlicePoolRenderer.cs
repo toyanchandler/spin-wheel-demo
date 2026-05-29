@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using Vertigo.Wheel.Data;
+using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
@@ -8,24 +8,14 @@ namespace Vertigo.Wheel.Views
     {
         public static void Render(
             WheelSliceView[] pool,
-            WheelSliceDefinition[] slices,
+            WheelSlicePresentation[] presentations,
             int sliceCount)
         {
-            if (sliceCount > pool.Length)
-            {
-                throw new InvalidOperationException("Wheel slice pool is smaller than configured slice count. Rebuild the scene hierarchy.");
-            }
-
+            if (sliceCount > pool.Length) throw new InvalidOperationException("Wheel slice pool is smaller than configured slice count. Rebuild the scene hierarchy.");
             int visibleCount = Mathf.Min(sliceCount, pool.Length);
             for (int i = 0; i < visibleCount; i++)
             {
-                WheelSlicePresentation presentation = new WheelSlicePresentation(
-                    slices[i].DisplayIcon,
-                    slices[i].DisplayAmount,
-                    slices[i].DisplayColor,
-                    slices[i].ShowAmountLabel,
-                    slices[i].DisplayLabel);
-                pool[i].Apply(presentation);
+                pool[i].Apply(presentations[i]);
             }
 
             for (int i = visibleCount; i < pool.Length; i++)

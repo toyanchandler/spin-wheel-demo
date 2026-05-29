@@ -31,11 +31,7 @@ namespace Vertigo.Wheel.Runtime
 
         public void BindForEditorCapture(WheelEventBus eventBus)
         {
-            if (_isBound)
-            {
-                return;
-            }
-
+            if (_isBound) return;
             EnsureDiscovered();
             BindAll(eventBus);
             _isBound = true;
@@ -60,11 +56,7 @@ namespace Vertigo.Wheel.Runtime
 
         private void TryBind()
         {
-            if (_isBound || !WheelRuntimeLocator.IsReady || _eventBus == null)
-            {
-                return;
-            }
-
+            if (_isBound || !WheelRuntimeLocator.IsReady || _eventBus == null) return;
             EnsureDiscovered();
             BindAll(_eventBus);
             _isBound = true;
@@ -72,35 +64,20 @@ namespace Vertigo.Wheel.Runtime
 
         private void EnsureDiscovered()
         {
-            if (_views != null)
-            {
-                return;
-            }
-
+            if (_views != null) return;
             _views = WheelViewContainer.Build(transform);
             _bindables = WheelBindDiscovery.Collect(transform);
         }
 
         private void BindAll(WheelEventBus eventBus)
         {
-            for (int i = 0; i < _bindables.Length; i++)
-            {
-                WheelInjector.Inject(_bindables[i], eventBus, _views);
-            }
+            for (int i = 0; i < _bindables.Length; i++) WheelInjector.Inject(_bindables[i], eventBus, _views);
         }
 
         private void ReleaseBinding()
         {
-            if (!_isBound)
-            {
-                return;
-            }
-
-            for (int i = 0; i < _bindables.Length; i++)
-            {
-                WheelInjector.Uninject(_bindables[i]);
-            }
-
+            if (!_isBound) return;
+            for (int i = 0; i < _bindables.Length; i++) WheelInjector.Uninject(_bindables[i]);
             _isBound = false;
         }
     }

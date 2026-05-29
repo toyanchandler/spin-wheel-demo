@@ -8,11 +8,7 @@ namespace Vertigo.Wheel.Views
         public static void PlayBombHitPulse(Object owner, RectTransform root)
         {
             Reset(owner, root);
-            if (root == null)
-            {
-                return;
-            }
-
+            if (root == null) return;
             DOTween.Sequence()
                 .SetTarget(owner)
                 .SetUpdate(true)
@@ -25,11 +21,7 @@ namespace Vertigo.Wheel.Views
         public static void PlayRewardHitPulse(Object owner, RectTransform root)
         {
             Reset(owner, root);
-            if (root == null)
-            {
-                return;
-            }
-
+            if (root == null) return;
             DOTween.Sequence()
                 .SetTarget(owner)
                 .SetUpdate(true)
@@ -47,12 +39,8 @@ namespace Vertigo.Wheel.Views
         private static void Reset(Object owner, RectTransform root)
         {
             DOTween.Kill(owner);
-            if (root == null)
-            {
-                return;
-            }
-
-            root.DOKill();
+            if (root == null) return;
+            DOTween.Kill(root);
             root.localScale = Vector3.one;
         }
     }

@@ -11,10 +11,10 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private Color _displayColor;
         [SerializeField] private bool _showAmountLabel;
 
-        public string Label { get { return _label; } }
-        public int DisplayAmount { get { return _displayAmount; } }
-        public Color DisplayColor { get { return _displayColor; } }
-        public bool ShowAmountLabel { get { return _showAmountLabel; } }
+        public string Label => _label;
+        public int DisplayAmount => _displayAmount;
+        public Color DisplayColor => _displayColor;
+        public bool ShowAmountLabel => _showAmountLabel;
 
         public static WheelSliceSlotProfile CreateReward(string label, int displayAmount, Color displayColor, bool showAmountLabel)
         {

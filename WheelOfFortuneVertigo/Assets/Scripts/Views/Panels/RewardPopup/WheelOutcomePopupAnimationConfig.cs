@@ -26,8 +26,6 @@ namespace Vertigo.Wheel.Views
         public const float IconPreviewAlpha = 0.92f;
         public const float RewardFlightRotation = 10f;
         public const float RewardFlightFadeRatio = 0.68f;
-        public const float BombFlashAlpha = 0.22f;
-        public const float RewardFlashAlpha = 0.34f;
 
         public static readonly Vector3 IconStartScale = new Vector3(0.02f, 0.02f, 1f);
         public static readonly Vector3 IconRevealScale = new Vector3(0.58f, 0.58f, 1f);

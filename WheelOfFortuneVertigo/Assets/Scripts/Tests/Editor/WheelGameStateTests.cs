@@ -1,12 +1,15 @@
+using System;
 using NUnit.Framework;
 using UnityEngine;
 using Vertigo.Wheel.Data;
 using Vertigo.Wheel.Runtime;
+using Object = UnityEngine.Object;
 
 namespace Vertigo.Wheel.Tests
 {
     public sealed class WheelGameStateTests
     {
+        private WheelTestObjectScope _scope;
         private WheelGameSettings _settings;
         private WheelGameState _state;
         private GameObject _stateObject;
@@ -14,7 +17,8 @@ namespace Vertigo.Wheel.Tests
         [SetUp]
         public void SetUp()
         {
-            _state = WheelTestFixtures.CreateState(out _settings);
+            _scope = new WheelTestObjectScope();
+            _state = WheelTestFixtures.CreateState(_scope, out _settings);
             _stateObject = _state.gameObject;
         }
 
@@ -22,14 +26,13 @@ namespace Vertigo.Wheel.Tests
         public void TearDown()
         {
             WheelRuntimeLocator.Clear();
-            Object.DestroyImmediate(_stateObject);
-            Object.DestroyImmediate(_settings);
+            _scope.DestroyAll();
         }
 
         [Test]
         public void Restart_ResetsZoneInventoryAndPhase()
         {
-            _state.Resolve(WheelTestFixtures.CreateRewardResult(0, "gold", "Gold", 2));
+            _state.Resolve(WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 2));
 
             _state.Restart();
 
@@ -42,7 +45,7 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void Resolve_WinResult_AdvancesZoneAndAddsInventory()
         {
-            WheelSpinResult reward = WheelTestFixtures.CreateRewardResult(0, "gold", "Gold", 2);
+            WheelSpinResult reward = WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 2);
 
             _state.Resolve(reward);
 
@@ -55,8 +58,8 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void Resolve_BombResult_ClearsInventoryAndBlocksLeave()
         {
-            _state.Resolve(WheelTestFixtures.CreateRewardResult(0, "gold", "Gold", 2));
-            _state.Resolve(WheelTestFixtures.CreateBombResult(1));
+            _state.Resolve(WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 2));
+            _state.Resolve(WheelTestFixtures.CreateBombResult(_scope, 1));
 
             Assert.AreEqual(WheelGamePhase.Bombed, _state.Phase);
             Assert.AreEqual(0, _state.Inventory.Count);
@@ -100,12 +103,38 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void CashOut_MovesPhaseToCashedOut()
         {
-            _state.Resolve(WheelTestFixtures.CreateRewardResult(0, "gold", "Gold", 1));
+            _state.Resolve(WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 1));
 
             _state.CashOut();
 
             Assert.AreEqual(WheelGamePhase.CashedOut, _state.Phase);
             Assert.IsTrue(_state.CanRestart);
+        }
+
+        [Test]
+        public void ZoneType_Throws_WhenSettingsNotInitialized()
+        {
+            var gameObject = new GameObject("UninitializedWheelGameState");
+            WheelGameState state = gameObject.AddComponent<WheelGameState>();
+
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                ZoneType zoneType = state.ZoneType;
+            });
+
+            Object.DestroyImmediate(gameObject);
+        }
+
+        [Test]
+        public void SelectSpinSliceIndex_UsesInjectedRandomSource()
+        {
+            var random = new SeededRandomSource(7);
+            _state.InitializeRuntime(_settings, random);
+
+            int first = _state.SelectSpinSliceIndex();
+            int second = _state.SelectSpinSliceIndex();
+
+            Assert.AreEqual(first, second);
         }
     }
 }

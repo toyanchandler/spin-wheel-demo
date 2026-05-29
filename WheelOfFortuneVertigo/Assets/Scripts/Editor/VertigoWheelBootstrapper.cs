@@ -19,11 +19,7 @@ namespace Vertigo.Wheel.EditorTools
         [MenuItem("Vertigo Case/Ensure Project Assets")]
         public static void EnsureProjectAssets()
         {
-            if (!Directory.Exists(VertigoWheelPaths.DemoContentPath))
-            {
-                return;
-            }
-
+            if (!Directory.Exists(VertigoWheelPaths.DemoContentPath)) return;
             VertigoWheelAssetPipeline.ConfigureImportedSprites();
             VertigoWheelAssetPipeline.EnsureUiMaterial();
             VertigoWheelAssetPipeline.EnsureGameSettings();

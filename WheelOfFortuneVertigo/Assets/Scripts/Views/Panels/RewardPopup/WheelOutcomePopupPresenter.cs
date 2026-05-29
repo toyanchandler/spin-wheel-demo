@@ -15,7 +15,7 @@ namespace Vertigo.Wheel.Views
         private WheelOutcomePopupMotion _motion;
         private WheelOutcomeSnapshot _currentSnapshot;
 
-        public WheelOutcomeSnapshot CurrentSnapshot { get { return _currentSnapshot; } }
+        public WheelOutcomeSnapshot CurrentSnapshot => _currentSnapshot;
 
         public WheelOutcomePopupPresenter(WheelOutcomePopupRefs binding, Object tweenTarget)
         {

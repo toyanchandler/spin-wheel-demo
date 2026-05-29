@@ -9,8 +9,9 @@ namespace Vertigo.Wheel.Views
     [WheelBind]
     public sealed class WheelRewardOpeningView : MonoBehaviour
     {
+        [SerializeField] private WheelRewardOpeningBindings _bindings;
+
         [WheelInject] private WheelEventBus _eventBus;
-        [WheelInject] private WheelRewardOpeningBindings _bindings;
 
         private Tween _visibilityTween;
         private bool _isVisible;
@@ -57,10 +58,7 @@ namespace Vertigo.Wheel.Views
 
         private void ShowOpening()
         {
-            if (_isVisible)
-            {
-                return;
-            }
+            if (_isVisible) return;
 
             _isVisible = true;
             WheelRewardOpeningAnimator.Show(_rootBinding, this, ref _visibilityTween);
@@ -126,10 +124,16 @@ namespace Vertigo.Wheel.Views
 
         private void RequireSceneWiring()
         {
-            if (_eventBus == null || _bindings == null)
+            if (_eventBus == null)
+            {
+                throw new InvalidOperationException(name + " requires a bound WheelEventBus.");
+            }
+
+            _bindings ??= GetComponent<WheelRewardOpeningBindings>();
+            if (_bindings == null)
             {
                 throw new InvalidOperationException(
-                    name + " reward opening dependencies are incomplete. Add WheelRewardOpeningBindings to the opening overlay.");
+                    name + " reward opening dependencies are incomplete. Add WheelRewardOpeningBindings on the same GameObject.");
             }
 
             _bindings.Validate();

@@ -62,6 +62,13 @@ namespace Vertigo.Wheel.Tests
             Assert.IsTrue(WheelSliceQueries.ContainsBomb(slices, slices.Length));
         }
 
+        [Test]
+        public void SelectRandomRewardIndex_ReturnsNthNonBombSlice()
+        {
+            var slices = new[] { CreateSlice(true), CreateSlice(false), CreateSlice(false) };
+            Assert.AreEqual(2, WheelSliceQueries.SelectRandomRewardIndex(slices, slices.Length, 1));
+        }
+
         private static WheelSliceDefinition CreateSlice(bool isBomb)
         {
             var reward = RewardDefinition.Create("reward", "Reward", null, 1, RewardTier.Common, Color.white);

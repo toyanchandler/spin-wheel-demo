@@ -93,15 +93,9 @@ namespace Vertigo.Collections.Editor
             if (Event.current.type == EventType.Repaint)
             {
                 Color face = normal;
-                if (faceRect.Contains(Event.current.mousePosition))
-                {
-                    face = hover;
-                }
+                if (faceRect.Contains(Event.current.mousePosition)) face = hover;
 
-                if (Event.current.type == EventType.MouseDown && faceRect.Contains(Event.current.mousePosition))
-                {
-                    face = active;
-                }
+                if (Event.current.type == EventType.MouseDown && faceRect.Contains(Event.current.mousePosition)) face = active;
 
                 EditorGUI.DrawRect(faceRect, face);
 
@@ -146,10 +140,7 @@ namespace Vertigo.Collections.Editor
 
         private static void EnsureStyles()
         {
-            if (_collectStyle != null)
-            {
-                return;
-            }
+            if (_collectStyle != null) return;
 
             _collectStyle = CreateButtonStyle();
             _resetStyle = CreateButtonStyle();

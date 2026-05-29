@@ -15,13 +15,11 @@ namespace Vertigo.Wheel.Views
                 .SetUpdate(true)
                 .AppendInterval(WheelRewardOpeningBurstMotion.FirstBurstDelay)
                 .AppendCallback(() => binding.Emit(ResolveOpeningBurstCount(visibleCount)))
-                .Join(binding.Display.DOFade(WheelRewardOpeningBurstMotion.DisplayFadeInAlpha, WheelRewardOpeningBurstMotion.DisplayFadeInDuration))
                 .AppendInterval(WheelRewardOpeningBurstMotion.SecondBurstDelay)
                 .AppendCallback(() => binding.Emit(ResolveSecondBurstCount(visibleCount)))
                 .AppendInterval(WheelRewardOpeningBurstMotion.FinalBurstDelay)
                 .AppendCallback(() => binding.Emit(ResolveFinalBurstCount(visibleCount)))
                 .AppendInterval(WheelRewardOpeningBurstMotion.FadeOutDelay)
-                .Append(binding.Display.DOFade(0f, WheelRewardOpeningBurstMotion.DisplayFadeOutDuration))
                 .OnComplete(binding.Stop);
         }
 

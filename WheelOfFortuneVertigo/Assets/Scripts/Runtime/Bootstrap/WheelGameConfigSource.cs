@@ -7,6 +7,6 @@ namespace Vertigo.Wheel.Runtime
     {
         [SerializeField] private WheelGameSettings _settings;
 
-        public WheelGameSettings Settings { get { return _settings; } }
+        public WheelGameSettings Settings => _settings;
     }
 }

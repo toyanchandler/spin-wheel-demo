@@ -12,11 +12,11 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private bool _publishAllAfterSpin;
         [SerializeField] private bool _useWinLabelForStatus;
 
-        public bool AllowSpin { get { return _allowSpin; } }
-        public bool AllowLeave { get { return _allowLeave; } }
-        public bool AllowRestart { get { return _allowRestart; } }
-        public bool PublishAllAfterSpin { get { return _publishAllAfterSpin; } }
-        public bool UseWinLabelForStatus { get { return _useWinLabelForStatus; } }
+        public bool AllowSpin => _allowSpin;
+        public bool AllowLeave => _allowLeave;
+        public bool AllowRestart => _allowRestart;
+        public bool PublishAllAfterSpin => _publishAllAfterSpin;
+        public bool UseWinLabelForStatus => _useWinLabelForStatus;
 
         public static WheelPhaseGameplayProfile Create(
             bool allowSpin = false,

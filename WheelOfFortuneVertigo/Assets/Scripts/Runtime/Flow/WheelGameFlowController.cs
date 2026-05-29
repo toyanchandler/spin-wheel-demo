@@ -1,53 +1,83 @@
-using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
+    /// <summary>
+    /// Maps UI intents to state changes and snapshot publishing.
+    ///
+    /// Player journeys (see ARCHITECTURE_AND_LOGIC.md):
+    /// - Spin  → ExecuteSpin → spinner → SpinLanded → resolve → publish
+    /// - Leave → ExecuteLeave (cash out, no spin result)
+    /// - Restart → ExecuteRestart
+    /// </summary>
     public sealed class WheelGameFlowController : MonoBehaviour
     {
-        private WheelEventBus _eventBus;
+        private static readonly WheelSliceDefinition[] EmptySpinSlices = new WheelSliceDefinition[0];
+
+        private IWheelUiIntentSubscriber _uiIntents;
+        private IWheelSnapshotPublisher _snapshots;
         private WheelGameState _state;
         private WheelStatePublisher _publisher;
-        private WheelSpinner _spinner;
-
-        private const float LandingResolveDelay = 0.42f;
+        private IWheelSpinDriver _spinner;
+        private WheelSliceDefinition[] _spinSliceBuffer = EmptySpinSlices;
 
         public void Bind(
             WheelEventBus eventBus,
             WheelGameState state,
             WheelStatePublisher publisher,
-            WheelSpinner spinner)
+            IWheelSpinDriver spinner)
         {
-            _eventBus = eventBus;
+            _uiIntents = eventBus;
+            _snapshots = eventBus;
             _state = state;
             _publisher = publisher;
             _spinner = spinner;
-            _eventBus.SpinRequested += OnSpinRequested;
-            _eventBus.LeaveRequested += OnLeaveRequested;
-            _eventBus.RestartRequested += OnRestartRequested;
+
+            _uiIntents.SpinRequested += OnSpinRequested;
+            _uiIntents.LeaveRequested += OnLeaveRequested;
+            _uiIntents.RestartRequested += OnRestartRequested;
+            _spinner.LandingStarted += OnLandingStarted;
             _spinner.SpinCompleted += OnSpinCompleted;
         }
 
         public void Unbind()
         {
-            if (_eventBus != null)
+            if (_uiIntents != null)
             {
-                _eventBus.SpinRequested -= OnSpinRequested;
-                _eventBus.LeaveRequested -= OnLeaveRequested;
-                _eventBus.RestartRequested -= OnRestartRequested;
+                _uiIntents.SpinRequested -= OnSpinRequested;
+                _uiIntents.LeaveRequested -= OnLeaveRequested;
+                _uiIntents.RestartRequested -= OnRestartRequested;
             }
 
             if (_spinner != null)
             {
+                _spinner.LandingStarted -= OnLandingStarted;
                 _spinner.SpinCompleted -= OnSpinCompleted;
             }
 
-            DOTween.Kill(this);
-            _eventBus = null;
+            _uiIntents = null;
+            _snapshots = null;
             _state = null;
             _publisher = null;
             _spinner = null;
+        }
+
+        /// <summary>Editor/debug: same landing + resolve path as a finished spin, without tweens.</summary>
+        public void ForceResolveOutcome(WheelSpinResult result)
+        {
+            if (!IsBound())
+            {
+                return;
+            }
+
+            OnLandingStarted(result);
+            ResolveCompletedSpin(result);
+        }
+
+        private bool IsBound()
+        {
+            return _uiIntents != null && _snapshots != null && _state != null && _publisher != null;
         }
 
         private void OnSpinRequested()
@@ -80,19 +110,25 @@ namespace Vertigo.Wheel.Runtime
             ExecuteRestart();
         }
 
+        private void OnLandingStarted(WheelSpinResult result)
+        {
+            _snapshots.RaiseSpinLanded(result);
+        }
+
         private void OnSpinCompleted(WheelSpinResult result)
         {
-            _eventBus.RaiseSpinLanded(result);
-            DOVirtual.DelayedCall(LandingResolveDelay, () => ResolveCompletedSpin(result), false)
-                .SetTarget(this)
-                .SetLink(gameObject, LinkBehaviour.KillOnDisable);
+            ResolveCompletedSpin(result);
         }
 
         private void ResolveCompletedSpin(WheelSpinResult result)
         {
             _state.Resolve(result);
-            _publisher.PublishOutcome(result, true);
+            _publisher.PublishOutcome(result, hasResult: true);
+            PublishAfterSpin();
+        }
 
+        private void PublishAfterSpin()
+        {
             if (_state.PhaseGameplay.PublishAllAfterSpin)
             {
                 _publisher.PublishAll();
@@ -107,18 +143,41 @@ namespace Vertigo.Wheel.Runtime
         {
             _state.PrepareCurrentZone();
             _publisher.PublishZone();
+
             int sliceIndex = _state.SelectSpinSliceIndex();
             _state.BeginSpin();
             _publisher.PublishHud();
-            _spinner.AcceptSlicesFrom(_state);
+
+            SupplySpinSlicesToSpinner();
             _spinner.Spin(sliceIndex);
+        }
+
+        private void SupplySpinSlicesToSpinner()
+        {
+            EnsureSpinSliceBuffer(_state.SliceCount);
+            int count = _state.CopySliceDefinitions(_spinSliceBuffer);
+            _spinner.AcceptSlices(_spinSliceBuffer, count);
+        }
+
+        private void EnsureSpinSliceBuffer(int capacity)
+        {
+            if (_spinSliceBuffer.Length == capacity && _spinSliceBuffer.Length > 0 && _spinSliceBuffer[0] != null)
+            {
+                return;
+            }
+
+            _spinSliceBuffer = new WheelSliceDefinition[capacity];
+            for (int i = 0; i < capacity; i++)
+            {
+                _spinSliceBuffer[i] = new WheelSliceDefinition();
+            }
         }
 
         private void ExecuteLeave()
         {
             _state.CashOut();
             _publisher.PublishHud();
-            _publisher.PublishOutcome(default(WheelSpinResult), false);
+            _publisher.PublishOutcome(default(WheelSpinResult), hasResult: false);
         }
 
         private void ExecuteRestart()

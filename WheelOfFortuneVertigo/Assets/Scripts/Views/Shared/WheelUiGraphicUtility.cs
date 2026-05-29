@@ -31,21 +31,13 @@ namespace Vertigo.Wheel.Views
 
         public static void SetGraphicAlpha(Graphic graphic, float alpha)
         {
-            if (graphic == null)
-            {
-                return;
-            }
-
+            if (graphic == null) return;
             graphic.color = WithAlpha(graphic.color, alpha);
         }
 
         public static void SetTextAlpha(TextMeshProUGUI text, float alpha)
         {
-            if (text == null)
-            {
-                return;
-            }
-
+            if (text == null) return;
             text.color = WithAlpha(text.color, alpha);
         }
     }

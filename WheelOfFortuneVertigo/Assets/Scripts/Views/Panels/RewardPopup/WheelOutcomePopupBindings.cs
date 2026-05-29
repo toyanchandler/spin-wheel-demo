@@ -4,71 +4,45 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
+    /// <summary>
+    /// Serialized outcome-popup hierarchy. Assign UI refs in <see cref="_wiring"/> (flat list).
+    /// </summary>
     public sealed class WheelOutcomePopupBindings : MonoBehaviour
     {
-        [SerializeField] private WheelOutcomePopupRootBinding _root;
-        [SerializeField] private WheelOutcomePopupContentRootBinding _contentRoot;
-        [SerializeField] private WheelOutcomePopupIconBinding _icon;
-        [SerializeField] private WheelOutcomePopupResultTextBinding _resultText;
-        [SerializeField] private WheelOutcomePopupChromeBinding _chrome;
-        [SerializeField] private WheelOutcomePopupRewardBackgroundBinding _rewardPopupBackground;
-        [SerializeField] private WheelOutcomePopupBombCardShadowBinding _bombCardShadow;
-        [SerializeField] private WheelOutcomePopupRetryButtonBinding _outcomeRetryButton;
-        [SerializeField] private WheelOutcomePopupFlashBinding _flash;
-        [SerializeField] private WheelOutcomePopupShineBinding _shine;
-        [SerializeField] private WheelOutcomePopupFlightIconBinding _flightIcon;
-        [SerializeField] private WheelOutcomePopupRewardBurstCameraBinding _rewardBurstCamera;
-        [SerializeField] private WheelOutcomePopupRewardBurstDisplayBinding _rewardBurstDisplay;
-        [SerializeField] private WheelOutcomePopupRewardBurstParticleBinding _rewardBurstParticle;
+        [SerializeField] private WheelOutcomePopupSceneWiring _wiring;
+
+        private WheelOutcomePopupHandleSet _handles;
+
+        internal WheelOutcomePopupHandleSet Handles
+        {
+            get
+            {
+                if (_handles == null)
+                {
+                    throw new System.InvalidOperationException(
+                        name + " outcome popup handles are not validated. Call Validate() before use.");
+                }
+
+                return _handles;
+            }
+        }
 
         public void Validate()
         {
-            WheelBindingValidation.Require(this, _root, nameof(_root), "popup");
-            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "popup");
-            WheelBindingValidation.Require(this, _icon, nameof(_icon), "popup");
-            WheelBindingValidation.Require(this, _resultText, nameof(_resultText), "popup");
-            WheelBindingValidation.Require(this, _chrome, nameof(_chrome), "popup");
-            WheelBindingValidation.Require(this, _rewardPopupBackground, nameof(_rewardPopupBackground), "popup");
-            WheelBindingValidation.Require(this, _bombCardShadow, nameof(_bombCardShadow), "popup");
-            WheelBindingValidation.Require(this, _outcomeRetryButton, nameof(_outcomeRetryButton), "popup");
-            WheelBindingValidation.Require(this, _flash, nameof(_flash), "popup");
-            WheelBindingValidation.Require(this, _shine, nameof(_shine), "popup");
-            WheelBindingValidation.Require(this, _flightIcon, nameof(_flightIcon), "popup");
-            WheelBindingValidation.Require(this, _rewardBurstCamera, nameof(_rewardBurstCamera), "popup");
-            WheelBindingValidation.Require(this, _rewardBurstDisplay, nameof(_rewardBurstDisplay), "popup");
-            WheelBindingValidation.Require(this, _rewardBurstParticle, nameof(_rewardBurstParticle), "popup");
+            _handles = WheelOutcomePopupHandleSet.FromWiring(this, _wiring);
         }
 
         public void CaptureHome()
         {
-            _contentRoot.CaptureHome();
-            _icon.CaptureHome();
-            _flightIcon.CaptureHome();
+            Handles.CaptureHome();
         }
 
         internal WheelOutcomePopupRefs CreateRefs(
-            WheelRewardPanelView rewardPanelView,
+            WheelLootPresentationChannel lootPresentation,
             Func<WheelOutcomeSnapshot> getCurrentSnapshot,
             Action markPresentationComplete)
         {
-            return new WheelOutcomePopupRefs(
-                _root,
-                _contentRoot,
-                _icon,
-                _resultText,
-                _chrome,
-                _rewardPopupBackground,
-                _bombCardShadow,
-                _outcomeRetryButton,
-                _flash,
-                _shine,
-                _flightIcon,
-                _rewardBurstCamera,
-                _rewardBurstDisplay,
-                _rewardBurstParticle,
-                rewardPanelView,
-                getCurrentSnapshot,
-                markPresentationComplete);
+            return WheelOutcomePopupRefs.From(Handles, lootPresentation, getCurrentSnapshot, markPresentationComplete);
         }
     }
 }

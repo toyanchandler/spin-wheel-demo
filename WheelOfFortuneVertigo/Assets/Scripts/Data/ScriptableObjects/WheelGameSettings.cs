@@ -19,7 +19,7 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private List<RewardDefinition> _safeRewards = new List<RewardDefinition>();
         [SerializeField] private List<RewardDefinition> _superRewards = new List<RewardDefinition>();
 
-        private List<RewardDefinition>[] _rewardPoolsByZone;
+        private WheelZoneTypeCatalog _zoneCatalog;
         private WheelZoneIntervalRule[] _zoneIntervalRules;
 
         [Header("Zone Gameplay")]
@@ -38,30 +38,24 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private WheelLayoutSettings _layout = WheelLayoutSettings.Default();
         [SerializeField] private WheelThemeSettings _theme = WheelThemeSettings.Default();
 
-        public WheelUiCopyCatalog UiCopy { get { return _uiCopy; } }
-        public WheelSkinCatalog SkinCatalog { get { return _skinCatalog; } }
-        public WheelOutcomePopupMotionCatalog OutcomePopupMotionCatalog { get { return _outcomePopupMotionCatalog; } }
-        public WheelSpinResolveCatalog SpinResolveCatalog { get { return _spinResolveCatalog; } }
-        public float SpinDuration { get { return _spinDuration; } }
-        public int MinimumSpinRounds { get { return _minimumSpinRounds; } }
-        public Ease SpinEase { get { return _spinEase; } }
-        public WheelLayoutSettings Layout { get { return _layout; } }
-        public WheelThemeSettings Theme { get { return _theme; } }
+        public WheelUiCopyCatalog UiCopy => _uiCopy;
+        public WheelSkinCatalog SkinCatalog => _skinCatalog;
+        public WheelOutcomePopupMotionCatalog OutcomePopupMotionCatalog => _outcomePopupMotionCatalog;
+        public WheelSpinResolveCatalog SpinResolveCatalog => _spinResolveCatalog;
+        public float SpinDuration => _spinDuration;
+        public int MinimumSpinRounds => _minimumSpinRounds;
+        public Ease SpinEase => _spinEase;
+        public WheelLayoutSettings Layout => _layout;
+        public WheelThemeSettings Theme => _theme;
 
-        public WheelZoneGameplayProfile GetZoneGameplay(ZoneType zoneType)
-        {
-            return _zoneGameplayProfiles[(int)zoneType];
-        }
+        public WheelZoneGameplayProfile GetZoneGameplay(ZoneType zoneType) => RequireZoneCatalog().GetZoneGameplay(zoneType);
 
-        public IReadOnlyList<RewardDefinition> GetRewardPool(ZoneType zoneType)
-        {
-            return ResolveRewardPool(zoneType);
-        }
+        public IReadOnlyList<RewardDefinition> GetRewardPool(ZoneType zoneType) => ResolveRewardPool(zoneType);
 
-        public int SliceCount { get { return Mathf.Max(4, _sliceCount); } }
-        public int SafeZoneInterval { get { return Mathf.Max(1, _safeZoneInterval); } }
-        public int SuperZoneInterval { get { return Mathf.Max(1, _superZoneInterval); } }
-        public RewardDefinition BombReward { get { return _bombReward; } }
+        public int SliceCount => Mathf.Max(4, _sliceCount);
+        public int SafeZoneInterval => Mathf.Max(1, _safeZoneInterval);
+        public int SuperZoneInterval => Mathf.Max(1, _superZoneInterval);
+        public RewardDefinition BombReward => _bombReward;
 
         public void SetBombReward(RewardDefinition bombReward)
         {
@@ -71,17 +65,12 @@ namespace Vertigo.Wheel.Data
         {
             List<RewardDefinition> pool = ResolveMutableRewardPool(zoneType);
             pool.Clear();
-            if (reward != null)
-            {
-                pool.Add(reward);
-            }
+            if (reward != null) pool.Add(reward);
         }
 
-        public ZoneType GetZoneType(int zone)
-        {
-            return WheelZoneTypeTable.Resolve(zone, _zoneIntervalRules, ZoneType.Standard);
-        }
+        public ZoneType GetZoneType(int zone) => WheelZoneTypeTable.Resolve(zone, _zoneIntervalRules, ZoneType.Standard);
 
+#if UNITY_EDITOR
         public void ConfigureSkinCatalog(WheelSkinCatalog skinCatalog)
         {
             _skinCatalog = skinCatalog;
@@ -96,11 +85,16 @@ namespace Vertigo.Wheel.Data
         {
             _spinResolveCatalog = spinResolveCatalog;
         }
+#endif
 
         public void InitializeRuntime()
         {
             _zoneIntervalRules = CreateZoneIntervalRules();
-            _rewardPoolsByZone = new[] { _standardRewards, _safeRewards, _superRewards };
+            _zoneCatalog = WheelZoneTypeCatalog.FromSerializedProfiles(
+                _zoneGameplayProfiles,
+                _standardRewards,
+                _safeRewards,
+                _superRewards);
             ValidateRuntimeConfig();
             RequireUiCopy();
             RequireOutcomePopupMotionCatalog();
@@ -112,15 +106,14 @@ namespace Vertigo.Wheel.Data
             CacheRewardText(_superRewards, winLabelFormat);
         }
 
+#if UNITY_EDITOR
         public void ConfigureUiCopy(WheelUiCopyCatalog uiCopy)
         {
             _uiCopy = uiCopy;
         }
+#endif
 
-        public int FillSlicesForZone(int zone, WheelSliceDefinition[] buffer)
-        {
-            return WheelSliceGenerator.FillSlicesForZone(this, zone, buffer);
-        }
+        public int FillSlicesForZone(int zone, WheelSliceDefinition[] buffer) => WheelSliceGenerator.FillSlicesForZone(this, zone, buffer);
 
         public void ResetToDefaults()
         {
@@ -161,70 +154,36 @@ namespace Vertigo.Wheel.Data
 
         private static void RequireRewards(List<RewardDefinition> rewards, ZoneType zoneType)
         {
-            if (rewards == null || rewards.Count == 0)
-            {
-                throw new InvalidOperationException("WheelGameSettings requires at least one reward for " + zoneType + " zones.");
-            }
-
-            for (int i = 0; i < rewards.Count; i++)
-            {
-                RequireReward(rewards[i], zoneType);
-            }
+            if (rewards == null || rewards.Count == 0) throw new InvalidOperationException("WheelGameSettings requires at least one reward for " + zoneType + " zones.");
+            for (int i = 0; i < rewards.Count; i++) RequireReward(rewards[i], zoneType);
         }
 
         private static void RequireReward(RewardDefinition reward, ZoneType zoneType)
         {
-            if (reward == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings has a null reward in " + zoneType + " configuration.");
-            }
-
-            if (string.IsNullOrEmpty(reward.Id))
-            {
-                throw new InvalidOperationException("WheelGameSettings reward in " + zoneType + " configuration requires a stable id.");
-            }
-
-            if (string.IsNullOrEmpty(reward.DisplayName))
-            {
-                throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires a display name.");
-            }
-
-            if (reward.Icon == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires an icon.");
-            }
+            if (reward == null) throw new InvalidOperationException("WheelGameSettings has a null reward in " + zoneType + " configuration.");
+            if (string.IsNullOrEmpty(reward.Id)) throw new InvalidOperationException("WheelGameSettings reward in " + zoneType + " configuration requires a stable id.");
+            if (string.IsNullOrEmpty(reward.DisplayName)) throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires a display name.");
+            if (reward.Icon == null) throw new InvalidOperationException("WheelGameSettings reward '" + reward.Id + "' in " + zoneType + " configuration requires an icon.");
         }
 
         private void RequireUiCopy()
         {
-            if (_uiCopy == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings requires a WheelUiCopyCatalog asset.");
-            }
+            if (_uiCopy == null) throw new InvalidOperationException("WheelGameSettings requires a WheelUiCopyCatalog asset.");
         }
 
         private void RequireOutcomePopupMotionCatalog()
         {
-            if (_outcomePopupMotionCatalog == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings requires a WheelOutcomePopupMotionCatalog asset.");
-            }
+            if (_outcomePopupMotionCatalog == null) throw new InvalidOperationException("WheelGameSettings requires a WheelOutcomePopupMotionCatalog asset.");
         }
 
         private void RequireSpinResolveCatalog()
         {
-            if (_spinResolveCatalog == null)
-            {
-                throw new InvalidOperationException("WheelGameSettings requires a WheelSpinResolveCatalog asset.");
-            }
+            if (_spinResolveCatalog == null) throw new InvalidOperationException("WheelGameSettings requires a WheelSpinResolveCatalog asset.");
         }
 
         private static void CacheRewardText(List<RewardDefinition> rewards, string winLabelFormat)
         {
-            for (int i = 0; i < rewards.Count; i++)
-            {
-                CacheRewardText(rewards[i], winLabelFormat);
-            }
+            for (int i = 0; i < rewards.Count; i++) CacheRewardText(rewards[i], winLabelFormat);
         }
 
         private static void CacheRewardText(RewardDefinition reward, string winLabelFormat)
@@ -234,27 +193,22 @@ namespace Vertigo.Wheel.Data
 
         private IReadOnlyList<RewardDefinition> ResolveRewardPool(ZoneType zoneType)
         {
-            if (_rewardPoolsByZone == null)
-            {
-                return ResolveMutableRewardPool(zoneType);
-            }
-
-            return _rewardPoolsByZone[(int)zoneType];
+            return RequireZoneCatalog().GetRewardPool(zoneType);
         }
 
         private List<RewardDefinition> ResolveMutableRewardPool(ZoneType zoneType)
         {
-            switch (zoneType)
+            return RequireZoneCatalog().GetMutableRewardPool(zoneType);
+        }
+
+        private WheelZoneTypeCatalog RequireZoneCatalog()
+        {
+            if (_zoneCatalog == null)
             {
-                case ZoneType.Standard:
-                    return _standardRewards;
-                case ZoneType.Safe:
-                    return _safeRewards;
-                case ZoneType.Super:
-                    return _superRewards;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(zoneType), zoneType, "Unsupported zone type.");
+                throw new InvalidOperationException("WheelGameSettings requires InitializeRuntime before zone catalog access.");
             }
+
+            return _zoneCatalog;
         }
     }
 }

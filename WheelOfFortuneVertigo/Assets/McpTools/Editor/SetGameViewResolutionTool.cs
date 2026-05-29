@@ -16,19 +16,13 @@ namespace Vertigo.Wheel.McpTools
     {
         public static object HandleCommand(JObject @params)
         {
-            if (@params == null)
-            {
-                return new ErrorResponse("Parameters cannot be null.");
-            }
+            if (@params == null) return new ErrorResponse("Parameters cannot be null.");
 
             int width = @params["width"]?.ToObject<int>() ?? 0;
             int height = @params["height"]?.ToObject<int>() ?? 0;
             string label = @params["label"]?.ToString();
 
-            if (width <= 0 || height <= 0)
-            {
-                return new ErrorResponse("'width' and 'height' must be positive integers.");
-            }
+            if (width <= 0 || height <= 0) return new ErrorResponse("'width' and 'height' must be positive integers.");
 
             try
             {
@@ -57,27 +51,18 @@ namespace Vertigo.Wheel.McpTools
             Type gameViewSizeType = editorAssembly.GetType("UnityEditor.GameViewSize");
             Type gameViewSizeKindType = editorAssembly.GetType("UnityEditor.GameViewSizeType");
 
-            if (gameViewSizesType == null || gameViewSizeType == null || gameViewSizeKindType == null)
-            {
-                throw new InvalidOperationException("Unity GameViewSize reflection types were not found.");
-            }
+            if (gameViewSizesType == null || gameViewSizeType == null || gameViewSizeKindType == null) throw new InvalidOperationException("Unity GameViewSize reflection types were not found.");
 
             object sizesInstance = FindProperty(gameViewSizesType, "instance", BindingFlags.Static)
                 ?.GetValue(null);
-            if (sizesInstance == null)
-            {
-                throw new InvalidOperationException("Unity GameViewSizes instance was not available.");
-            }
+            if (sizesInstance == null) throw new InvalidOperationException("Unity GameViewSizes instance was not available.");
 
             MethodInfo getGroup = gameViewSizesType.GetMethod(
                 "GetGroup",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             GameViewSizeGroupType groupType = CurrentGameViewSizeGroup();
             object group = getGroup?.Invoke(sizesInstance, new object[] { groupType });
-            if (group == null)
-            {
-                throw new InvalidOperationException($"{groupType} Game View size group was not available.");
-            }
+            if (group == null) throw new InvalidOperationException($"{groupType} Game View size group was not available.");
 
             int existingIndex = FindExistingSizeIndex(group, width, height);
             if (existingIndex < 0)
@@ -96,10 +81,7 @@ namespace Vertigo.Wheel.McpTools
                 existingIndex = FindExistingSizeIndex(group, width, height);
             }
 
-            if (existingIndex < 0)
-            {
-                throw new InvalidOperationException($"Could not create or find Game View size {width}x{height}.");
-            }
+            if (existingIndex < 0) throw new InvalidOperationException($"Could not create or find Game View size {width}x{height}.");
 
             Type gameViewType = editorAssembly.GetType("UnityEditor.GameView");
             EditorWindow gameView = EditorWindow.GetWindow(gameViewType);
@@ -123,10 +105,7 @@ namespace Vertigo.Wheel.McpTools
             MethodInfo getGameViewSize = group.GetType().GetMethod(
                 "GetGameViewSize",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (getTotalCount == null || getGameViewSize == null)
-            {
-                throw new InvalidOperationException("Game View size group reflection methods were not found.");
-            }
+            if (getTotalCount == null || getGameViewSize == null) throw new InvalidOperationException("Game View size group reflection methods were not found.");
 
             int total = Convert.ToInt32(getTotalCount.Invoke(group, null));
             for (int i = 0; i < total; i++)
@@ -134,10 +113,7 @@ namespace Vertigo.Wheel.McpTools
                 object size = getGameViewSize.Invoke(group, new object[] { i });
                 int candidateWidth = ReadInt(size, "width");
                 int candidateHeight = ReadInt(size, "height");
-                if (candidateWidth == width && candidateHeight == height)
-                {
-                    return i;
-                }
+                if (candidateWidth == width && candidateHeight == height) return i;
             }
 
             return -1;
@@ -149,10 +125,7 @@ namespace Vertigo.Wheel.McpTools
             for (Type current = type; current != null; current = current.BaseType)
             {
                 PropertyInfo property = current.GetProperty(name, flags);
-                if (property != null)
-                {
-                    return property;
-                }
+                if (property != null) return property;
             }
 
             return null;
@@ -160,19 +133,13 @@ namespace Vertigo.Wheel.McpTools
 
         private static int ReadInt(object source, string memberName)
         {
-            if (source == null)
-            {
-                return 0;
-            }
+            if (source == null) return 0;
 
             Type type = source.GetType();
             PropertyInfo property = type.GetProperty(
                 memberName,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (property != null)
-            {
-                return Convert.ToInt32(property.GetValue(source));
-            }
+            if (property != null) return Convert.ToInt32(property.GetValue(source));
 
             FieldInfo field = type.GetField(
                 memberName,
@@ -203,10 +170,7 @@ namespace Vertigo.Wheel.McpTools
         private static void FocusGameView()
         {
             Type gameViewType = typeof(EditorWindow).Assembly.GetType("UnityEditor.GameView");
-            if (gameViewType == null)
-            {
-                return;
-            }
+            if (gameViewType == null) return;
 
             EditorWindow.GetWindow(gameViewType).Focus();
         }

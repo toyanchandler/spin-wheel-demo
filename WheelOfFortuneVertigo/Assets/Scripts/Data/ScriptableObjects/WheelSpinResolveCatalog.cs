@@ -7,10 +7,7 @@ namespace Vertigo.Wheel.Data
     {
         [SerializeField] private WheelSpinResolveProfile[] _profilesByOutcome = CreateDefaultProfiles();
 
-        public WheelSpinResolveProfile GetProfile(bool isBomb)
-        {
-            return _profilesByOutcome[isBomb ? 1 : 0];
-        }
+        public WheelSpinResolveProfile GetProfile(bool isBomb) => _profilesByOutcome[isBomb ? 1 : 0];
 
         public void ResetToDefaults()
         {

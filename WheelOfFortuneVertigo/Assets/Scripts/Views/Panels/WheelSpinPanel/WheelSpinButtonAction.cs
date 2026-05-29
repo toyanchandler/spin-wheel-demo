@@ -1,49 +1,28 @@
-using DG.Tweening;
-using UnityEngine;
+using UnityEngine.UI;
 using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
     public sealed class WheelSpinButtonAction : WheelButtonAction
     {
-        protected override bool ShouldPlayIdlePulse { get { return true; } }
+        protected override bool ShouldPlayIdlePulse => true;
 
-        protected override bool IsInteractable(WheelHudSnapshot snapshot)
-        {
-            return snapshot.Actions.CanSpin;
-        }
+        protected override bool IsInteractable(WheelHudSnapshot snapshot) => snapshot.Actions.CanSpin;
 
-        protected override string ResolveLabel(WheelHudSnapshot snapshot)
-        {
-            return snapshot.Actions.SpinButtonLabel;
-        }
+        protected override string ResolveLabel(WheelHudSnapshot snapshot) => snapshot.Actions.SpinButtonLabel;
 
         protected override void Execute()
         {
-            EventBus.RequestSpin();
+            UiIntents.RequestSpin();
         }
 
         protected override void PlayClickFeedback()
         {
             base.PlayClickFeedback();
-            if (Button == null || Button.image == null)
+            if (Button.image != null)
             {
-                return;
+                WheelButtonFeedbackAnimator.PlayImageGlow(Button.image, this);
             }
-
-            ImageGlowPulse(Button.image);
-        }
-
-        private void ImageGlowPulse(UnityEngine.UI.Image image)
-        {
-            image.DOKill();
-            Color baseColor = image.color;
-            DOTween.Sequence()
-                .SetTarget(image)
-                .SetUpdate(true)
-                .SetLink(gameObject, LinkBehaviour.KillOnDisable)
-                .Append(image.DOColor(new Color(0.88f, 1f, 1f, 1f), 0.11f).SetEase(Ease.OutQuad))
-                .Append(image.DOColor(baseColor, 0.18f).SetEase(Ease.OutCubic));
         }
     }
 }

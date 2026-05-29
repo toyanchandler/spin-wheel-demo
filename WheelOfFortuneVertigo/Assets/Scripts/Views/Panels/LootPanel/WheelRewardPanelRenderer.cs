@@ -53,10 +53,7 @@ namespace Vertigo.Wheel.Views
             {
                 bool isNewSlot = i >= oldCount;
                 bool amountChanged = !isNewSlot && i == changedIndex;
-                if (isNewSlot || amountChanged)
-                {
-                    _cardViews[i].PlayLandingPulse(WheelRewardPanelMotion.LandingPulseDelay(i));
-                }
+                if (isNewSlot || amountChanged) _cardViews[i].PlayLandingPulse(WheelRewardPanelMotion.LandingPulseDelay(i));
             }
         }
     }

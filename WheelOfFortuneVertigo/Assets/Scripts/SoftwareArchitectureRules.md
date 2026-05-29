@@ -11,6 +11,8 @@ Related deep dives:
 - `Data/DATA_DEFINITIONS.md` — DTO encapsulation detail
 - `Collections/README.md` — `[CollectChildren]` tooling detail
 - `README.md` — folder map
+- `ARCHITECTURE_AND_LOGIC.md` — layers, phase model, player journeys, publish matrix
+- `CODE_READABILITY.md` — short index and file naming
 
 ---
 
@@ -52,11 +54,11 @@ Assets/Scripts/Views/       → Scene UI components, panel collaborators, wheel 
 | `Diagnostics/` | `Vertigo.Wheel.Diagnostics` | Development/performance overlays and metric snapshots |
 | `Runtime/Bootstrap/` | `Vertigo.Wheel.Runtime` | Composition root, config source, runtime locator |
 | `Runtime/DI/` | `Vertigo.Wheel.Runtime` | `WheelViewScope`, same-scope container, injection attributes, lifecycle invocation |
-| `Runtime/Events/` | `Vertigo.Wheel.Runtime` | `WheelEventBus` and intent/snapshot event surface |
 | `Runtime/Flow/` | `Vertigo.Wheel.Runtime` | Spin/leave/restart flow controller |
-| `Runtime/Game/` | `Vertigo.Wheel.Runtime` | Mutable session state, reward inventory, spin result |
-| `Runtime/Publishing/` | `Vertigo.Wheel.Runtime` | Snapshot structs and `WheelStatePublisher` |
-| `Runtime/Spin/` | `Vertigo.Wheel.Runtime` | Wheel spin animation component |
+| `Runtime/Game/` | `Vertigo.Wheel.Runtime` | `WheelGameState`, `WheelSpinResolvePipeline`, reward inventory |
+| `Runtime/Events/` | `Vertigo.Wheel.Runtime` | `WheelEventBus` + `IWheelUiIntent*` / `IWheelSnapshot*` capability interfaces |
+| `Runtime/Publishing/` | `Vertigo.Wheel.Runtime` | Snapshot structs, `WheelSnapshotFactory`, `*SnapshotBuilder`, `WheelStatePublisher` |
+| `Runtime/Spin/` | `Vertigo.Wheel.Runtime` | `IWheelSpinDriver`, `WheelSpinner`, `WheelSpinAnglePlanner` (pure angle math) |
 
 ### 2.2 View folders
 
@@ -179,35 +181,35 @@ Large authored UI surfaces should split scene references from runtime orchestrat
 | Class shape | Responsibility |
 |-------------|----------------|
 | `*View` | `[WheelBind]` lifecycle, event subscription, snapshot orchestration, public intent/landing APIs |
-| `*Bindings` | Serialized authored references, validation, listener hookup, home-state capture, collaborator factories |
-| Leaf binding (`*CardBinding`, `*RootBinding`) | Prepare/clear the component's own transient state only |
+| `*Bindings` | One `[SerializeField]` wiring struct (or flat fields) on the panel root — validation + handle factory |
+| `*Handles` / `*SceneWiring` | Plain C# from wiring; tweens and transient UI state (no extra MonoBehaviours per child) |
+| Leaf `*CardBinding` (loot only) | Per-card transient state on pooled prefabs |
 | `*Animator` | Build DOTween timelines from explicit bindings and named motion values |
 | `*Motion` / `*Config` | Named timing, alpha, scale, offset, and fallback values |
 | State/renderer/layout collaborators | Buffers, diffing, card rendering, scroll/layout math, landing-position math |
 
-Aggregate `*Bindings` components are injectable because `WheelViewContainer` registers every `MonoBehaviour` under the same `WheelViewScope`. They do **not** need `[WheelBind]` unless they have their own event lifecycle. In the normal case, `[WheelBind]` belongs on the controller `*View`, not on the aggregate binding holder.
+`*Bindings` sits on the **same GameObject** as `*View` and is referenced via `[SerializeField]` (not `WheelViewContainer.Resolve`). See `Views/SCENE_WIRING.md`.
+
+Do **not** add a separate `WheelOutcomePopupIconBinding` MonoBehaviour on each child only to hold a reference in the parent. Use flat wiring + `*Handles` instead.
 
 Correct pattern:
 
 ```csharp
-public sealed class WheelRewardOpeningBindings : MonoBehaviour
+public sealed class WheelOutcomePopupBindings : MonoBehaviour
 {
-    [SerializeField] private Button _previousButton;
-    [SerializeField] private Button _nextButton;
-
-    public void Validate() { /* fail loud */ }
-    internal WheelRewardOpeningScroller CreateScroller(Object target) { /* pass explicit refs */ }
+    [SerializeField] private WheelOutcomePopupSceneWiring _wiring;
+    public void Validate() => WheelOutcomePopupHandleSet.FromWiring(this, _wiring);
 }
 
 [WheelBind]
-public sealed class WheelRewardOpeningView : MonoBehaviour
+public sealed class WheelOutcomePopupView : MonoBehaviour
 {
+    [SerializeField] private WheelOutcomePopupBindings _bindings;
     [WheelInject] private WheelEventBus _eventBus;
-    [WheelInject] private WheelRewardOpeningBindings _bindings;
 }
 ```
 
-Do not mark an aggregate binding `[WheelBind]` just to make injection work. If injection fails with `No view binding for X`, the scene is missing that component under the same scope, or the scene serialization has not been migrated.
+Cross-panel needs use `eventBus.Presentation` channels, not `[WheelInject]` of another view type.
 
 ### 4.6 Baked component settings
 
@@ -291,10 +293,10 @@ Scene rebuild must also mark scene dirty before save.
 
 Holds for one play session:
 
-- `EventBus`, `Settings`, `State`, `Publisher`, `Spinner`
+- `EventBus`, `Settings`, `State`, `Publisher`, `Flow`, `Spinner` (registered by composition root; spinner may pre-register via `RegisterSpinner` in `Awake`)
 - `RuntimeReady` / `RuntimeStopped` signals for `WheelViewScope` instances
 
-Registration only from composition root / spinner `Awake`. Cleared on stop.
+`RegisterSession` runs from composition root before `NotifyRuntimeReady()`. Cleared on stop.
 
 ### 6.2 Lifecycle
 
@@ -303,7 +305,8 @@ CompositionRoot.Start
   → Register settings + gameplay
   → State.InitializeRuntime()
   → Publisher.Bind(bus), Flow.Bind(bus), Spinner.Bind(bus)
-  → NotifyRuntimeReady()  → view scopes inject lifecycle participants
+  → Locator.RegisterSession(bus, settings, state, publisher, spinner)
+  → Locator.NotifyRuntimeReady()  → view scopes inject lifecycle participants
   → State.Restart()
   → Publisher.PublishAll()
 
@@ -332,7 +335,7 @@ Views subscribe from `[WheelAfterInject]` and unsubscribe from `[WheelBeforeUnbi
 ### 7.2 Snapshot types (readonly structs)
 
 - `WheelHudSnapshot` — composed HUD snapshot (`Zone`, `Phase`, `BackgroundColor`, plus nested parts: `ZoneLabels`, `Milestones`, `StatusBar`, `Actions`, `ExitConfirmation`, `Rewards`). Views read nested parts directly.
-- `WheelZoneSnapshot` — slices, positions, skin tier, background
+- `WheelZoneSnapshot` — slices, skin tier, resolved wheel/indicator sprites, background
 - `WheelOutcomeSnapshot` — popup copy, colors, motion, icon
 
 Built only in `WheelSnapshotFactory` from `WheelGameState` + `WheelGameSettings` + catalogs.
@@ -449,6 +452,8 @@ Editor assembly must not become a second runtime.
 ---
 
 ## 10.1 Readability conventions
+
+See **`ARCHITECTURE_AND_LOGIC.md`** for layers, journeys, and publish rules. See **`CODE_READABILITY.md`** for file naming.
 
 Prefer direct conditionals over clever dispatch:
 

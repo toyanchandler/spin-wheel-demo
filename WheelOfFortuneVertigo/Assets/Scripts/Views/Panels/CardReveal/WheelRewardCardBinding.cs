@@ -19,14 +19,14 @@ namespace Vertigo.Wheel.Views
         private readonly Sprite _backArtSprite;
         private readonly Sprite _haloSprite;
 
-        public Image FrontImage { get { return _frontImage; } }
-        public Image BackImage { get { return _backImage; } }
-        public Image HaloImage { get { return _haloImage; } }
-        public Image IconImage { get { return _iconImage; } }
-        public TextMeshProUGUI TitleText { get { return _titleText; } }
-        public TextMeshProUGUI AmountText { get { return _amountText; } }
-        public CanvasGroup CanvasGroup { get { return _canvasGroup; } }
-        public Transform RootTransform { get { return _rootTransform; } }
+        public Image FrontImage => _frontImage;
+        public Image BackImage => _backImage;
+        public Image HaloImage => _haloImage;
+        public Image IconImage => _iconImage;
+        public TextMeshProUGUI TitleText => _titleText;
+        public TextMeshProUGUI AmountText => _amountText;
+        public CanvasGroup CanvasGroup => _canvasGroup;
+        public Transform RootTransform => _rootTransform;
 
         public WheelRewardCardBinding(
             Transform rootTransform,
@@ -57,35 +57,32 @@ namespace Vertigo.Wheel.Views
         public void ApplyFrames(Sprite cardFrameSprite)
         {
             Sprite frontSprite = _frontArtSprite != null ? _frontArtSprite : cardFrameSprite;
-            if (frontSprite != null)
-            {
-                _frontImage.sprite = frontSprite;
-            }
-
-            if (_backArtSprite != null)
-            {
-                _backImage.sprite = _backArtSprite;
-            }
-
-            if (_haloSprite != null)
-            {
-                _haloImage.sprite = _haloSprite;
-            }
-
+            if (frontSprite != null) _frontImage.sprite = frontSprite;
+            if (_backArtSprite != null) _backImage.sprite = _backArtSprite;
+            if (_haloSprite != null) _haloImage.sprite = _haloSprite;
         }
 
-        public void ApplyContent(RewardInventoryEntry entry, string defaultTitle)
+        public void ApplyContent(WheelRewardCardPresentation presentation)
         {
-            _iconImage.sprite = entry.Icon;
-            _iconImage.enabled = entry.Icon != null;
+            _iconImage.sprite = presentation.Icon;
+            _iconImage.enabled = presentation.Icon != null;
             _iconImage.color = Color.white;
+            _titleText.text = presentation.TitleText;
+            _titleText.enabled = true;
 
-            ApplyTitle(entry.DisplayName, defaultTitle);
+            if (!presentation.ShowAmountLabel)
+            {
+                _amountText.text = string.Empty;
+                _amountText.enabled = false;
+                return;
+            }
 
-            WheelRewardAmountLabel.Apply(_amountText, entry.Amount, ResolveAmountColor(entry.AccentColor));
+            _amountText.SetText(presentation.AmountText);
+            _amountText.color = presentation.AmountColor;
+            _amountText.enabled = true;
         }
 
-        public void PrepareReveal(RewardInventoryEntry entry, bool featured)
+        public void PrepareReveal(WheelRewardCardPresentation presentation, bool featured)
         {
             _canvasGroup.alpha = 0f;
             _rootTransform.localScale = featured ? WheelRewardCardMotion.FeaturedStartScale : WheelRewardCardMotion.StandardStartScale;
@@ -96,7 +93,7 @@ namespace Vertigo.Wheel.Views
             _frontImage.color = WheelUiGraphicUtility.WithAlpha(Color.white, 0f);
             _backImage.color = Color.white;
 
-            Color haloColor = Color.Lerp(Color.white, entry.AccentColor, WheelRewardCardMotion.HaloTintWeight);
+            Color haloColor = WheelRewardCardPresentationBuilder.ResolveHaloTint(presentation.AccentColor);
             haloColor.a = 0f;
             _haloImage.color = haloColor;
             _haloImage.enabled = true;
@@ -111,7 +108,7 @@ namespace Vertigo.Wheel.Views
 
         public void PrepareHaloTimeline(Color accentColor)
         {
-            Color haloColor = Color.Lerp(Color.white, accentColor, WheelRewardCardMotion.HaloTintWeight);
+            Color haloColor = WheelRewardCardPresentationBuilder.ResolveHaloTint(accentColor);
             haloColor.a = 0f;
             _haloImage.color = haloColor;
             _haloImage.rectTransform.localScale = WheelRewardCardMotion.HaloStartScale;
@@ -132,7 +129,7 @@ namespace Vertigo.Wheel.Views
             SetFrontContentAlpha(0f);
         }
 
-        public void ShowWithoutEntrance(bool featured, Color accentColor)
+        public void ShowWithoutEntrance(bool featured, WheelRewardCardPresentation presentation)
         {
             _rootTransform.localScale = Vector3.one;
             _rootTransform.localRotation = Quaternion.identity;
@@ -140,7 +137,7 @@ namespace Vertigo.Wheel.Views
             _backImage.color = WheelUiGraphicUtility.WithAlpha(Color.white, 0f);
             SetFrontContentAlpha(1f);
 
-            Color haloColor = Color.Lerp(Color.white, accentColor, WheelRewardCardMotion.HaloTintWeight);
+            Color haloColor = WheelRewardCardPresentationBuilder.ResolveHaloTint(presentation.AccentColor);
             haloColor.a = featured ? WheelRewardCardMotion.FeaturedHaloSettleAlpha : WheelRewardCardMotion.StandardHaloSettleAlpha;
             _haloImage.color = haloColor;
             _haloImage.rectTransform.localScale = featured ? WheelRewardCardMotion.HaloSettleScale : Vector3.one;
@@ -177,18 +174,5 @@ namespace Vertigo.Wheel.Views
             WheelUiGraphicUtility.SetTextAlpha(_amountText, alpha);
         }
 
-        private void ApplyTitle(string displayName, string defaultTitle)
-        {
-            string title = string.IsNullOrEmpty(displayName) ? defaultTitle : displayName;
-            _titleText.text = title.ToUpperInvariant();
-            _titleText.enabled = true;
-        }
-
-        private static Color ResolveAmountColor(Color accentColor)
-        {
-            Color color = Color.Lerp(Color.white, accentColor, WheelRewardCardMotion.HaloTintWeight);
-            color.a = 1f;
-            return color;
-        }
     }
 }

@@ -144,23 +144,32 @@ Scope unbind olurken çağrılır. Unsubscribe, tween kill, presenter reset bura
 
 ---
 
-## View → view bağımlılığı
+## View → view coordination (presentation registry)
 
-Aynı canvas scope'undaki başka bir view'a ihtiyaç varsa host'a değil, field inject kullan:
+Başka bir view'a ihtiyaç varsa **tip inject etme**. `WheelEventBus.Presentation` kullan:
+
+| Channel | Register (provider) | Call (consumer) |
+|---------|---------------------|-----------------|
+| `Presentation.Loot` | `WheelRewardPanelView` implements `IWheelLootFlightHandler` | Outcome popup via `Presentation.Loot.HoldForArrival()` etc. |
+| `Presentation.Spin` | Composition root registers driver; `WheelView` registers slice layout | Spinner + `WheelSkinView` read spin state |
 
 ```csharp
 [WheelBind]
 public sealed class WheelOutcomePopupView : MonoBehaviour
 {
+    [SerializeField] private WheelOutcomePopupBindings _bindings; // same GameObject only
     [WheelInject] private WheelEventBus _eventBus;
-    [WheelInject] private WheelRewardPanelView _rewardPanelView;
 
     [WheelAfterInject]
-    private void Connect() { /* _rewardPanelView kullan */ }
+    private void Connect()
+    {
+        _presenter = new WheelOutcomePopupPresenter(
+            _bindings.CreateRefs(_eventBus.Presentation.Loot, ...), this);
+    }
 }
 ```
 
-`WheelViewContainer.Resolve<T>()` scope içinde **tek** eşleşme bekler. Aynı tipten birden fazla component varsa (ör. 3× `WheelRestartButtonAction`) **Resolve kullanma** — her buton kendi `[WheelBind]` lifecycle'ı ile çalışır, birbirine referans vermez.
+`WheelViewContainer.Resolve<T>()` is for **optional** same-scope components — not for cross-view coupling. Multiple `WheelRestartButtonAction` instances never resolve each other.
 
 ---
 

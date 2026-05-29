@@ -10,8 +10,8 @@ namespace Vertigo.Wheel.Views
         private readonly CanvasGroup _canvasGroup;
         private readonly RectTransform _contentRoot;
 
-        public CanvasGroup CanvasGroup { get { return _canvasGroup; } }
-        public RectTransform ContentRoot { get { return _contentRoot; } }
+        public CanvasGroup CanvasGroup => _canvasGroup;
+        public RectTransform ContentRoot => _contentRoot;
 
         public WheelRewardOpeningRootBinding(
             GameObject root,

@@ -12,7 +12,7 @@ namespace Vertigo.Wheel.Views
 
         [WheelInject] private WheelEventBus _eventBus;
 
-        protected TextMeshProUGUI Text { get { return _text; } }
+        protected TextMeshProUGUI Text => _text;
 
         [WheelAfterInject]
         private void Connect()

@@ -15,18 +15,11 @@ namespace Vertigo.Wheel.Views
         public const float LandingSpreadPerBurst = 2f;
         public const float LandingVerticalJitter = 8f;
 
-        public static float LandingPulseDelay(int cardIndex)
-        {
-            return LandingPulseDelayStep * cardIndex;
-        }
+        public static float LandingPulseDelay(int cardIndex) => LandingPulseDelayStep * cardIndex;
 
         public static Vector3 LandingSpreadOffset(int burstIndex, int burstCount)
         {
-            if (burstCount <= 1)
-            {
-                return Vector3.zero;
-            }
-
+            if (burstCount <= 1) return Vector3.zero;
             float spread = Mathf.Min(LandingSpreadMaximum, LandingSpreadBase + (burstCount * LandingSpreadPerBurst));
             float offsetX = Mathf.Lerp(-spread, spread, burstIndex / Mathf.Max(1f, burstCount - 1f));
             float offsetY = Random.Range(-LandingVerticalJitter, LandingVerticalJitter);

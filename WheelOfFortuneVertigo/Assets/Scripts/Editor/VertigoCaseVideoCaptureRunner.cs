@@ -20,17 +20,13 @@ namespace Vertigo.Wheel.EditorTools
         private static Coroutine _activeRoutine;
 
         [MenuItem("Vertigo Case/Video Capture/Record All Case Videos", true)]
-        private static bool ValidateRecordAll()
-        {
-            return Application.isPlaying;
-        }
+        private static bool ValidateRecordAll() => Application.isPlaying;
 
         [MenuItem("Vertigo Case/Video Capture/Record All Case Videos")]
         private static void RecordAll()
         {
-            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
-            WheelStatePublisher publisher = root != null ? root.StatePublisher : null;
-            if (publisher == null)
+            WheelStatePublisher publisher = WheelRuntimeLocator.Publisher;
+            if (!WheelRuntimeLocator.IsReady || publisher == null)
             {
                 Debug.LogWarning("Video capture requires Play Mode with wheel runtime ready.");
                 return;
@@ -71,11 +67,15 @@ namespace Vertigo.Wheel.EditorTools
 
         private static IEnumerator RecordSpinBombDemo()
         {
-            WheelGameState state;
-            WheelStatePublisher publisher;
-            WheelGameSettings settings;
-            WheelSpinner spinner;
-            if (!TryGetRuntimeParts(out state, out publisher, out settings, out spinner))
+            if (!WheelRuntimeEditorSession.TryGet(out WheelGameplaySession session))
+            {
+                yield break;
+            }
+
+            WheelGameState state = session.State;
+            WheelStatePublisher publisher = session.Publisher;
+            WheelSpinner spinner = session.Spinner as WheelSpinner;
+            if (spinner == null)
             {
                 yield break;
             }
@@ -99,17 +99,15 @@ namespace Vertigo.Wheel.EditorTools
 
         private static IEnumerator RecordRewardCards()
         {
-            WheelGameState state;
-            WheelStatePublisher publisher;
-            WheelGameSettings settings;
-            WheelSpinner spinner;
-            if (!TryGetRuntimeParts(out state, out publisher, out settings, out spinner))
+            if (!WheelRuntimeEditorSession.TryGet(out WheelGameplaySession session))
             {
                 yield break;
             }
 
+            WheelGameState state = session.State;
+            WheelStatePublisher publisher = session.Publisher;
             state.Restart();
-            AddDebugRewards(state, settings, 15);
+            WheelEditorDebugRewards.FillInventory(state, session.Settings, 15, "video");
             state.CashOut();
             publisher.PublishHud();
             publisher.PublishOutcome(default(WheelSpinResult), false);
@@ -127,13 +125,11 @@ namespace Vertigo.Wheel.EditorTools
             publisher.PublishZone();
             state.BeginSpin();
             publisher.PublishHud();
-            spinner.AcceptSlicesFrom(state);
+            WheelSliceDefinition[] slices = state.CreateSliceSnapshot();
+            spinner.AcceptSlices(slices, slices.Length);
 
             int sliceIndex = bomb ? state.FindFirstSliceIndex(true) : state.FindFirstSliceIndex(false);
-            if (sliceIndex < 0)
-            {
-                sliceIndex = 0;
-            }
+            if (sliceIndex < 0) sliceIndex = 0;
 
             spinner.Spin(sliceIndex);
         }
@@ -172,97 +168,9 @@ namespace Vertigo.Wheel.EditorTools
             ScreenCapture.CaptureScreenshot(path);
         }
 
-        private static bool TryGetRuntimeParts(
-            out WheelGameState state,
-            out WheelStatePublisher publisher,
-            out WheelGameSettings settings,
-            out WheelSpinner spinner)
-        {
-            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
-            state = root != null ? root.GameState : null;
-            publisher = root != null ? root.StatePublisher : null;
-            settings = root != null ? root.GameSettings : null;
-            spinner = root != null ? root.Spinner : null;
-            if (root != null && root.IsRunning && state != null && publisher != null && settings != null && spinner != null)
-            {
-                return true;
-            }
-
-            Debug.LogWarning("Wheel runtime is not ready for video capture.");
-            return false;
-        }
-
-        private static int AddDebugRewards(WheelGameState state, WheelGameSettings settings, int targetCount)
-        {
-            state.Inventory.Clear();
-
-            var rewardPool = new List<RewardDefinition>();
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Standard));
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Safe));
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Super));
-            if (rewardPool.Count == 0)
-            {
-                return 0;
-            }
-
-            int added = 0;
-            for (int i = 0; i < targetCount; i++)
-            {
-                RewardDefinition source = rewardPool[i % rewardPool.Count];
-                if (source == null || string.IsNullOrEmpty(source.Id))
-                {
-                    continue;
-                }
-
-                RewardDefinition reward = RewardDefinition.Create(
-                    source.Id + "_video_" + i,
-                    source.DisplayName,
-                    source.Icon,
-                    source.Amount,
-                    source.Tier,
-                    source.AccentColor,
-                    source.WheelIcon);
-                reward.CacheRuntimeText(settings.UiCopy.WinLabelFormat);
-
-                var slice = new WheelSliceDefinition();
-                slice.ApplySlot(
-                    false,
-                    reward,
-                    reward.WheelIcon,
-                    reward.Amount,
-                    reward.AccentColor,
-                    reward.Label,
-                    true);
-
-                state.Inventory.Add(new WheelSpinResult(added, slice), settings.UiCopy.InventoryFallbackRewardName);
-                added++;
-            }
-
-            return added;
-        }
-
-        private static void AddRewardsToPool(List<RewardDefinition> target, IReadOnlyList<RewardDefinition> source)
-        {
-            if (source == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < source.Count; i++)
-            {
-                if (source[i] != null)
-                {
-                    target.Add(source[i]);
-                }
-            }
-        }
-
         private static void ResetDirectory(string path)
         {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, true);
-            }
+            if (Directory.Exists(path)) Directory.Delete(path, true);
 
             Directory.CreateDirectory(path);
         }

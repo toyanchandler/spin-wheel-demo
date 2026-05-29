@@ -1,4 +1,3 @@
-using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -31,25 +30,46 @@ namespace Vertigo.Wheel.Views
             _binding.ApplyFrames(cardFrameSprite);
         }
 
-        public void Apply(RewardInventoryEntry entry, int displayIndex, bool featured, string defaultTitle)
+        public void Apply(
+            RewardInventoryEntry entry,
+            int displayIndex,
+            bool featured,
+            string defaultTitle)
         {
             Apply(entry, displayIndex, displayIndex + 1, featured, true, defaultTitle);
         }
 
-        public void Apply(RewardInventoryEntry entry, int displayIndex, int visibleCardCount, bool featured, bool animated, string defaultTitle)
+        public void Apply(
+            RewardInventoryEntry entry,
+            int displayIndex,
+            int visibleCardCount,
+            bool featured,
+            bool animated,
+            string defaultTitle)
+        {
+            WheelRewardCardPresentation presentation = WheelRewardCardPresentationBuilder.Create(entry, defaultTitle);
+            Apply(presentation, displayIndex, visibleCardCount, featured, animated);
+        }
+
+        public void Apply(
+            WheelRewardCardPresentation presentation,
+            int displayIndex,
+            int visibleCardCount,
+            bool featured,
+            bool animated)
         {
             EnsureBinding();
-            _binding.ApplyContent(entry, defaultTitle);
+            _binding.ApplyContent(presentation);
             gameObject.SetActive(true);
 
             if (animated)
             {
-                _binding.PrepareReveal(entry, featured);
-                WheelRewardCardAnimator.PlayFlipReveal(this, _binding, displayIndex, visibleCardCount, featured, entry.AccentColor);
+                _binding.PrepareReveal(presentation, featured);
+                WheelRewardCardAnimator.PlayFlipReveal(this, _binding, displayIndex, visibleCardCount, featured, presentation.AccentColor);
                 return;
             }
 
-            _binding.ShowWithoutEntrance(featured, entry.AccentColor);
+            _binding.ShowWithoutEntrance(featured, presentation);
         }
 
         public void Hide()
@@ -76,29 +96,20 @@ namespace Vertigo.Wheel.Views
         private void OnDisable()
         {
             KillTweens();
-            if (_binding != null)
-            {
-                _binding.ResetTransientVfx();
-            }
+            _binding?.ResetTransientVfx();
         }
 
         private void EnsureBinding()
         {
-            if (_binding != null)
-            {
-                return;
-            }
+            if (_binding != null) return;
 
-            if (_frontImage == null ||
-                _backImage == null ||
-                _haloImage == null ||
-                _iconImage == null ||
-                _titleText == null ||
-                _amountText == null ||
-                _canvasGroup == null)
-            {
-                throw new InvalidOperationException(name + " reward opening card prefab has missing serialized references.");
-            }
+            WheelWiringValidation.Require(name, "reward opening card prefab", _frontImage, nameof(_frontImage));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _backImage, nameof(_backImage));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _haloImage, nameof(_haloImage));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _iconImage, nameof(_iconImage));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _titleText, nameof(_titleText));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _amountText, nameof(_amountText));
+            WheelWiringValidation.Require(name, "reward opening card prefab", _canvasGroup, nameof(_canvasGroup));
 
             _binding = new WheelRewardCardBinding(
                 transform,
@@ -116,7 +127,7 @@ namespace Vertigo.Wheel.Views
 
         private void KillTweens()
         {
-            transform.DOKill();
+            DOTween.Kill(transform);
             DOTween.Kill(this);
         }
     }

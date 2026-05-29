@@ -52,11 +52,7 @@ namespace Vertigo.Wheel.Diagnostics
         public void StartRecorders()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (_running)
-            {
-                return;
-            }
-
+            if (_running) return;
             _mainThreadTime = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 15);
             _renderThreadTime = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Render Thread", 15);
             _gcAllocatedInFrame = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame", 15);
@@ -68,11 +64,7 @@ namespace Vertigo.Wheel.Diagnostics
         public void StopRecorders()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (!_running)
-            {
-                return;
-            }
-
+            if (!_running) return;
             DisposeRecorder(ref _mainThreadTime);
             DisposeRecorder(ref _renderThreadTime);
             DisposeRecorder(ref _gcAllocatedInFrame);
@@ -102,32 +94,18 @@ namespace Vertigo.Wheel.Diagnostics
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private static void DisposeRecorder(ref ProfilerRecorder recorder)
         {
-            if (recorder.Valid)
-            {
-                recorder.Dispose();
-            }
+            if (recorder.Valid) recorder.Dispose();
         }
 
         private static float RecorderAverage(ProfilerRecorder recorder)
         {
-            if (!recorder.Valid || recorder.Count == 0)
-            {
-                return 0f;
-            }
-
+            if (!recorder.Valid || recorder.Count == 0) return 0f;
             double total = 0d;
-            for (int i = 0; i < recorder.Count; i++)
-            {
-                total += recorder.GetSample(i).Value;
-            }
-
+            for (int i = 0; i < recorder.Count; i++) total += recorder.GetSample(i).Value;
             return (float)(total / recorder.Count);
         }
 
-        private static long LastValue(ProfilerRecorder recorder)
-        {
-            return recorder.Valid ? recorder.LastValue : 0L;
-        }
+        private static long LastValue(ProfilerRecorder recorder) => recorder.Valid ? recorder.LastValue : 0L;
 #endif
     }
 }

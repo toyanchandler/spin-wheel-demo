@@ -47,10 +47,7 @@ namespace Vertigo.Wheel.EditorTools
             EditorGUILayout.Space(8f);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Open Wheel Designer", GUILayout.Height(30f)))
-                {
-                    VertigoWheelDesignerWindow.Open();
-                }
+                if (GUILayout.Button("Open Wheel Designer", GUILayout.Height(30f))) VertigoWheelDesignerWindow.Open();
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -84,15 +81,9 @@ namespace Vertigo.Wheel.EditorTools
             }
         }
 
-        private int RewardCount()
-        {
-            return ArraySize(_standardRewards) + ArraySize(_safeRewards) + ArraySize(_superRewards);
-        }
+        private int RewardCount() => ArraySize(_standardRewards) + ArraySize(_safeRewards) + ArraySize(_superRewards);
 
-        private static int ArraySize(SerializedProperty property)
-        {
-            return property == null || !property.isArray ? 0 : property.arraySize;
-        }
+        private static int ArraySize(SerializedProperty property) => property == null || !property.isArray ? 0 : property.arraySize;
 
         private void EnsureCatalogReferences()
         {

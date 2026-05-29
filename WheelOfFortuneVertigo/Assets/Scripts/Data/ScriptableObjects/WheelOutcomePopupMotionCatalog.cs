@@ -7,7 +7,7 @@ namespace Vertigo.Wheel.Data
     {
         [SerializeField] private WheelOutcomePopupMotion _motion = WheelOutcomePopupMotion.Default();
 
-        public WheelOutcomePopupMotion Motion { get { return _motion; } }
+        public WheelOutcomePopupMotion Motion => _motion;
 
         public void ResetToDefaults()
         {

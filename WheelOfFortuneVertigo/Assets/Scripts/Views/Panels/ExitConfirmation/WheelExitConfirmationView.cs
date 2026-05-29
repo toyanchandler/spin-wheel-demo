@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 using Vertigo.Wheel.Runtime;
@@ -7,8 +8,11 @@ namespace Vertigo.Wheel.Views
     [WheelBind]
     public sealed class WheelExitConfirmationView : MonoBehaviour
     {
-        [WheelInject] private WheelEventBus _eventBus;
-        [WheelInject] private WheelExitConfirmationBindings _bindings;
+        [SerializeField] private WheelExitConfirmationBindings _bindings;
+
+        [WheelInject] private IWheelUiIntentPublisher _uiIntents;
+        [WheelInject] private IWheelUiIntentSubscriber _uiIntentEvents;
+        [WheelInject] private IWheelSnapshotSubscriber _snapshots;
 
         private Sequence _sequence;
 
@@ -16,8 +20,8 @@ namespace Vertigo.Wheel.Views
         private void Connect()
         {
             ValidateWiring();
-            _eventBus.LeaveConfirmationRequested += Show;
-            _eventBus.HudStateChanged += OnHudStateChanged;
+            _uiIntentEvents.LeaveConfirmationRequested += Show;
+            _snapshots.HudStateChanged += OnHudStateChanged;
             _bindings.AddButtonListeners(CollectRewards, ComeBack);
             HideImmediate();
         }
@@ -25,8 +29,8 @@ namespace Vertigo.Wheel.Views
         [WheelBeforeUnbind]
         private void Disconnect()
         {
-            _eventBus.LeaveConfirmationRequested -= Show;
-            _eventBus.HudStateChanged -= OnHudStateChanged;
+            _uiIntentEvents.LeaveConfirmationRequested -= Show;
+            _snapshots.HudStateChanged -= OnHudStateChanged;
             _bindings.RemoveButtonListeners(CollectRewards, ComeBack);
             KillSequence();
         }
@@ -34,28 +38,13 @@ namespace Vertigo.Wheel.Views
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             _bindings.ApplyCopy(snapshot);
-            if (_bindings.IsVisible && !snapshot.Actions.CanLeave)
-            {
-                HideImmediate();
-            }
+            if (_bindings.IsVisible && !snapshot.Actions.CanLeave) HideImmediate();
         }
 
         private void Show()
         {
             KillSequence();
-            _sequence = _bindings.Show();
-        }
-
-        private void ComeBack()
-        {
-            KillSequence();
-            _sequence = _bindings.HideAnimated(HideImmediate);
-        }
-
-        private void CollectRewards()
-        {
-            HideImmediate();
-            _eventBus.RequestLeave();
+            _sequence = WheelExitConfirmationAnimator.PlayShow(_bindings).SetTarget(this);
         }
 
         private void HideImmediate()
@@ -64,29 +53,36 @@ namespace Vertigo.Wheel.Views
             _bindings.HideImmediate();
         }
 
-        private void OnDisable()
+        private void CollectRewards()
         {
-            KillSequence();
+            _uiIntents.RequestLeave();
         }
 
-        private void ValidateWiring()
+        private void ComeBack()
         {
-            if (_eventBus == null || _bindings == null)
-            {
-                throw new System.InvalidOperationException(
-                    name + " exit confirmation dependencies are incomplete. Add WheelExitConfirmationBindings to the overlay.");
-            }
-
-            _bindings.Validate();
+            HideImmediate();
         }
 
         private void KillSequence()
         {
-            if (_sequence != null)
+            WheelUiTweenUtility.Kill(ref _sequence);
+        }
+
+        private void ValidateWiring()
+        {
+            if (_uiIntents == null || _uiIntentEvents == null || _snapshots == null)
             {
-                _sequence.Kill();
-                _sequence = null;
+                throw new InvalidOperationException(name + " requires bound event bus capability interfaces.");
             }
+
+            _bindings ??= GetComponent<WheelExitConfirmationBindings>();
+            if (_bindings == null)
+            {
+                throw new InvalidOperationException(
+                    name + " exit confirmation dependencies are incomplete. Add WheelExitConfirmationBindings on the same GameObject.");
+            }
+
+            _bindings.Validate();
         }
     }
 }

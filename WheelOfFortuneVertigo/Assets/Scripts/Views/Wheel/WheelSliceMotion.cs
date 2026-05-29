@@ -26,9 +26,6 @@ namespace Vertigo.Wheel.Views
         public const float RewardSecondDuration = 0.11f;
         public const float RewardSettleDuration = 0.18f;
 
-        public static Vector3 UniformScale(float value)
-        {
-            return new Vector3(value, value, 1f);
-        }
+        public static Vector3 UniformScale(float value) => new Vector3(value, value, 1f);
     }
 }

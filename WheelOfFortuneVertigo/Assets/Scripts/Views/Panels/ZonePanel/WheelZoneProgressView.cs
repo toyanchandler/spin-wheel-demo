@@ -15,6 +15,9 @@ namespace Vertigo.Wheel.Views
 
         [WheelInject] private WheelEventBus _eventBus;
 
+        private bool _hasSnapshot;
+        private WheelHudSnapshot _lastSnapshot;
+
         [WheelAfterInject]
         private void Connect()
         {
@@ -24,27 +27,22 @@ namespace Vertigo.Wheel.Views
 
         public void RefreshResponsiveLayout()
         {
+            if (!_hasSnapshot) return;
+            ApplySnapshot(_lastSnapshot);
         }
 
         [WheelBeforeUnbind]
         private void Disconnect()
         {
-            if (_eventBus == null)
-            {
-                return;
-            }
-
+            if (_eventBus == null) return;
             _eventBus.HudStateChanged -= OnHudStateChanged;
+            _hasSnapshot = false;
         }
 
         private void ValidateWiring()
         {
-            if (_cells == null || _cells.Length == 0)
-            {
-                throw new InvalidOperationException(
+            if (_cells == null || _cells.Length == 0) throw new InvalidOperationException(
                     name + " has no zone progress cells. Collect children in the inspector.");
-            }
-
             for (int i = 0; i < _cells.Length; i++)
             {
                 if (_cells[i] == null || !_cells[i].IsWired())
@@ -57,11 +55,20 @@ namespace Vertigo.Wheel.Views
 
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
+            _lastSnapshot = snapshot;
+            _hasSnapshot = true;
+            ApplySnapshot(snapshot);
+        }
+
+        private void ApplySnapshot(WheelHudSnapshot snapshot)
+        {
             WheelZoneProgressWindow window = new WheelZoneProgressWindow(snapshot, _cells.Length);
 
             for (int i = 0; i < _cells.Length; i++)
             {
-                _cells[i].Apply(window, i);
+                WheelZoneProgressCellPresentation presentation =
+                    WheelZoneProgressPresentationBuilder.Build(snapshot, window.WindowStart, i);
+                _cells[i].Apply(presentation);
             }
         }
     }

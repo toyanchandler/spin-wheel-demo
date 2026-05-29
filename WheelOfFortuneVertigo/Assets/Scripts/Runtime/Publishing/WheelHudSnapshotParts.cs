@@ -20,6 +20,8 @@ namespace Vertigo.Wheel.Runtime
     {
         public readonly int SafeZoneInterval;
         public readonly int SuperZoneInterval;
+        public readonly int DisplaySafeZoneInterval;
+        public readonly int DisplaySuperZoneInterval;
         public readonly int NextSafeZone;
         public readonly int NextSuperZone;
         public readonly string SafeMilestoneBadgeText;
@@ -30,6 +32,8 @@ namespace Vertigo.Wheel.Runtime
         public WheelHudMilestoneSnapshot(
             int safeZoneInterval,
             int superZoneInterval,
+            int displaySafeZoneInterval,
+            int displaySuperZoneInterval,
             int nextSafeZone,
             int nextSuperZone,
             string safeMilestoneBadgeText,
@@ -39,6 +43,8 @@ namespace Vertigo.Wheel.Runtime
         {
             SafeZoneInterval = safeZoneInterval;
             SuperZoneInterval = superZoneInterval;
+            DisplaySafeZoneInterval = displaySafeZoneInterval;
+            DisplaySuperZoneInterval = displaySuperZoneInterval;
             NextSafeZone = nextSafeZone;
             NextSuperZone = nextSuperZone;
             SafeMilestoneBadgeText = safeMilestoneBadgeText;
@@ -67,6 +73,8 @@ namespace Vertigo.Wheel.Runtime
         public readonly bool CanSpin;
         public readonly bool CanLeave;
         public readonly bool CanRestart;
+        public readonly bool ShowOutcomeRetryRestart;
+        public readonly bool ShowRewardOpeningRestart;
         public readonly bool IsOutcomePopupAllowed;
         public readonly string SpinButtonLabel;
         public readonly string LeaveButtonLabel;
@@ -76,6 +84,8 @@ namespace Vertigo.Wheel.Runtime
             bool canSpin,
             bool canLeave,
             bool canRestart,
+            bool showOutcomeRetryRestart,
+            bool showRewardOpeningRestart,
             bool isOutcomePopupAllowed,
             string spinButtonLabel,
             string leaveButtonLabel,
@@ -84,6 +94,8 @@ namespace Vertigo.Wheel.Runtime
             CanSpin = canSpin;
             CanLeave = canLeave;
             CanRestart = canRestart;
+            ShowOutcomeRetryRestart = showOutcomeRetryRestart;
+            ShowRewardOpeningRestart = showRewardOpeningRestart;
             IsOutcomePopupAllowed = isOutcomePopupAllowed;
             SpinButtonLabel = spinButtonLabel;
             LeaveButtonLabel = leaveButtonLabel;

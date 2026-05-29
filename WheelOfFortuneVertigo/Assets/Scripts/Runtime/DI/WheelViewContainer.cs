@@ -23,11 +23,7 @@ namespace Vertigo.Wheel.Runtime
 
         public void Register(Component component)
         {
-            if (component == null)
-            {
-                return;
-            }
-
+            if (component == null) return;
             Type type = component.GetType();
             while (type != null && type != typeof(MonoBehaviour) && type != typeof(Component))
             {
@@ -44,10 +40,7 @@ namespace Vertigo.Wheel.Runtime
         public object Resolve(Type type)
         {
             List<Component> matches = GetMatches(type);
-            if (matches.Count == 0)
-            {
-                throw new InvalidOperationException("No view binding for " + type.Name + ".");
-            }
+            if (matches.Count == 0) throw new InvalidOperationException("No view binding for " + type.Name + ".");
 
             if (matches.Count > 1)
             {
@@ -60,10 +53,7 @@ namespace Vertigo.Wheel.Runtime
 
         private List<Component> GetMatches(Type type)
         {
-            if (_bindings.TryGetValue(type, out List<Component> matches))
-            {
-                return matches;
-            }
+            if (_bindings.TryGetValue(type, out List<Component> matches)) return matches;
 
             return EmptyComponents;
         }
@@ -76,10 +66,7 @@ namespace Vertigo.Wheel.Runtime
                 _bindings[type] = list;
             }
 
-            if (list.Contains(component))
-            {
-                return;
-            }
+            if (list.Contains(component)) return;
 
             list.Add(component);
         }
@@ -99,10 +86,8 @@ namespace Vertigo.Wheel.Runtime
             for (int i = 0; i < behaviours.Length; i++)
             {
                 MonoBehaviour behaviour = behaviours[i];
-                if (IsBindable(behaviour.GetType()))
-                {
-                    bindables.Add(behaviour);
-                }
+                if (behaviour == null) continue;
+                if (IsBindable(behaviour.GetType())) bindables.Add(behaviour);
             }
 
             return bindables.ToArray();
@@ -112,10 +97,7 @@ namespace Vertigo.Wheel.Runtime
         {
             while (type != null && type != typeof(MonoBehaviour))
             {
-                if (type.GetCustomAttribute<WheelBindAttribute>(false) != null)
-                {
-                    return true;
-                }
+                if (type.GetCustomAttribute<WheelBindAttribute>(false) != null) return true;
 
                 type = type.BaseType;
             }

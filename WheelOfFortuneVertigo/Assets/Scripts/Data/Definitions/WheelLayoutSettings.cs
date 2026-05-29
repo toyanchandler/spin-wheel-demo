@@ -8,16 +8,13 @@ namespace Vertigo.Wheel.Data
     {
         [SerializeField] private Sprite _rewardCardFrameSprite;
 
-        public Sprite RewardCardFrameSprite { get { return _rewardCardFrameSprite; } }
+        public Sprite RewardCardFrameSprite => _rewardCardFrameSprite;
 
         public void BindRewardCardFrameSprite(Sprite rewardCardFrameSprite)
         {
             _rewardCardFrameSprite = rewardCardFrameSprite;
         }
 
-        public static WheelLayoutSettings Default()
-        {
-            return new WheelLayoutSettings();
-        }
+        public static WheelLayoutSettings Default() => new WheelLayoutSettings();
     }
 }

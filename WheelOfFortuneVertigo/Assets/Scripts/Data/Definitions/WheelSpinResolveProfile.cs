@@ -12,11 +12,11 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private bool _markSlicesDirty;
         [SerializeField] private bool _addResultToInventory;
 
-        public WheelGamePhase TargetPhase { get { return _targetPhase; } }
-        public bool ClearInventory { get { return _clearInventory; } }
-        public bool AdvanceZone { get { return _advanceZone; } }
-        public bool MarkSlicesDirty { get { return _markSlicesDirty; } }
-        public bool AddResultToInventory { get { return _addResultToInventory; } }
+        public WheelGamePhase TargetPhase => _targetPhase;
+        public bool ClearInventory => _clearInventory;
+        public bool AdvanceZone => _advanceZone;
+        public bool MarkSlicesDirty => _markSlicesDirty;
+        public bool AddResultToInventory => _addResultToInventory;
 
         public static WheelSpinResolveProfile Create(
             WheelGamePhase targetPhase,

@@ -21,11 +21,8 @@ namespace Vertigo.Wheel.Views
         public void SuppressSliceRewardVisual(int sliceIndex)
         {
             RestoreSuppressedSliceRewardVisual();
-            WheelSliceView sliceView = ResolveActiveSlice(sliceIndex);
-            if (sliceView == null)
-            {
-                return;
-            }
+            WheelSliceView sliceView = WheelSliceArrayLookup.GetActive(_sliceViews, sliceIndex);
+            if (sliceView == null) return;
 
             _suppressedRewardVisualSliceIndex = sliceIndex;
             sliceView.SetRewardVisualVisible(false);
@@ -45,18 +42,11 @@ namespace Vertigo.Wheel.Views
 
         public void RestoreSuppressedSliceRewardVisual()
         {
-            if (!TryGetSlice(_suppressedRewardVisualSliceIndex, out WheelSliceView sliceView))
-            {
-                _suppressedRewardVisualSliceIndex = -1;
-                return;
-            }
-
-            if (sliceView.gameObject.activeInHierarchy)
-            {
-                sliceView.SetRewardVisualVisible(true);
-            }
-
+            WheelSliceView sliceView = WheelSliceArrayLookup.Get(_sliceViews, _suppressedRewardVisualSliceIndex);
             _suppressedRewardVisualSliceIndex = -1;
+            if (sliceView == null) return;
+
+            if (sliceView.gameObject.activeInHierarchy) sliceView.SetRewardVisualVisible(true);
         }
 
         public void ApplySuppressedSliceRewardVisual()
@@ -67,21 +57,15 @@ namespace Vertigo.Wheel.Views
                 return;
             }
 
-            WheelSliceView sliceView = ResolveActiveSlice(_suppressedRewardVisualSliceIndex);
-            if (sliceView != null)
-            {
-                sliceView.SetRewardVisualVisible(false);
-            }
+            WheelSliceView sliceView = WheelSliceArrayLookup.GetActive(_sliceViews, _suppressedRewardVisualSliceIndex);
+            sliceView?.SetRewardVisualVisible(false);
         }
 
         public void HighlightLandedSlice(int sliceIndex, bool isBomb, Color accentColor)
         {
             ClearImpactHighlight();
-            WheelSliceView sliceView = ResolveActiveSlice(sliceIndex);
-            if (sliceView == null)
-            {
-                return;
-            }
+            WheelSliceView sliceView = WheelSliceArrayLookup.GetActive(_sliceViews, sliceIndex);
+            if (sliceView == null) return;
 
             _highlightedSliceIndex = sliceIndex;
             if (isBomb)
@@ -96,65 +80,31 @@ namespace Vertigo.Wheel.Views
 
         public void EnsureBombSliceHighlight(int sliceIndex)
         {
-            if (_highlightedSliceIndex == sliceIndex)
-            {
-                return;
-            }
+            if (_highlightedSliceIndex == sliceIndex) return;
 
             HighlightLandedSlice(sliceIndex, true, Color.white);
         }
 
         public void ClearImpactHighlight()
         {
-            if (!TryGetSlice(_highlightedSliceIndex, out WheelSliceView sliceView))
-            {
-                _highlightedSliceIndex = -1;
-                return;
-            }
+            WheelSliceView sliceView = WheelSliceArrayLookup.Get(_sliceViews, _highlightedSliceIndex);
+            _highlightedSliceIndex = -1;
+            if (sliceView == null) return;
 
             sliceView.ClearImpactVisual();
-            _highlightedSliceIndex = -1;
         }
 
         private void SetAllRewardVisualsVisible(bool isVisible)
         {
-            if (_sliceViews == null)
-            {
-                return;
-            }
+            if (_sliceViews == null) return;
 
             for (int i = 0; i < _sliceViews.Length; i++)
             {
                 WheelSliceView sliceView = _sliceViews[i];
-                if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
+                if (sliceView == null || !sliceView.gameObject.activeInHierarchy) continue;
 
                 sliceView.SetRewardVisualVisible(isVisible);
             }
-        }
-
-        private WheelSliceView ResolveActiveSlice(int sliceIndex)
-        {
-            if (!TryGetSlice(sliceIndex, out WheelSliceView sliceView) || !sliceView.gameObject.activeInHierarchy)
-            {
-                return null;
-            }
-
-            return sliceView;
-        }
-
-        private bool TryGetSlice(int sliceIndex, out WheelSliceView sliceView)
-        {
-            sliceView = null;
-            if (_sliceViews == null || sliceIndex < 0 || sliceIndex >= _sliceViews.Length)
-            {
-                return false;
-            }
-
-            sliceView = _sliceViews[sliceIndex];
-            return sliceView != null;
         }
     }
 }

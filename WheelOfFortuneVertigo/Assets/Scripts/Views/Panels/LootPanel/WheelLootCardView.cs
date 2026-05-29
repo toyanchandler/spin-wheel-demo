@@ -1,4 +1,3 @@
-using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -29,13 +28,19 @@ namespace Vertigo.Wheel.Views
 
         public void Apply(RewardInventoryEntry entry, int displayIndex, bool animated, string defaultTitle)
         {
+            WheelRewardCardPresentation presentation = WheelRewardCardPresentationBuilder.Create(entry, defaultTitle);
+            Apply(presentation, displayIndex, animated);
+        }
+
+        public void Apply(WheelRewardCardPresentation presentation, int displayIndex, bool animated)
+        {
             EnsureBinding();
-            _binding.ApplyContent(entry, defaultTitle);
+            _binding.ApplyContent(presentation);
             gameObject.SetActive(true);
 
             if (animated)
             {
-                _binding.PrepareEntrance(entry);
+                _binding.PrepareEntrance(presentation);
                 WheelLootCardAnimator.PlayEntrance(this, _binding, displayIndex);
                 return;
             }
@@ -67,30 +72,21 @@ namespace Vertigo.Wheel.Views
         private void OnDisable()
         {
             KillTweens();
-            if (_binding != null)
-            {
-                _binding.ResetTransientVfx();
-            }
+            _binding?.ResetTransientVfx();
         }
 
         private void EnsureBinding()
         {
-            if (_binding != null)
-            {
-                return;
-            }
+            if (_binding != null) return;
 
-            if (_shadowImage == null ||
-                _cardImage == null ||
-                _iconImage == null ||
-                _titleText == null ||
-                _amountText == null ||
-                _canvasGroup == null ||
-                _glowImage == null ||
-                _shineImage == null)
-            {
-                throw new InvalidOperationException(name + " loot card prefab has missing serialized references.");
-            }
+            WheelWiringValidation.Require(name, "loot card prefab", _shadowImage, nameof(_shadowImage));
+            WheelWiringValidation.Require(name, "loot card prefab", _cardImage, nameof(_cardImage));
+            WheelWiringValidation.Require(name, "loot card prefab", _iconImage, nameof(_iconImage));
+            WheelWiringValidation.Require(name, "loot card prefab", _titleText, nameof(_titleText));
+            WheelWiringValidation.Require(name, "loot card prefab", _amountText, nameof(_amountText));
+            WheelWiringValidation.Require(name, "loot card prefab", _canvasGroup, nameof(_canvasGroup));
+            WheelWiringValidation.Require(name, "loot card prefab", _glowImage, nameof(_glowImage));
+            WheelWiringValidation.Require(name, "loot card prefab", _shineImage, nameof(_shineImage));
 
             _binding = new WheelLootCardBinding(
                 transform,
@@ -107,7 +103,7 @@ namespace Vertigo.Wheel.Views
 
         private void KillTweens()
         {
-            transform.DOKill();
+            DOTween.Kill(transform);
             DOTween.Kill(this);
         }
     }

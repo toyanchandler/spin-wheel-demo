@@ -1,4 +1,3 @@
-using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -19,19 +18,21 @@ namespace Vertigo.Wheel.Views
         [SerializeField] private TextMeshProUGUI _collectButtonLabelText;
         [SerializeField] private TextMeshProUGUI _comeBackButtonLabelText;
 
-        public bool IsVisible { get { return _root.activeSelf; } }
+        public CanvasGroup CanvasGroup => _canvasGroup;
+        public RectTransform ContentRoot => _contentRoot;
+        public bool IsVisible => _root.activeSelf;
 
         public void Validate()
         {
-            WheelBindingValidation.Require(this, _root, nameof(_root), "exit confirmation");
-            WheelBindingValidation.Require(this, _canvasGroup, nameof(_canvasGroup), "exit confirmation");
-            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "exit confirmation");
-            WheelBindingValidation.Require(this, _titleText, nameof(_titleText), "exit confirmation");
-            WheelBindingValidation.Require(this, _bodyText, nameof(_bodyText), "exit confirmation");
-            WheelBindingValidation.Require(this, _collectButton, nameof(_collectButton), "exit confirmation");
-            WheelBindingValidation.Require(this, _comeBackButton, nameof(_comeBackButton), "exit confirmation");
-            WheelBindingValidation.Require(this, _collectButtonLabelText, nameof(_collectButtonLabelText), "exit confirmation");
-            WheelBindingValidation.Require(this, _comeBackButtonLabelText, nameof(_comeBackButtonLabelText), "exit confirmation");
+            WheelWiringValidation.Require(this, "exit confirmation", _root, nameof(_root));
+            WheelWiringValidation.Require(this, "exit confirmation", _canvasGroup, nameof(_canvasGroup));
+            WheelWiringValidation.Require(this, "exit confirmation", _contentRoot, nameof(_contentRoot));
+            WheelWiringValidation.Require(this, "exit confirmation", _titleText, nameof(_titleText));
+            WheelWiringValidation.Require(this, "exit confirmation", _bodyText, nameof(_bodyText));
+            WheelWiringValidation.Require(this, "exit confirmation", _collectButton, nameof(_collectButton));
+            WheelWiringValidation.Require(this, "exit confirmation", _comeBackButton, nameof(_comeBackButton));
+            WheelWiringValidation.Require(this, "exit confirmation", _collectButtonLabelText, nameof(_collectButtonLabelText));
+            WheelWiringValidation.Require(this, "exit confirmation", _comeBackButtonLabelText, nameof(_comeBackButtonLabelText));
         }
 
         public void AddButtonListeners(UnityAction collect, UnityAction comeBack)
@@ -55,29 +56,19 @@ namespace Vertigo.Wheel.Views
             _comeBackButtonLabelText.text = copy.ComeBackButtonLabel;
         }
 
-        public Sequence Show()
+        public void PrepareShow()
         {
             _root.SetActive(true);
             _canvasGroup.alpha = 0f;
             _canvasGroup.interactable = true;
             _canvasGroup.blocksRaycasts = true;
             _contentRoot.localScale = new Vector3(0.92f, 0.92f, 1f);
-
-            return DOTween.Sequence()
-                .SetUpdate(true)
-                .Append(_canvasGroup.DOFade(1f, 0.16f))
-                .Join(_contentRoot.DOScale(Vector3.one, 0.22f).SetEase(Ease.OutBack));
         }
 
-        public Sequence HideAnimated(TweenCallback onComplete)
+        public void PrepareHide()
         {
             _canvasGroup.interactable = false;
             _canvasGroup.blocksRaycasts = false;
-            return DOTween.Sequence()
-                .SetUpdate(true)
-                .Append(_canvasGroup.DOFade(0f, 0.12f))
-                .Join(_contentRoot.DOScale(new Vector3(0.96f, 0.96f, 1f), 0.12f).SetEase(Ease.OutQuad))
-                .OnComplete(onComplete);
         }
 
         public void HideImmediate()

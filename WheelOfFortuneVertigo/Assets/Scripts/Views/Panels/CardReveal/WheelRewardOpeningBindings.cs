@@ -27,25 +27,22 @@ namespace Vertigo.Wheel.Views
         [CollectChildren(nameof(_cardPoolRoot))]
         [SerializeField] private WheelRewardCardView[] _rewardCards = Array.Empty<WheelRewardCardView>();
 
-        public int CardCount { get { return _rewardCards == null ? 0 : _rewardCards.Length; } }
+        public int CardCount => _rewardCards == null ? 0 : _rewardCards.Length;
 
         public void Validate()
         {
-            WheelBindingValidation.Require(this, _root, nameof(_root), "opening");
-            WheelBindingValidation.Require(this, _titleText, nameof(_titleText), "opening");
-            WheelBindingValidation.Require(this, _canvasGroup, nameof(_canvasGroup), "opening");
-            WheelBindingValidation.Require(this, _contentRoot, nameof(_contentRoot), "opening");
-            WheelBindingValidation.Require(this, _cardPoolRoot, nameof(_cardPoolRoot), "opening");
-            WheelBindingValidation.Require(this, _viewportRect, nameof(_viewportRect), "opening");
-            WheelBindingValidation.Require(this, _contentRect, nameof(_contentRect), "opening");
-            WheelBindingValidation.Require(this, _scrollRect, nameof(_scrollRect), "opening");
-            WheelBindingValidation.Require(this, _previousButton, nameof(_previousButton), "opening");
-            WheelBindingValidation.Require(this, _nextButton, nameof(_nextButton), "opening");
+            WheelWiringValidation.Require(this, "opening", _root, nameof(_root));
+            WheelWiringValidation.Require(this, "opening", _titleText, nameof(_titleText));
+            WheelWiringValidation.Require(this, "opening", _canvasGroup, nameof(_canvasGroup));
+            WheelWiringValidation.Require(this, "opening", _contentRoot, nameof(_contentRoot));
+            WheelWiringValidation.Require(this, "opening", _cardPoolRoot, nameof(_cardPoolRoot));
+            WheelWiringValidation.Require(this, "opening", _viewportRect, nameof(_viewportRect));
+            WheelWiringValidation.Require(this, "opening", _contentRect, nameof(_contentRect));
+            WheelWiringValidation.Require(this, "opening", _scrollRect, nameof(_scrollRect));
+            WheelWiringValidation.Require(this, "opening", _previousButton, nameof(_previousButton));
+            WheelWiringValidation.Require(this, "opening", _nextButton, nameof(_nextButton));
 
-            if (_rewardCards == null || _rewardCards.Length == 0)
-            {
-                throw new InvalidOperationException(name + " requires baked reward card views.");
-            }
+            if (_rewardCards == null || _rewardCards.Length == 0) throw new InvalidOperationException(name + " requires baked reward card views.");
         }
 
         public void AddNavigationListeners(UnityAction previous, UnityAction next)
@@ -60,15 +57,9 @@ namespace Vertigo.Wheel.Views
             _nextButton.onClick.RemoveListener(next);
         }
 
-        internal WheelRewardOpeningRootBinding CreateRootBinding()
-        {
-            return new WheelRewardOpeningRootBinding(_root, _titleText, _canvasGroup, _contentRoot);
-        }
+        internal WheelRewardOpeningRootBinding CreateRootBinding() => new WheelRewardOpeningRootBinding(_root, _titleText, _canvasGroup, _contentRoot);
 
-        internal WheelRewardOpeningDeckRenderer CreateDeckRenderer()
-        {
-            return new WheelRewardOpeningDeckRenderer(_rewardCards);
-        }
+        internal WheelRewardOpeningDeckRenderer CreateDeckRenderer() => new WheelRewardOpeningDeckRenderer(_rewardCards);
 
         internal WheelRewardOpeningScroller CreateScroller(UnityEngine.Object tweenTarget)
         {
@@ -85,7 +76,7 @@ namespace Vertigo.Wheel.Views
         internal WheelRewardOpeningBurst CreateBurst(UnityEngine.Object tweenTarget)
         {
             return new WheelRewardOpeningBurst(
-                new WheelRewardOpeningBurstBinding(_rewardBurstCamera, _rewardBurstDisplay, _rewardBurstParticle),
+                new WheelRewardOpeningBurstBinding(_rewardBurstDisplay, _rewardBurstParticle),
                 tweenTarget);
         }
     }

@@ -30,7 +30,7 @@ namespace Vertigo.Wheel.Runtime
         private string _summary = string.Empty;
         private bool _dirty;
 
-        public int Count { get { return _rewards.Count; } }
+        public int Count => _rewards.Count;
 
         public void Clear()
         {
@@ -57,18 +57,10 @@ namespace Vertigo.Wheel.Runtime
             int index = 0;
             for (int i = 0; i < _rewardOrder.Count; i++)
             {
-                if (index >= buffer.Length)
-                {
-                    break;
-                }
-
+                if (index >= buffer.Length) break;
                 string rewardId = _rewardOrder[i];
                 RewardStack stack;
-                if (!_rewards.TryGetValue(rewardId, out stack))
-                {
-                    continue;
-                }
-
+                if (!_rewards.TryGetValue(rewardId, out stack)) continue;
                 buffer[index] = stack.ToEntry(rewardId);
                 index++;
             }
@@ -78,11 +70,7 @@ namespace Vertigo.Wheel.Runtime
 
         public string BuildSummary(string emptySummary)
         {
-            if (!_dirty)
-            {
-                return string.IsNullOrEmpty(_summary) ? emptySummary : _summary;
-            }
-
+            if (!_dirty) return string.IsNullOrEmpty(_summary) ? emptySummary : _summary;
             return RebuildSummary(emptySummary);
         }
 
@@ -95,11 +83,7 @@ namespace Vertigo.Wheel.Runtime
 
         private void MoveRewardToNewest(string rewardId, bool alreadyTracked)
         {
-            if (alreadyTracked)
-            {
-                _rewardOrder.Remove(rewardId);
-            }
-
+            if (alreadyTracked) _rewardOrder.Remove(rewardId);
             _rewardOrder.Add(rewardId);
         }
 
@@ -111,16 +95,8 @@ namespace Vertigo.Wheel.Runtime
             {
                 string rewardId = _rewardOrder[i];
                 RewardStack stack;
-                if (!_rewards.TryGetValue(rewardId, out stack))
-                {
-                    continue;
-                }
-
-                if (index > 0)
-                {
-                    _builder.Append("  ");
-                }
-
+                if (!_rewards.TryGetValue(rewardId, out stack)) continue;
+                if (index > 0) _builder.Append("  ");
                 _builder.Append(stack.DisplayName);
                 _builder.Append(" x");
                 _builder.Append(stack.Amount);
@@ -151,10 +127,7 @@ namespace Vertigo.Wheel.Runtime
 
             public void RefreshPresentation(WheelSpinResult result)
             {
-                if (result.Icon != null)
-                {
-                    Icon = result.Icon;
-                }
+                if (result.Icon != null) Icon = result.Icon;
             }
 
             public void AddAmount(int amount)
@@ -162,10 +135,7 @@ namespace Vertigo.Wheel.Runtime
                 Amount += amount;
             }
 
-            public RewardInventoryEntry ToEntry(string rewardId)
-            {
-                return new RewardInventoryEntry(rewardId, DisplayName, Amount, Icon, AccentColor);
-            }
+            public RewardInventoryEntry ToEntry(string rewardId) => new RewardInventoryEntry(rewardId, DisplayName, Amount, Icon, AccentColor);
         }
     }
 }

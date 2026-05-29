@@ -17,3 +17,7 @@ MonoBehaviour:
     _scaleDuration: 0.26
     _startScale: 0.92
     _scaleEase: 27
+    _bombFlashColor: {r: 1, g: 0.22, b: 0.04, a: 1}
+    _rewardFlashColor: {r: 1, g: 0.8, b: 0.28, a: 1}
+    _bombFlashAlpha: 0.22
+    _rewardFlashAlpha: 0.34

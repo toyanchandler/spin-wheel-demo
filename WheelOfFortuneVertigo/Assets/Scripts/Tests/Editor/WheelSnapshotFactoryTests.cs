@@ -7,23 +7,22 @@ namespace Vertigo.Wheel.Tests
 {
     public sealed class WheelSnapshotFactoryTests
     {
+        private WheelTestObjectScope _scope;
         private WheelGameSettings _settings;
         private WheelGameState _state;
-        private GameObject _stateObject;
 
         [SetUp]
         public void SetUp()
         {
-            _state = WheelTestFixtures.CreateState(out _settings);
-            _stateObject = _state.gameObject;
+            _scope = new WheelTestObjectScope();
+            _state = WheelTestFixtures.CreateState(_scope, out _settings);
         }
 
         [TearDown]
         public void TearDown()
         {
             WheelRuntimeLocator.Clear();
-            Object.DestroyImmediate(_stateObject);
-            Object.DestroyImmediate(_settings);
+            _scope.DestroyAll();
         }
 
         [Test]
@@ -51,6 +50,23 @@ namespace Vertigo.Wheel.Tests
         }
 
         [Test]
+        public void CreateZone_ResolvesSkinSprites_FromSettingsCatalog()
+        {
+            _state.PrepareCurrentZone();
+
+            WheelZoneSnapshot snapshot = WheelSnapshotFactory.CreateZone(_state);
+
+            Assert.IsNotNull(snapshot.WheelBaseSprite);
+            Assert.IsNotNull(snapshot.IndicatorSprite);
+            Assert.AreEqual(
+                _settings.SkinCatalog.GetWheelBase(snapshot.SkinTier),
+                snapshot.WheelBaseSprite);
+            Assert.AreEqual(
+                _settings.SkinCatalog.GetIndicator(snapshot.SkinTier),
+                snapshot.IndicatorSprite);
+        }
+
+        [Test]
         public void CreateHud_ReflectsGameplayGuards_FromState()
         {
             WheelHudSnapshot readySnapshot = WheelSnapshotFactory.CreateHud(_state);
@@ -70,7 +86,7 @@ namespace Vertigo.Wheel.Tests
         [Test]
         public void CreateOutcome_UsesInventorySummary_ForCashedOutPhase()
         {
-            WheelSpinResult reward = WheelTestFixtures.CreateRewardResult(0, "gold", "Gold", 2);
+            WheelSpinResult reward = WheelTestFixtures.CreateRewardResult(_scope, 0, "gold", "Gold", 2);
             _state.Resolve(reward);
 
             WheelOutcomeSnapshot snapshot = WheelSnapshotFactory.CreateOutcome(

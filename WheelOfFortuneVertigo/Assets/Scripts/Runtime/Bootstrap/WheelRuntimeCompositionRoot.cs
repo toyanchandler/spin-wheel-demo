@@ -5,12 +5,15 @@ using Vertigo.Wheel.Data;
 
 namespace Vertigo.Wheel.Runtime
 {
+    /// <summary>
+    /// Boots the gameplay session on <c>game_wheel_runtime</c>.
+    /// See <c>ARCHITECTURE_AND_LOGIC.md</c> section 3 for lifecycle order.
+    /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class WheelRuntimeCompositionRoot : MonoBehaviour
     {
-        private static WheelRuntimeCompositionRoot _active;
-
         private readonly WheelEventBus _eventBus = new WheelEventBus();
+        private IRandomSource _randomSource = UnityRandomSource.Shared;
         private WheelGameSettings _settings;
         private WheelGameState _state;
         private WheelStatePublisher _publisher;
@@ -19,61 +22,19 @@ namespace Vertigo.Wheel.Runtime
         private bool _isRunning;
         private bool _hasConfiguredTween;
 
-        public static WheelRuntimeCompositionRoot Active { get { return _active; } }
-        public bool IsRunning { get { return _isRunning; } }
-        public WheelEventBus SessionEventBus { get { return _eventBus; } }
-        public WheelGameSettings GameSettings { get { return _settings; } }
-        public WheelGameState GameState { get { return _state; } }
-        public WheelStatePublisher StatePublisher { get { return _publisher; } }
-        public WheelSpinner Spinner { get { return _spinner; } }
-
-        private void Awake()
-        {
-            _active = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (_active == this)
-            {
-                _active = null;
-            }
-        }
+        public bool IsRunning => _isRunning;
+        public WheelEventBus SessionEventBus => _eventBus;
+        public WheelGameSettings GameSettings => _settings;
+        public WheelGameState GameState => _state;
+        public WheelStatePublisher StatePublisher => _publisher;
+        public WheelSpinner Spinner => _spinner;
 
         public void RegisterSpinner(WheelSpinner spinner)
         {
-            if (spinner == null)
+            if (spinner != null)
             {
-                return;
+                _spinner = spinner;
             }
-
-            _spinner = spinner;
-        }
-
-        private void EnsureGameplayComponents()
-        {
-            if (_state == null)
-            {
-                _state = GetComponent<WheelGameState>();
-            }
-
-            if (_publisher == null)
-            {
-                _publisher = GetComponent<WheelStatePublisher>();
-            }
-
-            if (_flow == null)
-            {
-                _flow = GetComponent<WheelGameFlowController>();
-            }
-
-            WheelGameConfigSource configSource = GetComponent<WheelGameConfigSource>();
-            if (configSource == null || configSource.Settings == null)
-            {
-                throw new InvalidOperationException("game_wheel_runtime requires WheelGameConfigSource with WheelGameSettings assigned.");
-            }
-
-            _settings = configSource.Settings;
         }
 
         private void Start()
@@ -134,38 +95,83 @@ namespace Vertigo.Wheel.Runtime
         private void BeginRuntime()
         {
             _isRunning = true;
-            EnsureGameplayComponents();
+            LoadGameplayComponentsFromScene();
+            InitializeGameStateFromSettings();
+            BindGameplaySystems();
+            RegisterSessionAndNotifyViews();
+            StartNewRun();
+        }
+
+        private void LoadGameplayComponentsFromScene()
+        {
+            _state = GetComponent<WheelGameState>();
+            _publisher = GetComponent<WheelStatePublisher>();
+            _flow = GetComponent<WheelGameFlowController>();
+
+            WheelGameConfigSource configSource = GetComponent<WheelGameConfigSource>();
+            if (configSource == null || configSource.Settings == null)
+            {
+                throw new InvalidOperationException(
+                    "game_wheel_runtime requires WheelGameConfigSource with WheelGameSettings assigned.");
+            }
+
+            _settings = configSource.Settings;
+        }
+
+        private void InitializeGameStateFromSettings()
+        {
             ConfigureTweenOnce();
-            _state.InitializeRuntime(_settings);
+            _state.InitializeRuntime(_settings, _randomSource);
+        }
+
+        private void BindGameplaySystems()
+        {
             _publisher.Bind(_eventBus, _state);
-            _spinner?.Bind(_settings);
+
+            ResolveSpinnerFromScene();
+
+            if (_spinner == null)
+            {
+                throw new InvalidOperationException(
+                    "game_wheel_runtime requires a WheelSpinner in the scene.");
+            }
+
+            _spinner.Bind(_settings, _eventBus.Presentation.Spin, _randomSource);
+            _eventBus.Presentation.Spin.RegisterDriver(_spinner);
             _flow.Bind(_eventBus, _state, _publisher, _spinner);
-            WheelRuntimeLocator.NotifyRuntimeReady(_eventBus);
+        }
+
+        private void RegisterSessionAndNotifyViews()
+        {
+            WheelRuntimeLocator.RegisterSession(_eventBus, _settings, _state, _publisher, _flow, _spinner);
+            WheelRuntimeLocator.NotifyRuntimeReady();
+        }
+
+        private void StartNewRun()
+        {
             _state.Restart();
             _publisher.PublishAll();
         }
 
         private void EndRuntime()
         {
-            if (_spinner != null)
-            {
-                _spinner.Unbind();
-            }
-
-            if (_flow != null)
-            {
-                _flow.Unbind();
-            }
-
-            if (_publisher != null)
-            {
-                _publisher.Unbind();
-            }
-
+            _spinner?.Unbind();
+            _flow?.Unbind();
+            _publisher?.Unbind();
             WheelRuntimeLocator.Clear();
             _eventBus.Clear();
             _settings = null;
             _isRunning = false;
+        }
+
+        private void ResolveSpinnerFromScene()
+        {
+            if (_spinner != null)
+            {
+                return;
+            }
+
+            _spinner = FindFirstObjectByType<WheelSpinner>();
         }
 
         private void ConfigureTweenOnce()

@@ -30,20 +30,15 @@ namespace Vertigo.Wheel.Views
         private void OnHudStateChanged(WheelHudSnapshot snapshot)
         {
             WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
-            SetIntervalText(_superBadgeNumberText, milestones.SuperZoneInterval, ref _lastSuperZoneInterval);
-            SetIntervalText(_safeBadgeNumberText, milestones.SafeZoneInterval, ref _lastSafeZoneInterval);
+            SetIntervalText(_superBadgeNumberText, milestones.DisplaySuperZoneInterval, ref _lastSuperZoneInterval);
+            SetIntervalText(_safeBadgeNumberText, milestones.DisplaySafeZoneInterval, ref _lastSafeZoneInterval);
         }
 
         private static void SetIntervalText(TextMeshProUGUI text, int interval, ref int lastInterval)
         {
-            int safeInterval = Mathf.Max(1, interval);
-            if (text == null || safeInterval == lastInterval)
-            {
-                return;
-            }
-
-            text.SetText("{0}", safeInterval);
-            lastInterval = safeInterval;
+            if (text == null || interval == lastInterval) return;
+            text.SetText("{0}", interval);
+            lastInterval = interval;
         }
     }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
@@ -11,82 +12,59 @@ namespace Vertigo.Wheel.Views
             _sliceViews = sliceViews;
         }
 
-        public bool TryResolveIconAnchoredPosition(int sliceIndex, RectTransform targetParent, out Vector2 anchoredPosition)
+        public WheelSlicePointerAnglesCopy CopyPointerAngles(int sliceCount, float[] pointerAngles)
         {
-            anchoredPosition = default(Vector2);
-            return TryResolveIconPresentation(sliceIndex, targetParent, out anchoredPosition, out Sprite _, out Color _);
-        }
-
-        public bool TryCopyPointerAngles(int sliceCount, float[] pointerAngles)
-        {
-            if (sliceCount <= 0 || pointerAngles == null || pointerAngles.Length < sliceCount || _sliceViews == null || _sliceViews.Length < sliceCount)
-            {
-                return false;
-            }
+            if (!CanCopyPointerAngles(sliceCount, pointerAngles)) return WheelSlicePointerAnglesCopy.Failed;
 
             for (int i = 0; i < sliceCount; i++)
             {
                 WheelSliceView sliceView = _sliceViews[i];
-                if (sliceView == null)
-                {
-                    return false;
-                }
+                if (sliceView == null) return WheelSlicePointerAnglesCopy.Failed;
 
-                pointerAngles[i] = NormalizeAngle(sliceView.PointerAngle);
+                pointerAngles[i] = WheelAngleUtility.NormalizeUnsignedAngle(sliceView.PointerAngle);
             }
 
-            return true;
+            return WheelSlicePointerAnglesCopy.Ok;
         }
 
-        public bool TryResolveIconPresentation(
-            int sliceIndex,
-            RectTransform targetParent,
-            out Vector2 anchoredPosition,
-            out Sprite sprite,
-            out Color color)
+        public WheelSliceIconPresentation ResolveIconPresentation(int sliceIndex, RectTransform targetParent)
         {
-            anchoredPosition = default(Vector2);
-            sprite = null;
-            color = Color.white;
-            if (_sliceViews == null || sliceIndex < 0 || sliceIndex >= _sliceViews.Length)
-            {
-                return false;
-            }
+            WheelSliceView sliceView = ResolveIconSlice(sliceIndex);
+            if (sliceView == null) return WheelSliceIconPresentation.Invalid;
 
-            WheelSliceView sliceView = _sliceViews[sliceIndex];
-            if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
-            {
-                return false;
-            }
-
+            Sprite sprite = sliceView.IconSprite;
+            Color color = sliceView.IconColor;
             RectTransform iconRect = sliceView.IconRect;
-            sprite = sliceView.IconSprite;
-            color = sliceView.IconColor;
-            if (iconRect == null || sprite == null)
-            {
-                return false;
-            }
+            if (iconRect == null || sprite == null) return WheelSliceIconPresentation.Invalid;
 
             if (targetParent == null)
             {
-                return true;
+                return new WheelSliceIconPresentation(sprite, color, false, default);
             }
 
-            Canvas canvas = targetParent.GetComponentInParent<Canvas>();
-            if (canvas == null)
+            if (!WheelUiRectProjection.TryProjectToAnchoredPosition(iconRect, targetParent, out Vector2 anchoredPosition))
             {
-                return false;
+                return WheelSliceIconPresentation.Invalid;
             }
 
-            Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
-            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(camera, iconRect.position);
-            return RectTransformUtility.ScreenPointToLocalPointInRectangle(targetParent, screenPoint, camera, out anchoredPosition);
+            return new WheelSliceIconPresentation(sprite, color, true, anchoredPosition);
         }
 
-        private static float NormalizeAngle(float angle)
+        private bool CanCopyPointerAngles(int sliceCount, float[] pointerAngles)
         {
-            angle %= 360f;
-            return angle < 0f ? angle + 360f : angle;
+            return sliceCount > 0
+                && pointerAngles != null
+                && pointerAngles.Length >= sliceCount
+                && _sliceViews != null
+                && _sliceViews.Length >= sliceCount;
+        }
+
+        private WheelSliceView ResolveIconSlice(int sliceIndex)
+        {
+            WheelSliceView sliceView = WheelSliceArrayLookup.Get(_sliceViews, sliceIndex);
+            if (sliceView == null || !sliceView.gameObject.activeInHierarchy) return null;
+
+            return sliceView;
         }
     }
 }

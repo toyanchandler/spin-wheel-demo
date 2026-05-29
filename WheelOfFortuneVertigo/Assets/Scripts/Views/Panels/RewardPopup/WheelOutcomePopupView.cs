@@ -4,12 +4,13 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
+    /// <summary>Outcome popup lifecycle only — presentation lives in <see cref="WheelOutcomePopupPresenter"/>.</summary>
     [WheelBind]
     public sealed class WheelOutcomePopupView : MonoBehaviour
     {
+        [SerializeField] private WheelOutcomePopupBindings _bindings;
+
         [WheelInject] private WheelEventBus _eventBus;
-        [WheelInject] private WheelRewardPanelView _rewardPanelView;
-        [WheelInject] private WheelOutcomePopupBindings _bindings;
 
         private WheelOutcomePopupPresenter _presenter;
 
@@ -20,7 +21,7 @@ namespace Vertigo.Wheel.Views
             _bindings.CaptureHome();
             _presenter = new WheelOutcomePopupPresenter(
                 _bindings.CreateRefs(
-                    _rewardPanelView,
+                    _eventBus.Presentation.Loot,
                     () => _presenter?.CurrentSnapshot ?? default,
                     () => _presenter?.MarkPresentationComplete()),
                 this);
@@ -50,10 +51,16 @@ namespace Vertigo.Wheel.Views
 
         private void ValidateWiring()
         {
-            if (_eventBus == null || _rewardPanelView == null || _bindings == null)
+            if (_eventBus == null)
+            {
+                throw new InvalidOperationException(name + " requires a bound WheelEventBus.");
+            }
+
+            _bindings ??= GetComponent<WheelOutcomePopupBindings>();
+            if (_bindings == null)
             {
                 throw new InvalidOperationException(
-                    name + " outcome popup dependencies are incomplete. Add WheelOutcomePopupBindings to the popup controller.");
+                    name + " outcome popup dependencies are incomplete. Add WheelOutcomePopupBindings on the same GameObject.");
             }
 
             _bindings.Validate();

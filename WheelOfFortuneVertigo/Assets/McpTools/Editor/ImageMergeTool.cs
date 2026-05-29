@@ -26,64 +26,37 @@ namespace Vertigo.Wheel.McpTools
     {
         public static object HandleCommand(JObject @params)
         {
-            if (@params == null)
-            {
-                return new ErrorResponse("Parameters cannot be null.");
-            }
+            if (@params == null) return new ErrorResponse("Parameters cannot be null.");
 
             string targetQuery = @params["target"]?.ToString();
-            if (string.IsNullOrWhiteSpace(targetQuery))
-            {
-                return new ErrorResponse("'target' is required. Use a GameObject name or hierarchy path.");
-            }
+            if (string.IsNullOrWhiteSpace(targetQuery)) return new ErrorResponse("'target' is required. Use a GameObject name or hierarchy path.");
 
             GameObject target = FindSceneObject(targetQuery);
-            if (target == null)
-            {
-                return new ErrorResponse($"Target GameObject '{targetQuery}' was not found in the open scene.");
-            }
+            if (target == null) return new ErrorResponse($"Target GameObject '{targetQuery}' was not found in the open scene.");
 
             var targetRect = target.GetComponent<RectTransform>();
-            if (targetRect == null)
-            {
-                return new ErrorResponse($"Target '{target.name}' is not a RectTransform UI object.");
-            }
+            if (targetRect == null) return new ErrorResponse($"Target '{target.name}' is not a RectTransform UI object.");
 
             bool recursive = @params["recursive"]?.ToObject<bool>() ?? false;
             bool includeInactive = @params["includeInactive"]?.ToObject<bool>() ?? true;
             bool replaceSources = @params["replaceSources"]?.ToObject<bool>() ?? false;
             string mergedObjectName = @params["mergedObjectName"]?.ToString();
-            if (string.IsNullOrWhiteSpace(mergedObjectName))
-            {
-                mergedObjectName = "MergedImage";
-            }
+            if (string.IsNullOrWhiteSpace(mergedObjectName)) mergedObjectName = "MergedImage";
 
             string outputPath = @params["outputPath"]?.ToString();
-            if (string.IsNullOrWhiteSpace(outputPath))
-            {
-                outputPath = "Assets/Art/demo_content/" + SanitizeAssetName(target.name) + "_merged.png";
-            }
+            if (string.IsNullOrWhiteSpace(outputPath)) outputPath = "Assets/Art/demo_content/" + SanitizeAssetName(target.name) + "_merged.png";
 
             string atlasPath = @params["atlasPath"]?.ToString();
-            if (string.IsNullOrWhiteSpace(atlasPath))
-            {
-                atlasPath = "Assets/Art/ui_demo_content.spriteatlas";
-            }
+            if (string.IsNullOrWhiteSpace(atlasPath)) atlasPath = "Assets/Art/ui_demo_content.spriteatlas";
 
             int outputWidth = @params["width"]?.ToObject<int>() ?? Mathf.RoundToInt(Mathf.Abs(targetRect.rect.width));
             int outputHeight = @params["height"]?.ToObject<int>() ?? Mathf.RoundToInt(Mathf.Abs(targetRect.rect.height));
-            if (outputWidth <= 0 || outputHeight <= 0)
-            {
-                return new ErrorResponse("Could not infer output size. Pass positive 'width' and 'height'.");
-            }
+            if (outputWidth <= 0 || outputHeight <= 0) return new ErrorResponse("Could not infer output size. Pass positive 'width' and 'height'.");
 
             HashSet<string> includeNames = ParseNameSet(@params["includeNames"]);
             HashSet<string> excludeNames = ParseNameSet(@params["excludeNames"]);
             List<Image> layers = CollectLayers(target.transform, recursive, includeInactive, mergedObjectName, includeNames, excludeNames);
-            if (layers.Count == 0)
-            {
-                return new ErrorResponse($"No mergeable child Image layers found under '{target.name}'.");
-            }
+            if (layers.Count == 0) return new ErrorResponse($"No mergeable child Image layers found under '{target.name}'.");
 
             try
             {
@@ -97,16 +70,10 @@ namespace Vertigo.Wheel.McpTools
                 string pythonOutput = RunPython(scriptPath, Path.GetFullPath(manifestPath));
                 ImportSprite(outputPath);
                 Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(outputPath);
-                if (sprite == null)
-                {
-                    return new ErrorResponse($"Merged PNG was written but Unity did not import a Sprite at '{outputPath}'.");
-                }
+                if (sprite == null) return new ErrorResponse($"Merged PNG was written but Unity did not import a Sprite at '{outputPath}'.");
 
                 Image mergedImage = CreateOrUpdateMergedImage(targetRect, mergedObjectName, sprite);
-                if (replaceSources)
-                {
-                    RemoveSourceLayers(layers, mergedImage);
-                }
+                if (replaceSources) RemoveSourceLayers(layers, mergedImage);
 
                 AddSpriteToAtlas(sprite, atlasPath);
                 EditorSceneManager.MarkSceneDirty(target.scene);
@@ -207,10 +174,7 @@ namespace Vertigo.Wheel.McpTools
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
-                if (process.ExitCode != 0)
-                {
-                    throw new InvalidOperationException(error);
-                }
+                if (process.ExitCode != 0) throw new InvalidOperationException(error);
 
                 return output.Trim();
             }
@@ -220,10 +184,7 @@ namespace Vertigo.Wheel.McpTools
         {
             Transform child = targetRect.Find(mergedObjectName);
             GameObject mergedObject = child != null ? child.gameObject : new GameObject(mergedObjectName, typeof(RectTransform));
-            if (child == null)
-            {
-                mergedObject.transform.SetParent(targetRect, false);
-            }
+            if (child == null) mergedObject.transform.SetParent(targetRect, false);
 
             var rect = mergedObject.GetComponent<RectTransform>();
             rect.anchorMin = Vector2.zero;
@@ -235,10 +196,7 @@ namespace Vertigo.Wheel.McpTools
             rect.localRotation = Quaternion.identity;
 
             Image image = mergedObject.GetComponent<Image>();
-            if (image == null)
-            {
-                image = mergedObject.AddComponent<Image>();
-            }
+            image ??= mergedObject.AddComponent<Image>();
 
             image.sprite = sprite;
             image.type = Image.Type.Simple;
@@ -254,10 +212,7 @@ namespace Vertigo.Wheel.McpTools
             for (int i = layers.Count - 1; i >= 0; i--)
             {
                 Image image = layers[i];
-                if (image == null || image == mergedImage)
-                {
-                    continue;
-                }
+                if (image == null || image == mergedImage) continue;
 
                 Object.DestroyImmediate(image.gameObject);
             }
@@ -302,30 +257,15 @@ namespace Vertigo.Wheel.McpTools
             HashSet<string> excludeNames,
             List<Image> result)
         {
-            if (image == null || image.transform == root || image.name == mergedObjectName)
-            {
-                return;
-            }
+            if (image == null || image.transform == root || image.name == mergedObjectName) return;
 
-            if (!includeInactive && !image.gameObject.activeInHierarchy)
-            {
-                return;
-            }
+            if (!includeInactive && !image.gameObject.activeInHierarchy) return;
 
-            if (includeNames.Count > 0 && !includeNames.Contains(image.name))
-            {
-                return;
-            }
+            if (includeNames.Count > 0 && !includeNames.Contains(image.name)) return;
 
-            if (excludeNames.Contains(image.name))
-            {
-                return;
-            }
+            if (excludeNames.Contains(image.name)) return;
 
-            if (image.sprite == null && image.color.a <= 0f)
-            {
-                return;
-            }
+            if (image.sprite == null && image.color.a <= 0f) return;
 
             result.Add(image);
         }
@@ -333,10 +273,7 @@ namespace Vertigo.Wheel.McpTools
         private static HashSet<string> ParseNameSet(JToken token)
         {
             var result = new HashSet<string>(StringComparer.Ordinal);
-            if (token == null || token.Type == JTokenType.Null)
-            {
-                return result;
-            }
+            if (token == null || token.Type == JTokenType.Null) return result;
 
             if (token.Type == JTokenType.Array)
             {
@@ -360,20 +297,14 @@ namespace Vertigo.Wheel.McpTools
 
         private static void AddName(HashSet<string> result, string value)
         {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                result.Add(value.Trim());
-            }
+            if (!string.IsNullOrWhiteSpace(value)) result.Add(value.Trim());
         }
 
         private static void ImportSprite(string assetPath)
         {
             AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
             var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (importer == null)
-            {
-                return;
-            }
+            if (importer == null) return;
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
@@ -386,16 +317,10 @@ namespace Vertigo.Wheel.McpTools
 
         private static void AddSpriteToAtlas(Sprite sprite, string atlasPath)
         {
-            if (sprite == null || string.IsNullOrWhiteSpace(atlasPath))
-            {
-                return;
-            }
+            if (sprite == null || string.IsNullOrWhiteSpace(atlasPath)) return;
 
             var atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(atlasPath);
-            if (atlas == null)
-            {
-                return;
-            }
+            if (atlas == null) return;
 
             atlas.Add(new Object[] { sprite });
             atlas.SetIncludeInBuild(true);
@@ -406,24 +331,15 @@ namespace Vertigo.Wheel.McpTools
 
         private static GameObject FindSceneObject(string query)
         {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return null;
-            }
+            if (string.IsNullOrWhiteSpace(query)) return null;
 
             Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
             for (int i = 0; i < transforms.Length; i++)
             {
                 Transform transform = transforms[i];
-                if (EditorUtility.IsPersistent(transform.gameObject) || !transform.gameObject.scene.IsValid())
-                {
-                    continue;
-                }
+                if (EditorUtility.IsPersistent(transform.gameObject) || !transform.gameObject.scene.IsValid()) continue;
 
-                if (transform.name == query || GetPath(transform) == query)
-                {
-                    return transform.gameObject;
-                }
+                if (transform.name == query || GetPath(transform) == query) return transform.gameObject;
             }
 
             return null;
@@ -431,10 +347,7 @@ namespace Vertigo.Wheel.McpTools
 
         private static string GetPath(Transform transform)
         {
-            if (transform == null)
-            {
-                return string.Empty;
-            }
+            if (transform == null) return string.Empty;
 
             string path = transform.name;
             while (transform.parent != null)
@@ -456,10 +369,7 @@ namespace Vertigo.Wheel.McpTools
             return value.Replace(' ', '_');
         }
 
-        private static string Quote(string value)
-        {
-            return "\"" + value.Replace("\"", "\\\"") + "\"";
-        }
+        private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
     }
 }
 #endif

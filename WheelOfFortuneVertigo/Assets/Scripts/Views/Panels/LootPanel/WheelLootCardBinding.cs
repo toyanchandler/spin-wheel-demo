@@ -20,13 +20,13 @@ namespace Vertigo.Wheel.Views
         private Vector2 _shineHomePosition;
         private bool _hasShineHomePosition;
 
-        public Transform RootTransform { get { return _rootTransform; } }
-        public Image ShadowImage { get { return _shadowImage; } }
-        public Image GlowImage { get { return _glowImage; } }
-        public Image ShineImage { get { return _shineImage; } }
-        public Image IconImage { get { return _iconImage; } }
-        public CanvasGroup CanvasGroup { get { return _canvasGroup; } }
-        public Vector2 ShineHomePosition { get { return _shineHomePosition; } }
+        public Transform RootTransform => _rootTransform;
+        public Image ShadowImage => _shadowImage;
+        public Image GlowImage => _glowImage;
+        public Image ShineImage => _shineImage;
+        public Image IconImage => _iconImage;
+        public CanvasGroup CanvasGroup => _canvasGroup;
+        public Vector2 ShineHomePosition => _shineHomePosition;
 
         public WheelLootCardBinding(
             Transform rootTransform,
@@ -55,28 +55,35 @@ namespace Vertigo.Wheel.Views
         public void ApplyFrame(Sprite cardFrameSprite)
         {
             Sprite sprite = _cardArtSprite != null ? _cardArtSprite : cardFrameSprite;
-            if (sprite != null)
-            {
-                _cardImage.sprite = sprite;
-            }
-
+            if (sprite != null) _cardImage.sprite = sprite;
             _cardImage.color = Color.white;
         }
 
-        public void ApplyContent(RewardInventoryEntry entry, string defaultTitle)
+        public void ApplyContent(WheelRewardCardPresentation presentation)
         {
-            _iconImage.sprite = entry.Icon;
-            _iconImage.enabled = entry.Icon != null;
+            _iconImage.sprite = presentation.Icon;
+            _iconImage.enabled = presentation.Icon != null;
             _iconImage.color = Color.white;
-            ApplyTitle(entry.DisplayName, defaultTitle);
-            WheelRewardAmountLabel.Apply(_amountText, entry.Amount, entry.AccentColor);
+            _titleText.text = presentation.TitleText;
+            _titleText.enabled = true;
+
+            if (!presentation.ShowAmountLabel)
+            {
+                _amountText.text = string.Empty;
+                _amountText.enabled = false;
+                return;
+            }
+
+            _amountText.SetText(presentation.AmountText);
+            _amountText.color = presentation.AmountColor;
+            _amountText.enabled = true;
         }
 
-        public void PrepareEntrance(RewardInventoryEntry entry)
+        public void PrepareEntrance(WheelRewardCardPresentation presentation)
         {
             _canvasGroup.alpha = 0f;
             SetShadowAlpha(0f);
-            PrepareGlow(entry.AccentColor);
+            PrepareGlow(presentation.AccentColor);
             PrepareCard();
             CaptureShineHome();
             PrepareShine();
@@ -168,10 +175,7 @@ namespace Vertigo.Wheel.Views
 
         private void CaptureShineHome()
         {
-            if (_hasShineHomePosition)
-            {
-                return;
-            }
+            if (_hasShineHomePosition) return;
 
             _shineHomePosition = _shineImage.rectTransform.anchoredPosition;
             _hasShineHomePosition = true;
@@ -188,19 +192,9 @@ namespace Vertigo.Wheel.Views
 
         private void ResetShine()
         {
-            if (!_hasShineHomePosition)
-            {
-                return;
-            }
+            if (!_hasShineHomePosition) return;
 
             _shineImage.rectTransform.anchoredPosition = _shineHomePosition;
-        }
-
-        private void ApplyTitle(string displayName, string defaultTitle)
-        {
-            string title = string.IsNullOrEmpty(displayName) ? defaultTitle : displayName;
-            _titleText.text = title.ToUpperInvariant();
-            _titleText.enabled = true;
         }
 
         internal readonly struct TweenState

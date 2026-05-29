@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace Vertigo.Wheel.Data
 {
@@ -15,24 +14,22 @@ namespace Vertigo.Wheel.Data
             {
                 throw new InvalidOperationException("WheelGameSettings requires at least one reward for " + zoneType + " zones.");
             }
+
             int sliceCount = settings.SliceCount;
             int bombIndex = WheelSliceSlotCatalog.BombIndexForZone(sliceCount, zone, zoneGameplay);
             WheelSliceSlotProfile bombProfile = WheelSliceSlotCatalog.CreateBombProfile();
-
             int rewardIndex = 0;
+
             for (int i = 0; i < sliceCount; i++)
             {
                 bool isBombSlot = i == bombIndex;
                 RewardDefinition poolReward = source[(zone + rewardIndex) % source.Count];
-                RewardDefinition reward = isBombSlot ? settings.BombReward : poolReward;
-                WheelSliceSlotProfile rewardProfile = WheelSliceSlotCatalog.CreateRewardProfile(poolReward);
-
-                WheelSliceSlotCatalog.ApplySlot(
+                ApplySliceSlot(
                     buffer[i],
                     isBombSlot,
-                    reward,
+                    isBombSlot ? settings.BombReward : poolReward,
+                    poolReward,
                     settings.BombReward.WheelIcon,
-                    rewardProfile,
                     bombProfile);
 
                 if (!isBombSlot)
@@ -42,6 +39,24 @@ namespace Vertigo.Wheel.Data
             }
 
             return sliceCount;
+        }
+
+        private static void ApplySliceSlot(
+            WheelSliceDefinition target,
+            bool isBombSlot,
+            RewardDefinition reward,
+            RewardDefinition poolReward,
+            UnityEngine.Sprite bombWheelIcon,
+            WheelSliceSlotProfile bombProfile)
+        {
+            WheelSliceSlotProfile rewardProfile = WheelSliceSlotCatalog.CreateRewardProfile(poolReward);
+            WheelSliceSlotCatalog.ApplySlot(
+                target,
+                isBombSlot,
+                reward,
+                bombWheelIcon,
+                rewardProfile,
+                bombProfile);
         }
     }
 }

@@ -1,41 +1,25 @@
 using Vertigo.Wheel.Runtime;
-using Vertigo.Wheel.Data;
-using UnityEngine;
 
 namespace Vertigo.Wheel.Views
 {
     public sealed class WheelRestartButtonAction : WheelButtonAction
     {
-        [SerializeField] private WheelRestartButtonRole _role = WheelRestartButtonRole.OutcomeRetry;
+        [UnityEngine.SerializeField] private WheelRestartButtonRole _role = WheelRestartButtonRole.OutcomeRetry;
 
         protected override bool IsVisible(WheelHudSnapshot snapshot)
         {
-            if (_role == WheelRestartButtonRole.RewardOpening)
-            {
-                return snapshot.Phase == WheelGamePhase.CashedOut;
-            }
-
-            if (_role == WheelRestartButtonRole.HiddenMain)
-            {
-                return false;
-            }
-
-            return snapshot.Phase == WheelGamePhase.Bombed;
+            if (_role == WheelRestartButtonRole.RewardOpening) return snapshot.Actions.ShowRewardOpeningRestart;
+            if (_role == WheelRestartButtonRole.HiddenMain) return false;
+            return snapshot.Actions.ShowOutcomeRetryRestart;
         }
 
-        protected override bool IsInteractable(WheelHudSnapshot snapshot)
-        {
-            return snapshot.Actions.CanRestart && IsVisible(snapshot);
-        }
+        protected override bool IsInteractable(WheelHudSnapshot snapshot) => snapshot.Actions.CanRestart && IsVisible(snapshot);
 
-        protected override string ResolveLabel(WheelHudSnapshot snapshot)
-        {
-            return snapshot.Actions.RestartButtonLabel;
-        }
+        protected override string ResolveLabel(WheelHudSnapshot snapshot) => snapshot.Actions.RestartButtonLabel;
 
         protected override void Execute()
         {
-            EventBus.RequestRestart();
+            UiIntents.RequestRestart();
         }
     }
 

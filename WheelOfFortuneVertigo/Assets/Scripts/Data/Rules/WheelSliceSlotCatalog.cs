@@ -5,18 +5,11 @@ namespace Vertigo.Wheel.Data
 {
     public static class WheelSliceSlotCatalog
     {
-        public static int RewardSlotsForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay)
-        {
-            return zoneGameplay.IncludesBombSlot ? sliceCount - 1 : sliceCount;
-        }
+        public static int RewardSlotsForZone(int sliceCount, WheelZoneGameplayProfile zoneGameplay) => zoneGameplay.IncludesBombSlot ? sliceCount - 1 : sliceCount;
 
         public static int BombIndexForZone(int sliceCount, int zone, WheelZoneGameplayProfile zoneGameplay)
         {
-            if (!zoneGameplay.IncludesBombSlot || sliceCount <= 0)
-            {
-                return -1;
-            }
-
+            if (!zoneGameplay.IncludesBombSlot || sliceCount <= 0) return -1;
             int safeZone = Mathf.Max(1, zone);
             return (safeZone - 1) % sliceCount;
         }
@@ -51,9 +44,6 @@ namespace Vertigo.Wheel.Data
                 reward.Amount > 1);
         }
 
-        public static WheelSliceSlotProfile CreateBombProfile()
-        {
-            return WheelSliceSlotProfile.CreateBomb("Bomb", Color.white);
-        }
+        public static WheelSliceSlotProfile CreateBombProfile() => WheelSliceSlotProfile.CreateBomb("Bomb", Color.white);
     }
 }

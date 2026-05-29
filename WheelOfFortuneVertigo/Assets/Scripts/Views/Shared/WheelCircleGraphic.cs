@@ -33,11 +33,7 @@ namespace Vertigo.Wheel.Views
             vertexHelper.Clear();
             Rect rect = rectTransform.rect;
             float radius = Mathf.Min(rect.width, rect.height) * 0.5f;
-            if (radius <= 0f)
-            {
-                return;
-            }
-
+            if (radius <= 0f) return;
             int segments = Mathf.Max(24, _segments);
             float innerRadius = radius * _innerRadius;
             if (innerRadius <= 0.01f)

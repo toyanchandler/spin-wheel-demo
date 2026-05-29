@@ -44,10 +44,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static void WireLayoutSprites(WheelGameSettings settings)
         {
-            if (settings.Layout == null || settings.Layout.RewardCardFrameSprite != null)
-            {
-                return;
-            }
+            if (settings.Layout == null || settings.Layout.RewardCardFrameSprite != null) return;
 
             settings.Layout.BindRewardCardFrameSprite(FindSprite("ui_loot_row_frame_blue"));
             EditorUtility.SetDirty(settings);
@@ -58,13 +55,9 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Config");
             WheelUiCopyCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelUiCopyCatalog>(VertigoWheelPaths.UiCopyCatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<WheelUiCopyCatalog>();
+            catalog ??= ScriptableObject.CreateInstance<WheelUiCopyCatalog>();
                 catalog.ResetToDefaults();
                 AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.UiCopyCatalogPath);
-            }
-
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             return catalog;
@@ -74,12 +67,8 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Config");
             WheelSkinCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelSkinCatalog>(VertigoWheelPaths.SkinCatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<WheelSkinCatalog>();
+            catalog ??= ScriptableObject.CreateInstance<WheelSkinCatalog>();
                 AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.SkinCatalogPath);
-            }
-
             catalog.Configure(
                 WheelSkinTierSprites.Create(
                     FindSprite("ui_spin_bronze_base"),
@@ -100,14 +89,10 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Config");
             WheelOutcomePopupMotionCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelOutcomePopupMotionCatalog>(VertigoWheelPaths.OutcomePopupMotionCatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<WheelOutcomePopupMotionCatalog>();
+            catalog ??= ScriptableObject.CreateInstance<WheelOutcomePopupMotionCatalog>();
                 catalog.ResetToDefaults();
                 AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.OutcomePopupMotionCatalogPath);
                 AssetDatabase.SaveAssets();
-            }
-
             return catalog;
         }
 
@@ -115,14 +100,10 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Config");
             WheelSpinResolveCatalog catalog = AssetDatabase.LoadAssetAtPath<WheelSpinResolveCatalog>(VertigoWheelPaths.SpinResolveCatalogPath);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<WheelSpinResolveCatalog>();
+            catalog ??= ScriptableObject.CreateInstance<WheelSpinResolveCatalog>();
                 catalog.ResetToDefaults();
                 AssetDatabase.CreateAsset(catalog, VertigoWheelPaths.SpinResolveCatalogPath);
                 AssetDatabase.SaveAssets();
-            }
-
             return catalog;
         }
 
@@ -136,10 +117,7 @@ namespace Vertigo.Wheel.EditorTools
                 {
                     string path = AssetDatabase.GUIDToAssetPath(textureGuids[i]);
                     var importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                    if (importer == null)
-                    {
-                        continue;
-                    }
+                    if (importer == null) continue;
 
                     bool dirty = false;
                     if (importer.textureType != TextureImporterType.Sprite)
@@ -219,10 +197,7 @@ namespace Vertigo.Wheel.EditorTools
                         dirty = true;
                     }
 
-                    if (dirty)
-                    {
-                        importer.SaveAndReimport();
-                    }
+                    if (dirty) importer.SaveAndReimport();
                 }
             }
             finally
@@ -235,10 +210,7 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Materials");
             Material material = AssetDatabase.LoadAssetAtPath<Material>(VertigoWheelPaths.MaterialPath);
-            if (material != null)
-            {
-                return material;
-            }
+            if (material != null) return material;
 
             Shader shader = Shader.Find("UI/Default");
             material = new Material(shader) { name = "UI_Default_Batched" };
@@ -252,10 +224,7 @@ namespace Vertigo.Wheel.EditorTools
             TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(VertigoWheelPaths.HudFontAssetPath);
             if (fontAsset != null)
             {
-                if (fontAsset.atlasTexture != null)
-                {
-                    return fontAsset;
-                }
+                if (fontAsset.atlasTexture != null) return fontAsset;
 
                 AssetDatabase.DeleteAsset(VertigoWheelPaths.HudFontAssetPath);
             }
@@ -293,27 +262,17 @@ namespace Vertigo.Wheel.EditorTools
         {
             Directory.CreateDirectory("Assets/Art");
             var atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(VertigoWheelPaths.AtlasPath);
-            if (atlas == null)
-            {
-                atlas = new SpriteAtlas();
+            atlas ??= new SpriteAtlas();
                 AssetDatabase.CreateAsset(atlas, VertigoWheelPaths.AtlasPath);
-            }
-
             Object[] existingPackables = atlas.GetPackables();
-            if (existingPackables.Length > 0)
-            {
-                atlas.Remove(existingPackables);
-            }
+            if (existingPackables.Length > 0) atlas.Remove(existingPackables);
 
             string[] spriteGuids = AssetDatabase.FindAssets("t:Sprite", new[] { VertigoWheelPaths.DemoContentPath });
             var sprites = new List<Object>(spriteGuids.Length);
             for (int i = 0; i < spriteGuids.Length; i++)
             {
                 Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetDatabase.GUIDToAssetPath(spriteGuids[i]));
-                if (sprite != null)
-                {
-                    sprites.Add(sprite);
-                }
+                if (sprite != null) sprites.Add(sprite);
             }
 
             atlas.Add(sprites.ToArray());
@@ -348,10 +307,7 @@ namespace Vertigo.Wheel.EditorTools
         public static Sprite FindSprite(string name)
         {
             string[] guids = AssetDatabase.FindAssets(name + " t:Sprite", new[] { VertigoWheelPaths.DemoContentPath });
-            if (guids.Length == 0)
-            {
-                return null;
-            }
+            if (guids.Length == 0) return null;
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(AssetDatabase.GUIDToAssetPath(guids[0]));
         }

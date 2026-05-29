@@ -7,7 +7,7 @@ using Vertigo.Wheel.Runtime;
 namespace Vertigo.Wheel.Views
 {
     [WheelBind]
-    public sealed class WheelView : MonoBehaviour
+    public sealed class WheelView : MonoBehaviour, IWheelSliceLayoutPresenter
     {
         [SerializeField] private Transform _slicePoolRoot;
 
@@ -15,7 +15,6 @@ namespace Vertigo.Wheel.Views
         [SerializeField] private WheelSliceView[] _sliceViews = Array.Empty<WheelSliceView>();
 
         [WheelInject] private WheelEventBus _eventBus;
-        [WheelInject] private WheelSpinner _spinner;
         private WheelSlicePresentationResolver _presentationResolver;
         private WheelSliceVisualState _visualState;
         private WheelViewImpactAnimator _impactAnimator;
@@ -25,9 +24,9 @@ namespace Vertigo.Wheel.Views
         {
             RequireSliceViews();
             _presentationResolver = new WheelSlicePresentationResolver(_sliceViews);
-            _impactAnimator = new WheelViewImpactAnimator(_spinner);
+            _impactAnimator = new WheelViewImpactAnimator(_eventBus.Presentation.Spin, this);
             _visualState = new WheelSliceVisualState(_sliceViews, _impactAnimator.PlayBombShake);
-            _spinner.SetWheelView(this);
+            _eventBus.Presentation.Spin.RegisterSliceLayout(this);
             _eventBus.ZoneChanged += OnZoneChanged;
             _eventBus.SpinLanded += OnSpinLanded;
             _eventBus.OutcomeResolved += OnOutcomeResolved;
@@ -36,8 +35,7 @@ namespace Vertigo.Wheel.Views
         [WheelBeforeUnbind]
         private void Disconnect()
         {
-            _spinner.ClearWheelView(this);
-
+            _eventBus.Presentation.Spin.RegisterSliceLayout(null);
             _eventBus.ZoneChanged -= OnZoneChanged;
             _eventBus.SpinLanded -= OnSpinLanded;
             _eventBus.OutcomeResolved -= OnOutcomeResolved;
@@ -45,41 +43,19 @@ namespace Vertigo.Wheel.Views
 
         public void ApplyUprightSlicePresentations(float wheelLocalEulerZ)
         {
-            if (_sliceViews == null)
-            {
-                return;
-            }
-
+            if (_sliceViews == null) return;
             for (int i = 0; i < _sliceViews.Length; i++)
             {
                 WheelSliceView sliceView = _sliceViews[i];
-                if (sliceView == null || !sliceView.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
+                if (sliceView == null || !sliceView.gameObject.activeInHierarchy) continue;
 
-                sliceView.ApplyUprightPresentation(wheelLocalEulerZ);
+                sliceView.ApplyCounterRotationForWheelRoot(wheelLocalEulerZ);
             }
         }
 
-        public bool TryResolveSliceIconAnchoredPosition(int sliceIndex, RectTransform targetParent, out Vector2 anchoredPosition)
+        public WheelSlicePointerAnglesCopy CopySlicePointerAngles(int sliceCount, float[] pointerAngles)
         {
-            return _presentationResolver.TryResolveIconAnchoredPosition(sliceIndex, targetParent, out anchoredPosition);
-        }
-
-        public bool TryCopySlicePointerAngles(int sliceCount, float[] pointerAngles)
-        {
-            return _presentationResolver.TryCopyPointerAngles(sliceCount, pointerAngles);
-        }
-
-        public bool TryResolveSliceIconPresentation(
-            int sliceIndex,
-            RectTransform targetParent,
-            out Vector2 anchoredPosition,
-            out Sprite sprite,
-            out Color color)
-        {
-            return _presentationResolver.TryResolveIconPresentation(sliceIndex, targetParent, out anchoredPosition, out sprite, out color);
+            return _presentationResolver.CopyPointerAngles(sliceCount, pointerAngles);
         }
 
         public void SuppressSliceRewardVisual(int sliceIndex)
@@ -107,7 +83,7 @@ namespace Vertigo.Wheel.Views
             _visualState.ClearImpactHighlight();
             WheelSlicePoolRenderer.Render(
                 _sliceViews,
-                snapshot.Slices,
+                snapshot.SlicePresentations,
                 snapshot.SliceCount);
             _visualState.ApplySuppressedSliceRewardVisual();
         }
@@ -133,6 +109,5 @@ namespace Vertigo.Wheel.Views
                     name + " has no slice views. Collect children in the inspector or rebuild the scene.");
             }
         }
-
     }
 }

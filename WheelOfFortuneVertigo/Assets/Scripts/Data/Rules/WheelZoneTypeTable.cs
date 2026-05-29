@@ -6,10 +6,7 @@ namespace Vertigo.Wheel.Data
         {
             for (int i = 0; i < rules.Length; i++)
             {
-                if (zone % rules[i].Interval == 0)
-                {
-                    return rules[i].ZoneType;
-                }
+                if (zone % rules[i].Interval == 0) return rules[i].ZoneType;
             }
 
             return fallback;

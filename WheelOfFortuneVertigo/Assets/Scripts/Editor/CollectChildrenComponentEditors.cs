@@ -28,18 +28,10 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawCollectionControls()
         {
             List<FieldInfo> fields = FindCollectChildrenFields(target.GetType());
-            if (fields.Count == 0)
-            {
-                return;
-            }
-
+            if (fields.Count == 0) return;
             ChildCollectionEditorGui.DrawSectionHeader();
 
-            for (int i = 0; i < fields.Count; i++)
-            {
-                DrawFieldControls(fields[i]);
-            }
-
+            for (int i = 0; i < fields.Count; i++) DrawFieldControls(fields[i]);
             ChildCollectionEditorPrefs.HelpFoldout = ChildCollectionEditorGui.DrawInfoFoldout(
                 ChildCollectionEditorPrefs.HelpFoldout,
                 HelpText);
@@ -50,26 +42,14 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawFieldControls(FieldInfo field)
         {
             var property = serializedObject.FindProperty(field.Name);
-            if (property == null)
-            {
-                return;
-            }
-
+            if (property == null) return;
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField(ObjectNames.NicifyVariableName(field.Name), EditorStyles.miniBoldLabel);
 
             EditorGUI.BeginDisabledGroup(targets.Length != 1);
             ChildCollectionEditorGui.DrawActionButtons(out bool collectClicked, out bool resetClicked);
-            if (collectClicked)
-            {
-                ChildCollectionEditorService.Collect((MonoBehaviour)target, property);
-            }
-
-            if (resetClicked)
-            {
-                ChildCollectionEditorService.Reset((MonoBehaviour)target, property);
-            }
-
+            if (collectClicked) ChildCollectionEditorService.Collect((MonoBehaviour)target, property);
+            if (resetClicked) ChildCollectionEditorService.Reset((MonoBehaviour)target, property);
             EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.EndVertical();
@@ -84,10 +64,7 @@ namespace Vertigo.Wheel.EditorTools
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly);
                 for (int i = 0; i < declaredFields.Length; i++)
                 {
-                    if (declaredFields[i].GetCustomAttribute<CollectChildrenAttribute>() != null)
-                    {
-                        fields.Add(declaredFields[i]);
-                    }
+                    if (declaredFields[i].GetCustomAttribute<CollectChildrenAttribute>() != null) fields.Add(declaredFields[i]);
                 }
 
                 type = type.BaseType;

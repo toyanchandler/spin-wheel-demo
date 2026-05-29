@@ -13,18 +13,12 @@ namespace Vertigo.Collections.Editor
         public static ChildCollectionSettings FromHost(MonoBehaviour host, CollectChildrenAttribute attribute, Transform rootOverride)
         {
             Transform root = host.transform;
-            if (rootOverride != null)
-            {
-                root = rootOverride;
-            }
+            if (rootOverride != null) root = rootOverride;
             else if (!string.IsNullOrEmpty(attribute.RootProperty))
             {
                 var serializedObject = new UnityEditor.SerializedObject(host);
                 UnityEditor.SerializedProperty rootProperty = serializedObject.FindProperty(attribute.RootProperty);
-                if (rootProperty != null && rootProperty.propertyType == UnityEditor.SerializedPropertyType.ObjectReference)
-                {
-                    root = rootProperty.objectReferenceValue as Transform;
-                }
+                if (rootProperty != null && rootProperty.propertyType == UnityEditor.SerializedPropertyType.ObjectReference) root = rootProperty.objectReferenceValue as Transform;
 
                 if (root == null)
                 {

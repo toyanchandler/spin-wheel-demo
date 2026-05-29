@@ -52,11 +52,7 @@ namespace Vertigo.Wheel.EditorTools
 
         public static void MarkSceneDirty(Component component)
         {
-            if (component == null || !component.gameObject.scene.IsValid())
-            {
-                return;
-            }
-
+            if (component == null || !component.gameObject.scene.IsValid()) return;
             EditorSceneManager.MarkSceneDirty(component.gameObject.scene);
         }
     }

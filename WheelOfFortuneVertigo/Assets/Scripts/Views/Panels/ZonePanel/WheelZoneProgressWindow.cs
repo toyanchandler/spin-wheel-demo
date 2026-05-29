@@ -13,9 +13,6 @@ namespace Vertigo.Wheel.Views
             WindowStart = snapshot.Zone - cellCount / 2;
         }
 
-        public int ZoneAtSlot(int slotIndex)
-        {
-            return WindowStart + slotIndex;
-        }
+        public int ZoneAtSlot(int slotIndex) => WindowStart + slotIndex;
     }
 }

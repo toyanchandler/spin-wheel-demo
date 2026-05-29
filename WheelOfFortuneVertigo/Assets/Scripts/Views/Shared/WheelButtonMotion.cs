@@ -15,9 +15,6 @@ namespace Vertigo.Wheel.Views
         public static readonly Vector3 PressOutScale = new Vector3(1.08f, 1.08f, 1f);
         public static readonly Vector3 IdlePulseScale = new Vector3(1.025f, 1.025f, 1f);
 
-        public static Vector3 UniformScale(float value)
-        {
-            return new Vector3(value, value, 1f);
-        }
+        public static Vector3 UniformScale(float value) => new Vector3(value, value, 1f);
     }
 }

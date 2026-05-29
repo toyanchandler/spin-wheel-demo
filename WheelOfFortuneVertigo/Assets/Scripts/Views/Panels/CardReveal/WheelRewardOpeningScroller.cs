@@ -51,18 +51,10 @@ namespace Vertigo.Wheel.Views
 
         public void FocusCardIndex(int index)
         {
-            if (_cards.Length == 0)
-            {
-                return;
-            }
-
+            if (_cards.Length == 0) return;
             int clampedIndex = Mathf.Clamp(index, 0, Mathf.Max(0, _visibleCardCount - 1));
             RectTransform cardRect = _cards[clampedIndex].GetComponent<RectTransform>();
-            if (cardRect == null)
-            {
-                return;
-            }
-
+            if (cardRect == null) return;
             float maxScrollX = ResolveMaxScrollX();
             float cardLeft = cardRect.anchoredPosition.x - (cardRect.rect.width * cardRect.pivot.x);
             float targetX = Mathf.Clamp(cardLeft - WheelRewardOpeningMotion.ScrollEdgePadding, 0f, maxScrollX);
@@ -74,17 +66,9 @@ namespace Vertigo.Wheel.Views
         public void PlayReverseReveal(int visibleCount)
         {
             Stop();
-            if (visibleCount <= 1)
-            {
-                return;
-            }
-
+            if (visibleCount <= 1) return;
             float maxScrollX = ResolveMaxScrollX();
-            if (maxScrollX <= 1f)
-            {
-                return;
-            }
-
+            if (maxScrollX <= 1f) return;
             float revealDuration = Mathf.Min(
                 WheelRewardCardView.OpeningFeaturedRevealMaxDelay,
                 (visibleCount - 1) * WheelRewardCardView.OpeningFeaturedRevealStep);
@@ -139,24 +123,15 @@ namespace Vertigo.Wheel.Views
             SetButtonState(_nextButton, hasOverflow, position < 1f - WheelRewardOpeningMotion.ScrollEndTolerance);
         }
 
-        private float ResolveVisibleContentWidth()
-        {
-            return ResolveVisibleContentWidth(_visibleCardCount);
-        }
+        private float ResolveVisibleContentWidth() => ResolveVisibleContentWidth(_visibleCardCount);
 
         private float ResolveVisibleContentWidth(int visibleCardCount)
         {
-            if (visibleCardCount <= 0 || _cards.Length == 0)
-            {
-                return 0f;
-            }
+            if (visibleCardCount <= 0 || _cards.Length == 0) return 0f;
 
             int lastIndex = Mathf.Min(visibleCardCount, _cards.Length) - 1;
             RectTransform lastRect = _cards[lastIndex].GetComponent<RectTransform>();
-            if (lastRect == null)
-            {
-                return _contentRect.rect.width;
-            }
+            if (lastRect == null) return _contentRect.rect.width;
 
             float cardLeft = lastRect.anchoredPosition.x - (lastRect.rect.width * lastRect.pivot.x);
             return cardLeft + lastRect.rect.width + WheelRewardOpeningMotion.ScrollEdgePadding;
@@ -170,10 +145,7 @@ namespace Vertigo.Wheel.Views
 
         private float ResolveCardScrollStep()
         {
-            if (_cards.Length == 0 || _cards[0] == null)
-            {
-                return WheelRewardOpeningMotion.DefaultCardStep * WheelRewardOpeningMotion.ScrollButtonStepCards;
-            }
+            if (_cards.Length == 0 || _cards[0] == null) return WheelRewardOpeningMotion.DefaultCardStep * WheelRewardOpeningMotion.ScrollButtonStepCards;
 
             RectTransform firstRect = _cards[0].GetComponent<RectTransform>();
             float firstWidth = firstRect == null ? WheelRewardOpeningMotion.DefaultCardWidth : firstRect.rect.width;
@@ -183,16 +155,10 @@ namespace Vertigo.Wheel.Views
 
         private float ResolveCardSpacing(RectTransform firstRect)
         {
-            if (_cards.Length < 2 || _cards[1] == null || firstRect == null)
-            {
-                return WheelRewardOpeningMotion.DefaultCardSpacing;
-            }
+            if (_cards.Length < 2 || _cards[1] == null || firstRect == null) return WheelRewardOpeningMotion.DefaultCardSpacing;
 
             RectTransform secondRect = _cards[1].GetComponent<RectTransform>();
-            if (secondRect == null)
-            {
-                return WheelRewardOpeningMotion.DefaultCardSpacing;
-            }
+            if (secondRect == null) return WheelRewardOpeningMotion.DefaultCardSpacing;
 
             float firstRight = firstRect.anchoredPosition.x + (firstRect.rect.width * (1f - firstRect.pivot.x));
             float secondLeft = secondRect.anchoredPosition.x - (secondRect.rect.width * secondRect.pivot.x);
@@ -206,10 +172,7 @@ namespace Vertigo.Wheel.Views
 
         private static void SetButtonState(Button button, bool visible, bool interactable)
         {
-            if (button == null)
-            {
-                return;
-            }
+            if (button == null) return;
 
             button.gameObject.SetActive(visible);
             button.interactable = visible && interactable;

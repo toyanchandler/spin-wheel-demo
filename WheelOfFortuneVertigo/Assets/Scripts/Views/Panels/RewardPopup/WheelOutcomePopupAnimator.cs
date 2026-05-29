@@ -28,11 +28,7 @@ namespace Vertigo.Wheel.Views
             bool hasOutcome,
             ref Sequence sequence)
         {
-            if (binding.Root.IsVisible)
-            {
-                return;
-            }
-
+            if (binding.Root.IsVisible) return;
             WheelUiTweenUtility.Kill(ref sequence);
             binding.Root.Show();
             PreparePopup(binding, motion, snapshot);
@@ -44,19 +40,38 @@ namespace Vertigo.Wheel.Views
             WheelOutcomePopupMotion motion,
             WheelOutcomeSnapshot snapshot)
         {
-            ConfigureChromeForPhase(binding, snapshot.Phase);
-            binding.ContentRoot.RestoreHome();
-            binding.ContentRoot.SetScale(WheelUiTweenUtility.Scale(binding.ContentRoot.HomeScale, motion.StartScale));
-            binding.Root.SetAlpha(0f);
+            ResetChrome(binding, snapshot.Phase);
+            ResetContentRoot(binding, motion);
+            ResetRewardIcon(binding, snapshot);
+            ResetTransientVfx(binding);
+        }
+
+        private static void ResetChrome(WheelOutcomePopupRefs binding, WheelGamePhase phase)
+        {
+            ConfigureChromeForPhase(binding, phase);
             binding.Chrome.Hide();
             binding.FlightIcon.SetGameObjectActive(false);
             binding.RewardBurstParticle.Clear();
+        }
 
+        private static void ResetContentRoot(WheelOutcomePopupRefs binding, WheelOutcomePopupMotion motion)
+        {
+            binding.ContentRoot.RestoreHome();
+            binding.ContentRoot.SetScale(WheelUiTweenUtility.Scale(binding.ContentRoot.HomeScale, motion.StartScale));
+            binding.Root.SetAlpha(0f);
+        }
+
+        private static void ResetRewardIcon(WheelOutcomePopupRefs binding, WheelOutcomeSnapshot snapshot)
+        {
             Sprite icon = snapshot.Icon;
             Color iconColor = WheelOutcomePopupPalette.VisibleIconColor(snapshot.IconImageColor);
             binding.Icon.ResetTransform(WheelOutcomePopupAnimationConfig.IconStartScale);
             binding.Icon.ApplySprite(icon, iconColor, 0f);
             binding.ResultText.SetAlpha(0f);
+        }
+
+        private static void ResetTransientVfx(WheelOutcomePopupRefs binding)
+        {
             binding.Flash.SetAlpha(0f);
             binding.Shine.SetAlpha(0f);
             WheelUiGraphicUtility.SetLocalScale(binding.Shine.RectTransform, Vector3.one);

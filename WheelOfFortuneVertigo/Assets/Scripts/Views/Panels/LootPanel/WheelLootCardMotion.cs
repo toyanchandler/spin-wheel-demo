@@ -42,19 +42,10 @@ namespace Vertigo.Wheel.Views
         public static readonly Color LostCardColor = new Color(0.17f, 0.075f, 0.058f, 0.70f);
         public static readonly Color LostGlowColor = new Color(1f, 0.22f, 0.06f, 0.16f);
 
-        public static float EntranceDelay(int displayIndex)
-        {
-            return Mathf.Min(MaxEntranceDelay, displayIndex * EntranceDelayStep);
-        }
+        public static float EntranceDelay(int displayIndex) => Mathf.Min(MaxEntranceDelay, displayIndex * EntranceDelayStep);
 
-        public static Vector2 ShimmerStartOffset(float travel)
-        {
-            return new Vector2(-travel, -8f);
-        }
+        public static Vector2 ShimmerStartOffset(float travel) => new Vector2(-travel, -8f);
 
-        public static Vector2 ShimmerEndOffset(float travel)
-        {
-            return new Vector2(travel, 10f);
-        }
+        public static Vector2 ShimmerEndOffset(float travel) => new Vector2(travel, 10f);
     }
 }

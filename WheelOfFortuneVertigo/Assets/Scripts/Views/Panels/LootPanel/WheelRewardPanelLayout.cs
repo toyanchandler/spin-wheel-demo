@@ -42,24 +42,33 @@ namespace Vertigo.Wheel.Views
             _reservedCount = Mathf.Clamp(reservedCount, 0, _cardViews.Length);
             float contentHeight = Mathf.Max(ResolveViewportHeight(), _authoredContentHeight);
             _contentRect.sizeDelta = new Vector2(_contentRect.sizeDelta.x, contentHeight);
-            if (keepGapVisible)
-            {
-                ScrollToNewest(true);
-            }
+            if (keepGapVisible) ScrollToNewest(true);
         }
 
         public void ScrollToNewest(bool animated)
         {
-            if (_scrollRect == null || _contentRect == null || _viewportRect == null)
-            {
-                return;
-            }
+            if (!HasScrollTargets()) return;
 
             _scrollRect.StopMovement();
             StopScroll();
-            float overflow = _contentRect.rect.height - _viewportRect.rect.height;
-            float target = ResolveScrollTarget(overflow);
 
+            float target = ComputeScrollTarget();
+            ApplyScrollTarget(target, animated);
+        }
+
+        private bool HasScrollTargets()
+        {
+            return _scrollRect != null && _contentRect != null && _viewportRect != null;
+        }
+
+        private float ComputeScrollTarget()
+        {
+            float overflow = _contentRect.rect.height - _viewportRect.rect.height;
+            return ResolveScrollTarget(overflow);
+        }
+
+        private void ApplyScrollTarget(float target, bool animated)
+        {
             if (!animated || Mathf.Abs(_scrollRect.verticalNormalizedPosition - target) < WheelRewardPanelMotion.ScrollPositionTolerance)
             {
                 _scrollRect.verticalNormalizedPosition = target;
@@ -83,24 +92,21 @@ namespace Vertigo.Wheel.Views
                 return WheelRewardPanelMotion.ScrollTopNormalizedPosition;
             }
 
-            WheelLootCardView newestCardView = _cardViews[_reservedCount - 1];
-            if (newestCardView == null)
-            {
-                return WheelRewardPanelMotion.ScrollTopNormalizedPosition;
-            }
+            RectTransform newestCard = ResolveNewestCardRect();
+            if (newestCard == null) return WheelRewardPanelMotion.ScrollTopNormalizedPosition;
 
-            RectTransform newestCard = newestCardView.transform as RectTransform;
-            if (newestCard == null)
-            {
-                return WheelRewardPanelMotion.ScrollTopNormalizedPosition;
-            }
-
-            float cardBottomDistanceFromTop = ResolveCardBottomDistanceFromTop(newestCard);
+            float cardBottomDistanceFromTop = MeasureCardBottomDistanceFromTop(newestCard);
             float targetOffset = Mathf.Clamp(cardBottomDistanceFromTop - ResolveViewportHeight(), 0f, overflow);
             return Mathf.Clamp01(1f - (targetOffset / overflow));
         }
 
-        private float ResolveCardBottomDistanceFromTop(RectTransform cardRect)
+        private RectTransform ResolveNewestCardRect()
+        {
+            WheelLootCardView newestCardView = _cardViews[_reservedCount - 1];
+            return newestCardView == null ? null : newestCardView.transform as RectTransform;
+        }
+
+        private float MeasureCardBottomDistanceFromTop(RectTransform cardRect)
         {
             cardRect.GetWorldCorners(_cardCorners);
             float bottom = float.PositiveInfinity;
@@ -113,9 +119,6 @@ namespace Vertigo.Wheel.Views
             return _contentRect.rect.yMax - bottom;
         }
 
-        private float ResolveViewportHeight()
-        {
-            return _viewportRect == null ? 0f : _viewportRect.rect.height;
-        }
+        private float ResolveViewportHeight() => _viewportRect == null ? 0f : _viewportRect.rect.height;
     }
 }

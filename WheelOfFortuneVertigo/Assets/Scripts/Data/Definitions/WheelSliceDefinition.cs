@@ -14,15 +14,15 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private string _displayLabel;
         [SerializeField] private bool _showAmountLabel;
 
-        public bool IsBomb { get { return _isBomb; } }
-        public RewardDefinition Reward { get { return _reward; } }
-        public Sprite DisplayIcon { get { return _displayIcon; } }
-        public int DisplayAmount { get { return _displayAmount; } }
-        public Color DisplayColor { get { return _displayColor; } }
-        public string DisplayLabel { get { return _displayLabel; } }
-        public bool ShowAmountLabel { get { return _showAmountLabel; } }
+        public bool IsBomb => _isBomb;
+        public RewardDefinition Reward => _reward;
+        public Sprite DisplayIcon => _displayIcon;
+        public int DisplayAmount => _displayAmount;
+        public Color DisplayColor => _displayColor;
+        public string DisplayLabel => _displayLabel;
+        public bool ShowAmountLabel => _showAmountLabel;
 
-        public string Label { get { return _displayLabel; } }
+        public string Label => _displayLabel;
 
         public void ApplySlot(
             bool isBomb,

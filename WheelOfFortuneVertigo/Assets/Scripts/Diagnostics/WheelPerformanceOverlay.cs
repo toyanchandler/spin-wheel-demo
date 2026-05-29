@@ -35,11 +35,7 @@ namespace Vertigo.Wheel.Diagnostics
         private void Update()
         {
             _elapsed += Time.unscaledDeltaTime;
-            if (_elapsed < _refreshInterval)
-            {
-                return;
-            }
-
+            if (_elapsed < _refreshInterval) return;
             _elapsed = 0f;
             Render(_monitor.Snapshot(Time.unscaledDeltaTime));
         }

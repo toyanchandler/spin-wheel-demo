@@ -59,10 +59,7 @@ namespace Vertigo.Wheel.EditorTools
             {
                 object size = getGameViewSize.Invoke(group, new object[] { i });
                 string baseText = ReadGameViewSizeText(size);
-                if (baseText == label)
-                {
-                    return;
-                }
+                if (baseText == label) return;
             }
 
             Type sizeType = typeof(Editor).Assembly.GetType("UnityEditor.GameViewSize");
@@ -75,24 +72,12 @@ namespace Vertigo.Wheel.EditorTools
 
         private static string ReadGameViewSizeText(object size)
         {
-            if (size == null)
-            {
-                return string.Empty;
-            }
-
+            if (size == null) return string.Empty;
             Type type = size.GetType();
             PropertyInfo property = type.GetProperty("baseText", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (property != null)
-            {
-                return property.GetValue(size, null) as string;
-            }
-
+            if (property != null) return property.GetValue(size, null) as string;
             MethodInfo method = type.GetMethod("baseText", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (method != null)
-            {
-                return method.Invoke(size, null) as string;
-            }
-
+            if (method != null) return method.Invoke(size, null) as string;
             return string.Empty;
         }
     }

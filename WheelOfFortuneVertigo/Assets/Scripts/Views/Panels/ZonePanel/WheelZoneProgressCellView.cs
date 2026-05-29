@@ -5,34 +5,24 @@ using Vertigo.Wheel.Runtime;
 
 namespace Vertigo.Wheel.Views
 {
-    public enum WheelZoneProgressCellKind
-    {
-        Standard,
-        Safe,
-        Super
-    }
-
     public sealed class WheelZoneProgressCellView : MonoBehaviour
     {
         [SerializeField] private Image _frameImage;
         [SerializeField] private TextMeshProUGUI _valueText;
 
-        private bool _hasLastZone;
-        private int _lastZone;
+        private string _lastZoneText;
 
-        public void Apply(in WheelZoneProgressWindow window, int slotIndex)
+        public void Apply(WheelZoneProgressCellPresentation presentation)
         {
-            int zone = window.ZoneAtSlot(slotIndex);
-            bool isValid = zone > 0;
-            gameObject.SetActive(isValid);
-            if (!isValid)
-            {
-                return;
-            }
+            gameObject.SetActive(presentation.IsActive);
+            if (!presentation.IsActive) return;
 
-            WheelZoneProgressCellKind kind = ResolveKind(window.Snapshot, zone);
-            SetTextIfChanged(zone);
-            SetFrame(kind, zone == window.Snapshot.Zone, window.Snapshot);
+            SetTextIfChanged(presentation.ZoneText);
+            _frameImage.gameObject.SetActive(presentation.ShowFrame);
+            if (presentation.ShowFrame)
+            {
+                _frameImage.color = presentation.FrameColor;
+            }
         }
 
         public bool IsWired()
@@ -41,75 +31,11 @@ namespace Vertigo.Wheel.Views
                 && _valueText != null;
         }
 
-        private static WheelZoneProgressCellKind ResolveKind(WheelHudSnapshot snapshot, int zone)
+        private void SetTextIfChanged(string zoneText)
         {
-            WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
-            if (IsIntervalZone(zone, milestones.SuperZoneInterval))
-            {
-                return WheelZoneProgressCellKind.Super;
-            }
-
-            return IsIntervalZone(zone, milestones.SafeZoneInterval)
-                ? WheelZoneProgressCellKind.Safe
-                : WheelZoneProgressCellKind.Standard;
-        }
-
-        private static bool IsIntervalZone(int zone, int interval)
-        {
-            return interval > 0 && zone % interval == 0;
-        }
-
-        private void SetTextIfChanged(int zone)
-        {
-            if (_hasLastZone && zone == _lastZone)
-            {
-                return;
-            }
-
-            _valueText.SetText("{0}", zone);
-            _hasLastZone = true;
-            _lastZone = zone;
-        }
-
-        private void SetFrame(WheelZoneProgressCellKind kind, bool isCurrentZone, WheelHudSnapshot snapshot)
-        {
-            bool isFramed = isCurrentZone || kind == WheelZoneProgressCellKind.Safe || kind == WheelZoneProgressCellKind.Super;
-            if (_frameImage.gameObject.activeSelf != isFramed)
-            {
-                _frameImage.gameObject.SetActive(isFramed);
-            }
-
-            if (!isFramed)
-            {
-                return;
-            }
-
-            Color frameColor = ResolveFrameColor(kind, isCurrentZone, snapshot);
-            if (_frameImage.color != frameColor)
-            {
-                _frameImage.color = frameColor;
-            }
-        }
-
-        private static Color ResolveFrameColor(
-            WheelZoneProgressCellKind kind,
-            bool isCurrentZone,
-            WheelHudSnapshot snapshot)
-        {
-            WheelHudMilestoneSnapshot milestones = snapshot.Milestones;
-            if (kind == WheelZoneProgressCellKind.Super)
-            {
-                return milestones.SuperMilestoneBadgeColor;
-            }
-
-            if (kind == WheelZoneProgressCellKind.Safe)
-            {
-                return milestones.SafeMilestoneBadgeColor;
-            }
-
-            return isCurrentZone
-                ? new Color(1f, 1f, 1f, 0.92f)
-                : milestones.SafeMilestoneBadgeColor;
+            if (zoneText == _lastZoneText) return;
+            _valueText.SetText(zoneText);
+            _lastZoneText = zoneText;
         }
     }
 }

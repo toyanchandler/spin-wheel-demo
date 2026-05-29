@@ -17,11 +17,7 @@ namespace Vertigo.Wheel.Views
 
         public void Play(int rewardCardCount)
         {
-            if (!_binding.IsAvailable)
-            {
-                return;
-            }
-
+            if (!_binding.IsAvailable) return;
             Stop();
             int visibleCount = Mathf.Clamp(
                 rewardCardCount,

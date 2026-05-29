@@ -13,34 +13,47 @@ namespace Vertigo.Wheel.Views
 
         private Vector3 _homeScale = Vector3.one;
         private bool _hasHomeScale;
-        private readonly WheelSpinner _spinner;
+        private readonly WheelSpinPresentationChannel _spinPresentation;
+        private readonly GameObject _tweenOwner;
 
-        public WheelViewImpactAnimator(WheelSpinner spinner)
+        public WheelViewImpactAnimator(WheelSpinPresentationChannel spinPresentation, Object tweenOwner = null)
         {
-            _spinner = spinner;
+            _spinPresentation = spinPresentation;
+            _tweenOwner = ResolveTweenOwner(tweenOwner);
         }
 
         public void PlayBombShake()
         {
-            if (_spinner == null || _spinner.WheelTransform == null)
-            {
-                return;
-            }
-
-            RectTransform wheelTransform = _spinner.WheelTransform;
+            RectTransform wheelTransform = _spinPresentation?.WheelTransform;
+            if (wheelTransform == null) return;
             if (!_hasHomeScale)
             {
                 _homeScale = wheelTransform.localScale;
                 _hasHomeScale = true;
             }
 
-            wheelTransform.DOKill();
+            DOTween.Kill(wheelTransform);
             wheelTransform.localScale = _homeScale;
             wheelTransform
                 .DOPunchScale(new Vector3(BombPunchScale, BombPunchScale, 0f), BombPunchDuration, BombPunchVibrato, BombPunchElasticity)
                 .SetTarget(wheelTransform)
                 .SetUpdate(true)
-                .SetLink(_spinner.gameObject, LinkBehaviour.KillOnDisable);
+                .SetLink(_tweenOwner != null ? _tweenOwner : wheelTransform.gameObject, LinkBehaviour.KillOnDisable);
+        }
+
+        private static GameObject ResolveTweenOwner(Object tweenOwner)
+        {
+            if (tweenOwner is GameObject gameObject)
+            {
+                return gameObject;
+            }
+
+            if (tweenOwner is Component component)
+            {
+                return component.gameObject;
+            }
+
+            return null;
         }
     }
 }

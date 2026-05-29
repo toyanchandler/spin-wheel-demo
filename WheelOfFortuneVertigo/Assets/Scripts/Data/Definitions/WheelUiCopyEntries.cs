@@ -12,11 +12,11 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private WheelUiColorKey _labelColorKey;
         [SerializeField] private WheelSkinTier _skinTier;
 
-        public ZoneType ZoneType { get { return _zoneType; } }
-        public string Label { get { return _label; } }
-        public string StatusHint { get { return _statusHint; } }
-        public WheelUiColorKey LabelColorKey { get { return _labelColorKey; } }
-        public WheelSkinTier SkinTier { get { return _skinTier; } }
+        public ZoneType ZoneType => _zoneType;
+        public string Label => _label;
+        public string StatusHint => _statusHint;
+        public WheelUiColorKey LabelColorKey => _labelColorKey;
+        public WheelSkinTier SkinTier => _skinTier;
 
         public static WheelZoneUiCopy Create(
             ZoneType zoneType,
@@ -45,11 +45,11 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private bool _hideOutcomePopup;
         [SerializeField] private WheelPhaseGameplayProfile _gameplay;
 
-        public WheelGamePhase Phase { get { return _phase; } }
-        public string StatusMessage { get { return _statusMessage; } }
-        public bool HideStatusBar { get { return _hideStatusBar; } }
-        public bool HideOutcomePopup { get { return _hideOutcomePopup; } }
-        public WheelPhaseGameplayProfile Gameplay { get { return _gameplay; } }
+        public WheelGamePhase Phase => _phase;
+        public string StatusMessage => _statusMessage;
+        public bool HideStatusBar => _hideStatusBar;
+        public bool HideOutcomePopup => _hideOutcomePopup;
+        public WheelPhaseGameplayProfile Gameplay => _gameplay;
 
         public static WheelPhaseUiCopy Create(
             WheelGamePhase phase,
@@ -79,12 +79,12 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private bool _showIcon;
         [SerializeField] private WheelOutcomeResultSource _resultSource;
 
-        public WheelGamePhase Phase { get { return _phase; } }
-        public string Title { get { return _title; } }
-        public string ResultFallback { get { return _resultFallback; } }
-        public WheelUiColorKey ResultColorKey { get { return _resultColorKey; } }
-        public bool ShowIcon { get { return _showIcon; } }
-        public WheelOutcomeResultSource ResultSource { get { return _resultSource; } }
+        public WheelGamePhase Phase => _phase;
+        public string Title => _title;
+        public string ResultFallback => _resultFallback;
+        public WheelUiColorKey ResultColorKey => _resultColorKey;
+        public bool ShowIcon => _showIcon;
+        public WheelOutcomeResultSource ResultSource => _resultSource;
 
         public static WheelOutcomeUiCopy Create(
             WheelGamePhase phase,

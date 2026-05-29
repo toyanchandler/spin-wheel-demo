@@ -8,7 +8,7 @@ namespace Vertigo.Wheel.Views
         public static void PlayEntrance(Object tweenTarget, WheelLootCardBinding binding, int displayIndex)
         {
             DOTween.Kill(tweenTarget);
-            binding.RootTransform.DOKill();
+            DOTween.Kill(binding.RootTransform);
 
             Sequence sequence = DOTween.Sequence()
                 .SetTarget(tweenTarget)

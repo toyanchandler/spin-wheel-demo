@@ -41,21 +41,31 @@ namespace Vertigo.Wheel.Runtime
     public readonly struct WheelZoneSnapshot
     {
         public readonly WheelSliceDefinition[] Slices;
+        public readonly WheelSlicePresentation[] SlicePresentations;
         public readonly int SliceCount;
         public readonly WheelSkinTier SkinTier;
+        public readonly Sprite WheelBaseSprite;
+        public readonly Sprite IndicatorSprite;
         public readonly Color BackgroundColor;
 
         public WheelZoneSnapshot(
             WheelSliceDefinition[] slices,
+            WheelSlicePresentation[] slicePresentations,
             int sliceCount,
             WheelSkinTier skinTier,
+            Sprite wheelBaseSprite,
+            Sprite indicatorSprite,
             Color backgroundColor)
         {
             Slices = slices;
+            SlicePresentations = slicePresentations;
             SliceCount = sliceCount;
             SkinTier = skinTier;
+            WheelBaseSprite = wheelBaseSprite;
+            IndicatorSprite = indicatorSprite;
             BackgroundColor = backgroundColor;
         }
+
     }
 
     public readonly struct WheelOutcomeSnapshot
@@ -104,105 +114,9 @@ namespace Vertigo.Wheel.Runtime
 
     public static class WheelSnapshotFactory
     {
-        public static WheelHudSnapshot CreateHud(WheelGameState state)
-        {
-            WheelGameSettings settings = state.Settings;
-            WheelUiCopyCatalog catalog = settings.UiCopy;
-            WheelThemeSettings theme = settings.Theme;
-            WheelLayoutSettings layout = settings.Layout;
-            ZoneType zoneType = state.ZoneType;
-            WheelZoneUiCopy zoneCopy = catalog.GetZoneCopy(zoneType);
-            string winLabel = state.HasLastResult ? state.LastResult.WinLabel : null;
-            RewardInventoryEntry[] rewardCards = CopyRewardCards(state.Inventory, out int rewardCardCount);
-            int nextSafeZone = ResolveNextZone(state.Zone, settings.SafeZoneInterval);
-            int nextSuperZone = ResolveNextZone(state.Zone, settings.SuperZoneInterval);
+        public static WheelHudSnapshot CreateHud(WheelGameState state) => WheelHudSnapshotBuilder.Create(state);
 
-            return new WheelHudSnapshot(
-                state.Zone,
-                state.Phase,
-                theme.BackgroundColor,
-                new WheelHudZoneLabelsSnapshot(
-                    zoneCopy.Label,
-                    theme.PrimaryTextColor,
-                    catalog.ResolveColor(zoneCopy.LabelColorKey, theme)),
-                new WheelHudMilestoneSnapshot(
-                    settings.SafeZoneInterval,
-                    settings.SuperZoneInterval,
-                    nextSafeZone,
-                    nextSuperZone,
-                    string.Format(catalog.SafeMilestoneBadgeFormat, nextSafeZone),
-                    string.Format(catalog.SuperMilestoneBadgeFormat, nextSuperZone),
-                    theme.SafeMilestoneBadgeBackground,
-                    theme.SuperMilestoneBadgeBackground),
-                new WheelHudStatusSnapshot(
-                    catalog.ResolveStatusMessage(state.Phase, zoneType, winLabel),
-                    !catalog.ShouldHideStatusBar(state.Phase),
-                    theme.SecondaryTextColor),
-                new WheelHudActionsSnapshot(
-                    state.CanSpin,
-                    state.CanLeave,
-                    state.CanRestart,
-                    !catalog.ShouldHideOutcomePopup(state.Phase),
-                    catalog.SpinButtonLabel,
-                    catalog.LeaveButtonLabel,
-                    catalog.RestartButtonLabel),
-                new WheelHudExitConfirmationSnapshot(
-                    catalog.ExitConfirmationTitle,
-                    catalog.ExitConfirmationBody,
-                    catalog.ExitCollectButtonLabel,
-                    catalog.ExitComeBackButtonLabel),
-                new WheelHudRewardCardsSnapshot(
-                    catalog.RewardOpeningTitle,
-                    catalog.DefaultRewardTitle,
-                    layout.RewardCardFrameSprite,
-                    rewardCardCount,
-                    rewardCards));
-        }
-
-        private static RewardInventoryEntry[] CopyRewardCards(RewardInventory inventory, out int rewardCardCount)
-        {
-            int bufferSize = inventory.Count;
-            if (bufferSize <= 0)
-            {
-                rewardCardCount = 0;
-                return System.Array.Empty<RewardInventoryEntry>();
-            }
-
-            var buffer = new RewardInventoryEntry[bufferSize];
-            rewardCardCount = inventory.CopyEntries(buffer);
-            if (rewardCardCount == buffer.Length)
-            {
-                return buffer;
-            }
-
-            var rewardCards = new RewardInventoryEntry[rewardCardCount];
-            System.Array.Copy(buffer, rewardCards, rewardCardCount);
-            return rewardCards;
-        }
-
-        private static int ResolveNextZone(int currentZone, int interval)
-        {
-            int safeInterval = Mathf.Max(1, interval);
-            int remainder = currentZone % safeInterval;
-            if (remainder == 0)
-            {
-                return currentZone;
-            }
-
-            return currentZone + (safeInterval - remainder);
-        }
-
-        public static WheelZoneSnapshot CreateZone(WheelGameState state)
-        {
-            WheelGameSettings settings = state.Settings;
-            WheelZoneUiCopy zoneCopy = settings.UiCopy.GetZoneCopy(state.ZoneType);
-
-            return new WheelZoneSnapshot(
-                state.CreateSliceSnapshot(),
-                state.SliceCount,
-                zoneCopy.SkinTier,
-                settings.Theme.BackgroundColor);
-        }
+        public static WheelZoneSnapshot CreateZone(WheelGameState state) => WheelZoneSnapshotBuilder.Create(state);
 
         public static WheelOutcomeSnapshot CreateOutcome(
             WheelGamePhase phase,
@@ -211,84 +125,7 @@ namespace Vertigo.Wheel.Runtime
             RewardInventory inventory,
             WheelGameSettings settings)
         {
-            WheelOutcomeUiCopy outcomeCopy = settings.UiCopy.GetOutcomeCopy(phase);
-            string resultText = ResolveOutcomeResultText(
-                outcomeCopy.ResultSource,
-                outcomeCopy.ResultFallback,
-                result,
-                hasResult,
-                inventory,
-                settings.UiCopy);
-            string title = outcomeCopy.Title;
-            ApplyRewardOutcomeResultText(phase, result, hasResult, ref resultText);
-            bool showIcon = outcomeCopy.ShowIcon && hasResult && result.Icon != null;
-            bool hasPresentableOutcome = hasResult && showIcon;
-
-            return new WheelOutcomeSnapshot(
-                phase,
-                title,
-                resultText,
-                settings.UiCopy.ResolveColor(outcomeCopy.ResultColorKey, settings.Theme),
-                showIcon ? result.Icon : null,
-                showIcon ? ResolveOutcomeIconColor(result, hasResult) : Color.clear,
-                hasResult ? result.RewardId : string.Empty,
-                hasResult ? result.DisplayName : string.Empty,
-                hasResult ? result.Amount : 0,
-                hasResult ? result.SliceIndex : -1,
-                hasPresentableOutcome,
-                settings.OutcomePopupMotionCatalog.Motion);
-        }
-
-        private static Color ResolveOutcomeIconColor(WheelSpinResult result, bool hasResult)
-        {
-            if (!hasResult)
-            {
-                return Color.clear;
-            }
-
-            Color color = result.AccentColor;
-            color.a = 1f;
-            if (color.maxColorComponent <= 0.02f)
-            {
-                return Color.white;
-            }
-
-            return color;
-        }
-
-        private static void ApplyRewardOutcomeResultText(
-            WheelGamePhase phase,
-            WheelSpinResult result,
-            bool hasResult,
-            ref string resultText)
-        {
-            if (phase != WheelGamePhase.Won || !hasResult || result.IsBomb)
-            {
-                return;
-            }
-
-            string displayName = string.IsNullOrEmpty(result.DisplayName) ? resultText : result.DisplayName;
-            resultText = result.Amount > 1 ? string.Format("{0} x{1}", displayName, result.Amount) : displayName;
-        }
-
-        private static string ResolveOutcomeResultText(
-            WheelOutcomeResultSource resultSource,
-            string resultFallback,
-            WheelSpinResult result,
-            bool hasResult,
-            RewardInventory inventory,
-            WheelUiCopyCatalog catalog)
-        {
-            switch (resultSource)
-            {
-                case WheelOutcomeResultSource.SpinResultLabel:
-                    return hasResult ? result.WinLabel : resultFallback;
-                case WheelOutcomeResultSource.InventorySummary:
-                    return inventory.BuildSummary(catalog.InventoryEmptySummary);
-                case WheelOutcomeResultSource.StaticFallback:
-                default:
-                    return resultFallback;
-            }
+            return WheelOutcomeSnapshotBuilder.Create(phase, result, hasResult, inventory, settings);
         }
     }
 }

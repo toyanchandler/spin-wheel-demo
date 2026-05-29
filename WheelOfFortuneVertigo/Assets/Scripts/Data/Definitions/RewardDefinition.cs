@@ -25,13 +25,13 @@ namespace Vertigo.Wheel.Data
         [NonSerialized] private string _label;
         [NonSerialized] private string _winLabel;
 
-        public string Id { get { return _id; } }
-        public string DisplayName { get { return _displayName; } }
-        public Sprite Icon { get { return _icon; } }
-        public Sprite WheelIcon { get { return _wheelIcon != null ? _wheelIcon : _icon; } }
-        public int Amount { get { return _amount; } }
-        public RewardTier Tier { get { return _tier; } }
-        public Color AccentColor { get { return _accentColor; } }
+        public string Id => _id;
+        public string DisplayName => _displayName;
+        public Sprite Icon => _icon;
+        public Sprite WheelIcon => _wheelIcon != null ? _wheelIcon : _icon;
+        public int Amount => _amount;
+        public RewardTier Tier => _tier;
+        public Color AccentColor => _accentColor;
 
         public string Label
         {
@@ -74,10 +74,7 @@ namespace Vertigo.Wheel.Data
 
         private void RequireCachedText()
         {
-            if (_label == null || _winLabel == null)
-            {
-                throw new InvalidOperationException("RewardDefinition text was not cached. Call CacheRuntimeText first.");
-            }
+            if (_label == null || _winLabel == null) throw new InvalidOperationException("RewardDefinition text was not cached. Call CacheRuntimeText first.");
         }
 
         public void CacheRuntimeText(string winLabelFormat)

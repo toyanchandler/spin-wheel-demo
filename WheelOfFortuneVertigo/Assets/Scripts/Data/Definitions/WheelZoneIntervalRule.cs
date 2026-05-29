@@ -9,8 +9,8 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private int _interval;
         [SerializeField] private ZoneType _zoneType;
 
-        public int Interval { get { return _interval; } }
-        public ZoneType ZoneType { get { return _zoneType; } }
+        public int Interval => _interval;
+        public ZoneType ZoneType => _zoneType;
 
         public static WheelZoneIntervalRule Create(int interval, ZoneType zoneType)
         {

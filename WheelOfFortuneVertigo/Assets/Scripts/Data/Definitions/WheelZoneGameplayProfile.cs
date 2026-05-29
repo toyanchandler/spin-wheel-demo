@@ -9,8 +9,8 @@ namespace Vertigo.Wheel.Data
         [SerializeField] private bool _includesBombSlot;
         [SerializeField] private bool _allowLeave;
 
-        public bool IncludesBombSlot { get { return _includesBombSlot; } }
-        public bool AllowLeave { get { return _allowLeave; } }
+        public bool IncludesBombSlot => _includesBombSlot;
+        public bool AllowLeave => _allowLeave;
 
         public static WheelZoneGameplayProfile Create(bool includesBombSlot, bool allowLeave)
         {

@@ -15,11 +15,8 @@ namespace Vertigo.Wheel.Views
         public const int FinalBurstMax = 24;
 
         public const float FirstBurstDelay = 0.26f;
-        public const float DisplayFadeInAlpha = 0.42f;
-        public const float DisplayFadeInDuration = 0.22f;
         public const float SecondBurstDelay = 0.36f;
         public const float FinalBurstDelay = 0.54f;
         public const float FadeOutDelay = 1.40f;
-        public const float DisplayFadeOutDuration = 0.36f;
     }
 }

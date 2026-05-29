@@ -83,6 +83,11 @@ namespace Vertigo.Wheel.EditorTools
             ResolveAssets(true);
         }
 
+        private void OnDisable()
+        {
+            DestroyCachedTextures();
+        }
+
         private void OnFocus()
         {
             ResolveAssets(true);
@@ -209,50 +214,32 @@ namespace Vertigo.Wheel.EditorTools
                         });
                     }
 
-                    if (GUILayout.Button("Select Main Settings", _secondaryButtonStyle, GUILayout.Height(28f)))
-                    {
-                        SelectObject(_settings);
-                    }
+                    if (GUILayout.Button("Select Main Settings", _secondaryButtonStyle, GUILayout.Height(28f))) SelectObject(_settings);
                 }
             });
 
             DrawCard("Play Mode Commands", "Runtime debug only", "Available while the scene is playing. These commands push deterministic reward states through the same runtime publisher used by gameplay.", () =>
             {
-                if (!Application.isPlaying)
-                {
-                    EditorGUILayout.HelpBox("Enter Play Mode to use reward-panel and force-outcome commands.", MessageType.Info);
-                }
-                else if (WheelRuntimeCompositionRoot.Active == null || !WheelRuntimeCompositionRoot.Active.IsRunning)
+                if (!Application.isPlaying) EditorGUILayout.HelpBox("Enter Play Mode to use reward-panel and force-outcome commands.", MessageType.Info);
+                else if (!WheelRuntimeLocator.IsReady)
                 {
                     EditorGUILayout.HelpBox("Wheel runtime is not ready yet.", MessageType.Warning);
                 }
 
-                using (new EditorGUI.DisabledScope(!CanRunPlayModeCommand()))
+                using (new EditorGUI.DisabledScope(!VertigoWheelDesignerPlayModeCommands.CanRun))
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        if (GUILayout.Button("Reward Panel: 15 Loot", _secondaryButtonStyle, GUILayout.Height(28f)))
-                        {
-                            RunAfterGui(AddFifteenLootToRewardPanel);
-                        }
+                        if (GUILayout.Button("Reward Panel: 15 Loot", _secondaryButtonStyle, GUILayout.Height(28f))) RunAfterGui(VertigoWheelDesignerPlayModeCommands.AddFifteenLootToRewardPanel);
 
-                        if (GUILayout.Button("Open 15 Cards", _secondaryButtonStyle, GUILayout.Height(28f)))
-                        {
-                            RunAfterGui(OpenFifteenRewardCards);
-                        }
+                        if (GUILayout.Button("Open 15 Cards", _secondaryButtonStyle, GUILayout.Height(28f))) RunAfterGui(VertigoWheelDesignerPlayModeCommands.OpenFifteenRewardCards);
                     }
 
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        if (GUILayout.Button("Force Bomb", _secondaryButtonStyle, GUILayout.Height(28f)))
-                        {
-                            RunAfterGui(ForceBombOutcome);
-                        }
+                        if (GUILayout.Button("Force Bomb", _secondaryButtonStyle, GUILayout.Height(28f))) RunAfterGui(VertigoWheelDesignerPlayModeCommands.ForceBombOutcome);
 
-                        if (GUILayout.Button("Force Random Product", _secondaryButtonStyle, GUILayout.Height(28f)))
-                        {
-                            RunAfterGui(ForceRandomProductOutcome);
-                        }
+                        if (GUILayout.Button("Force Random Product", _secondaryButtonStyle, GUILayout.Height(28f))) RunAfterGui(VertigoWheelDesignerPlayModeCommands.ForceRandomProductOutcome);
                     }
                 }
             });
@@ -459,10 +446,7 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawZoneTextRows()
         {
             SerializedProperty zones = FindProperty(_uiCopyObject, "_zones");
-            if (zones == null)
-            {
-                return;
-            }
+            if (zones == null) return;
 
             for (int i = 0; i < zones.arraySize; i++)
             {
@@ -481,10 +465,7 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawOutcomeTextRows()
         {
             SerializedProperty outcomes = FindProperty(_uiCopyObject, "_outcomes");
-            if (outcomes == null)
-            {
-                return;
-            }
+            if (outcomes == null) return;
 
             for (int i = 0; i < outcomes.arraySize; i++)
             {
@@ -512,23 +493,14 @@ namespace Vertigo.Wheel.EditorTools
                 GUILayout.FlexibleSpace();
 
                 EditorGUI.BeginDisabledGroup(asset == null);
-                if (GUILayout.Button("Select", _secondaryButtonStyle, GUILayout.Width(68f), GUILayout.Height(22f)))
-                {
-                    SelectObject(asset);
-                }
+                if (GUILayout.Button("Select", _secondaryButtonStyle, GUILayout.Width(68f), GUILayout.Height(22f))) SelectObject(asset);
 
-                if (GUILayout.Button("Ping", _secondaryButtonStyle, GUILayout.Width(56f), GUILayout.Height(22f)))
-                {
-                    EditorGUIUtility.PingObject(asset);
-                }
+                if (GUILayout.Button("Ping", _secondaryButtonStyle, GUILayout.Width(56f), GUILayout.Height(22f))) EditorGUIUtility.PingObject(asset);
                 EditorGUI.EndDisabledGroup();
             }
 
             rawExpanded = EditorGUILayout.Foldout(rawExpanded, "Raw Inspector Fields", true);
-            if (rawExpanded && serializedObject != null)
-            {
-                DrawRawSerializedObject(serializedObject);
-            }
+            if (rawExpanded && serializedObject != null) DrawRawSerializedObject(serializedObject);
 
             EditorGUILayout.EndVertical();
         }
@@ -562,10 +534,7 @@ namespace Vertigo.Wheel.EditorTools
                     GUILayout.Label(storage, _pillStyle, GUILayout.MaxWidth(Mathf.Min(260f, ContentWidth * 0.45f)));
                 }
 
-                if (!string.IsNullOrEmpty(hint))
-                {
-                    EditorGUILayout.LabelField(hint, _sectionHintStyle);
-                }
+                if (!string.IsNullOrEmpty(hint)) EditorGUILayout.LabelField(hint, _sectionHintStyle);
 
                 EditorGUILayout.Space(7f);
                 content();
@@ -583,208 +552,6 @@ namespace Vertigo.Wheel.EditorTools
                 action();
                 Repaint();
             };
-        }
-
-        private static bool CanRunPlayModeCommand()
-        {
-            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
-            return Application.isPlaying
-                && root != null
-                && root.IsRunning
-                && root.GameState != null
-                && root.StatePublisher != null
-                && root.GameSettings != null
-                && root.Spinner != null
-                && root.SessionEventBus != null;
-        }
-
-        private static void AddFifteenLootToRewardPanel()
-        {
-            if (!TryGetRuntimeParts(out WheelGameState state, out WheelStatePublisher publisher, out WheelGameSettings settings, out WheelSpinner spinner))
-            {
-                return;
-            }
-
-            if (spinner.IsSpinning)
-            {
-                Debug.LogWarning("Cannot add debug loot while the wheel is spinning.");
-                return;
-            }
-
-            state.Restart();
-            int added = AddDebugRewards(state, settings, 15);
-            publisher.PublishAll();
-            Debug.Log("Added " + added + " debug loot entries to the reward panel.");
-        }
-
-        private static void OpenFifteenRewardCards()
-        {
-            if (!TryGetRuntimeParts(out WheelGameState state, out WheelStatePublisher publisher, out WheelGameSettings settings, out WheelSpinner spinner))
-            {
-                return;
-            }
-
-            if (spinner.IsSpinning)
-            {
-                Debug.LogWarning("Cannot open debug reward cards while the wheel is spinning.");
-                return;
-            }
-
-            state.Restart();
-            int added = AddDebugRewards(state, settings, 15);
-            state.CashOut();
-            publisher.PublishHud();
-            publisher.PublishOutcome(default(WheelSpinResult), false);
-            Debug.Log("Opened reward-card reveal with " + added + " debug loot entries.");
-        }
-
-        private static void ForceBombOutcome()
-        {
-            ForceOutcome(true);
-        }
-
-        private static void ForceRandomProductOutcome()
-        {
-            ForceOutcome(false);
-        }
-
-        private static void ForceOutcome(bool bomb)
-        {
-            if (!TryGetRuntimeParts(out WheelGameState state, out WheelStatePublisher publisher, out WheelGameSettings settings, out WheelSpinner spinner))
-            {
-                return;
-            }
-
-            if (spinner.IsSpinning)
-            {
-                Debug.LogWarning("Cannot force an outcome while the wheel is spinning.");
-                return;
-            }
-
-            state.Restart();
-            state.PrepareCurrentZone();
-            publisher.PublishAll();
-
-            int sliceIndex = bomb ? FindBombSliceIndex(state) : FindRandomRewardSliceIndex(state);
-            if (sliceIndex < 0)
-            {
-                Debug.LogWarning(bomb ? "No bomb slice is available in the current debug zone." : "No reward slice is available in the current debug zone.");
-                return;
-            }
-
-            spinner.AcceptSlicesFrom(state);
-            spinner.SnapToSelectionForDebug(sliceIndex);
-
-            WheelSpinResult result = state.CreateSpinResult(sliceIndex);
-            WheelRuntimeCompositionRoot.Active.SessionEventBus.RaiseSpinLanded(result);
-            state.Resolve(result);
-            publisher.PublishZone();
-            publisher.PublishOutcome(result, true);
-            publisher.PublishHud();
-
-            Debug.Log("Forced " + (bomb ? "bomb" : "random product") + " outcome on slice " + sliceIndex + ".");
-        }
-
-        private static bool TryGetRuntimeParts(
-            out WheelGameState state,
-            out WheelStatePublisher publisher,
-            out WheelGameSettings settings,
-            out WheelSpinner spinner)
-        {
-            WheelRuntimeCompositionRoot root = WheelRuntimeCompositionRoot.Active;
-            state = root != null ? root.GameState : null;
-            publisher = root != null ? root.StatePublisher : null;
-            settings = root != null ? root.GameSettings : null;
-            spinner = root != null ? root.Spinner : null;
-            if (root != null
-                && root.IsRunning
-                && state != null
-                && publisher != null
-                && settings != null
-                && spinner != null
-                && root.SessionEventBus != null)
-            {
-                return true;
-            }
-
-            Debug.LogWarning("Wheel runtime is not ready for play-mode commands.");
-            return false;
-        }
-
-        private static int AddDebugRewards(WheelGameState state, WheelGameSettings settings, int targetCount)
-        {
-            state.Inventory.Clear();
-
-            var rewardPool = new List<RewardDefinition>();
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Standard));
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Safe));
-            AddRewardsToPool(rewardPool, settings.GetRewardPool(ZoneType.Super));
-            if (rewardPool.Count == 0)
-            {
-                Debug.LogWarning("No rewards are configured for debug loot commands.");
-                return 0;
-            }
-
-            int added = 0;
-            for (int i = 0; i < targetCount; i++)
-            {
-                RewardDefinition source = rewardPool[i % rewardPool.Count];
-                if (source == null || string.IsNullOrEmpty(source.Id))
-                {
-                    continue;
-                }
-
-                RewardDefinition reward = RewardDefinition.Create(
-                    source.Id + "_debug_" + i,
-                    source.DisplayName,
-                    source.Icon,
-                    source.Amount,
-                    source.Tier,
-                    source.AccentColor,
-                    source.WheelIcon);
-                reward.CacheRuntimeText(settings.UiCopy.WinLabelFormat);
-
-                var slice = new WheelSliceDefinition();
-                slice.ApplySlot(
-                    false,
-                    reward,
-                    reward.WheelIcon,
-                    reward.Amount,
-                    reward.AccentColor,
-                    reward.Label,
-                    true);
-
-                state.Inventory.Add(new WheelSpinResult(added, slice), settings.UiCopy.InventoryFallbackRewardName);
-                added++;
-            }
-
-            return added;
-        }
-
-        private static void AddRewardsToPool(List<RewardDefinition> target, IReadOnlyList<RewardDefinition> source)
-        {
-            if (source == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < source.Count; i++)
-            {
-                if (source[i] != null)
-                {
-                    target.Add(source[i]);
-                }
-            }
-        }
-
-        private static int FindBombSliceIndex(WheelGameState state)
-        {
-            return state.FindFirstSliceIndex(true);
-        }
-
-        private static int FindRandomRewardSliceIndex(WheelGameState state)
-        {
-            return state.SelectRandomRewardSliceIndex();
         }
 
         private void DrawMetric(string label, string value, Color accent)
@@ -820,30 +587,18 @@ namespace Vertigo.Wheel.EditorTools
         private void DrawProperty(SerializedObject serializedObject, string propertyName, string label, bool includeChildren = false)
         {
             SerializedProperty property = FindProperty(serializedObject, propertyName);
-            if (property != null)
-            {
-                EditorGUILayout.PropertyField(property, new GUIContent(label), includeChildren, GUILayout.MaxWidth(ContentWidth));
-            }
+            if (property != null) EditorGUILayout.PropertyField(property, new GUIContent(label), includeChildren, GUILayout.MaxWidth(ContentWidth));
         }
 
         private void DrawRelative(SerializedProperty parent, string propertyName, string label)
         {
-            if (parent == null)
-            {
-                return;
-            }
+            if (parent == null) return;
 
             SerializedProperty property = parent.FindPropertyRelative(propertyName);
-            if (property != null)
-            {
-                EditorGUILayout.PropertyField(property, new GUIContent(label), true, GUILayout.MaxWidth(ContentWidth));
-            }
+            if (property != null) EditorGUILayout.PropertyField(property, new GUIContent(label), true, GUILayout.MaxWidth(ContentWidth));
         }
 
-        private static SerializedProperty FindProperty(SerializedObject serializedObject, string propertyName)
-        {
-            return serializedObject == null ? null : serializedObject.FindProperty(propertyName);
-        }
+        private static SerializedProperty FindProperty(SerializedObject serializedObject, string propertyName) => serializedObject == null ? null : serializedObject.FindProperty(propertyName);
 
         private int GetRewardTotal()
         {
@@ -864,23 +619,14 @@ namespace Vertigo.Wheel.EditorTools
             return property == null ? 0 : property.intValue;
         }
 
-        private float ContentWidth
-        {
-            get { return Mathf.Max(320f, position.width - 54f); }
-        }
+        private float ContentWidth => Mathf.Max(320f, position.width - 54f);
 
         private void ResolveAssets(bool force)
         {
-            if (!force && _settings != null && _settingsObject != null)
-            {
-                return;
-            }
+            if (!force && _settings != null && _settingsObject != null) return;
 
             _settings = AssetDatabase.LoadAssetAtPath<WheelGameSettings>(VertigoWheelPaths.GameSettingsPath);
-            if (_settings == null)
-            {
-                _settings = VertigoWheelAssetPipeline.EnsureGameSettings();
-            }
+            _settings ??= VertigoWheelAssetPipeline.EnsureGameSettings();
 
             if (_settings != null)
             {
@@ -949,10 +695,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private static void UpdateSerializedObject(SerializedObject serializedObject)
         {
-            if (serializedObject != null)
-            {
-                serializedObject.Update();
-            }
+            serializedObject?.Update();
         }
 
         private void ApplySerializedObjects()
@@ -966,23 +709,14 @@ namespace Vertigo.Wheel.EditorTools
 
         private static void ApplySerializedObject(SerializedObject serializedObject)
         {
-            if (serializedObject == null)
-            {
-                return;
-            }
+            if (serializedObject == null) return;
 
-            if (serializedObject.ApplyModifiedProperties())
-            {
-                EditorUtility.SetDirty(serializedObject.targetObject);
-            }
+            if (serializedObject.ApplyModifiedProperties()) EditorUtility.SetDirty(serializedObject.targetObject);
         }
 
         private static void SelectObject(UnityEngine.Object target)
         {
-            if (target == null)
-            {
-                return;
-            }
+            if (target == null) return;
 
             Selection.activeObject = target;
             EditorGUIUtility.PingObject(target);
@@ -990,16 +724,7 @@ namespace Vertigo.Wheel.EditorTools
 
         private void BuildStyles()
         {
-            if (_cardTexture == null)
-            {
-                _cardTexture = MakeTexture(new Color(0.15f, 0.18f, 0.21f, 1f));
-                _fieldTexture = MakeTexture(new Color(0.10f, 0.13f, 0.16f, 1f));
-                _primaryButtonTexture = MakeTexture(new Color(0.10f, 0.53f, 0.66f, 1f));
-                _secondaryButtonTexture = MakeTexture(new Color(0.20f, 0.24f, 0.28f, 1f));
-                _okTexture = MakeTexture(new Color(0.12f, 0.38f, 0.30f, 1f));
-                _missingTexture = MakeTexture(new Color(0.50f, 0.15f, 0.13f, 1f));
-            }
-
+            EnsureCachedTextures();
             _headerTitleStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 fontSize = 22,
@@ -1094,6 +819,37 @@ namespace Vertigo.Wheel.EditorTools
                     background = _missingTexture
                 }
             };
+        }
+
+        private void EnsureCachedTextures()
+        {
+            _cardTexture ??= MakeTexture(new Color(0.15f, 0.18f, 0.21f, 1f));
+            _fieldTexture ??= MakeTexture(new Color(0.10f, 0.13f, 0.16f, 1f));
+            _primaryButtonTexture ??= MakeTexture(new Color(0.10f, 0.53f, 0.66f, 1f));
+            _secondaryButtonTexture ??= MakeTexture(new Color(0.20f, 0.24f, 0.28f, 1f));
+            _okTexture ??= MakeTexture(new Color(0.12f, 0.38f, 0.30f, 1f));
+            _missingTexture ??= MakeTexture(new Color(0.50f, 0.15f, 0.13f, 1f));
+        }
+
+        private void DestroyCachedTextures()
+        {
+            DestroyTexture(ref _cardTexture);
+            DestroyTexture(ref _fieldTexture);
+            DestroyTexture(ref _primaryButtonTexture);
+            DestroyTexture(ref _secondaryButtonTexture);
+            DestroyTexture(ref _okTexture);
+            DestroyTexture(ref _missingTexture);
+        }
+
+        private static void DestroyTexture(ref Texture2D texture)
+        {
+            if (texture == null)
+            {
+                return;
+            }
+
+            DestroyImmediate(texture);
+            texture = null;
         }
 
         private static Texture2D MakeTexture(Color color)

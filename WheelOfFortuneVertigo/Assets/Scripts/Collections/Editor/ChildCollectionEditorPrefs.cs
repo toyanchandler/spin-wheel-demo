@@ -16,10 +16,7 @@ namespace Vertigo.Collections.Editor
             set { EditorPrefs.SetBool(HelpFoldoutKey, value); }
         }
 
-        public static bool GetCollectOnPreprocessBuild(Object host, string fieldName, CollectChildrenAttribute attribute)
-        {
-            return EditorPrefs.GetBool(BuildKey(host, fieldName, PreprocessBuildSuffix), attribute.CollectOnPreprocessBuild);
-        }
+        public static bool GetCollectOnPreprocessBuild(Object host, string fieldName, CollectChildrenAttribute attribute) => EditorPrefs.GetBool(BuildKey(host, fieldName, PreprocessBuildSuffix), attribute.CollectOnPreprocessBuild);
 
         public static void SetCollectOnPreprocessBuild(Object host, string fieldName, bool enabled)
         {
